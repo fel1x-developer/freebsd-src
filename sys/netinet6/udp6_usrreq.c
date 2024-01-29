@@ -554,8 +554,8 @@ udp6_common_ctlinput(struct ip6ctlparam *ip6cp, struct inpcbinfo *pcbinfo)
 	struct inpcb *inp;
 	int errno, off = 0;
 	struct udp_portonly {
-		u_int16_t uh_sport;
-		u_int16_t uh_dport;
+		uint16_t uh_sport;
+		uint16_t uh_dport;
 	} *uhp;
 
 	if ((errno = icmp6_errmap(ip6cp->ip6c_icmp6)) == 0)
@@ -668,7 +668,7 @@ udp6_send(struct socket *so, int flags_arg, struct mbuf *m,
 	struct sockaddr_in6 *sin6, tmp;
 	struct epoch_tracker et;
 	int cscov_partial, error, flags, hlen, scope_ambiguous;
-	u_int32_t ulen, plen;
+	uint32_t ulen, plen;
 	uint16_t cscov;
 	u_short fport;
 	uint8_t nxt;

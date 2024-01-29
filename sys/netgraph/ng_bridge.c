@@ -98,14 +98,14 @@ struct ng_bridge_link_kernel_stats {
 	counter_u64_t	xmitMulticasts;	/* multicast pkts xmit'd on link */
 	counter_u64_t	xmitBroadcasts;	/* broadcast pkts xmit'd on link */
 	counter_u64_t	loopDrops;	/* pkts dropped due to loopback */
-	u_int64_t	loopDetects;	/* number of loop detections */
+	uint64_t	loopDetects;	/* number of loop detections */
 	counter_u64_t	memoryFailures;	/* times couldn't get mem or mbuf */
 };
 
 /* Per-link private data */
 struct ng_bridge_link {
 	hook_p				hook;		/* netgraph hook */
-	u_int16_t			loopCount;	/* loop ignore timer */
+	uint16_t			loopCount;	/* loop ignore timer */
 	unsigned int			learnMac : 1,   /* autolearn macs */
 					sendUnknown : 1;/* send unknown macs out */
 	struct ng_bridge_link_kernel_stats stats;	/* link stats */
@@ -132,8 +132,8 @@ typedef struct ng_bridge_private const *priv_cp;	/* read only access */
 struct ng_bridge_host {
 	u_char		addr[6];	/* ethernet address */
 	link_p		link;		/* link where addr can be found */
-	u_int16_t	age;		/* seconds ago entry was created */
-	u_int16_t	staleness;	/* seconds ago host last heard from */
+	uint16_t	age;		/* seconds ago entry was created */
+	uint16_t	staleness;	/* seconds ago host last heard from */
 	SLIST_ENTRY(ng_bridge_host)	next;	/* next entry in bucket */
 };
 
@@ -162,10 +162,10 @@ static const u_char ng_bridge_bcast_addr[ETHER_ADDR_LEN] =
     { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
 
 /* Compare Ethernet addresses using 32 and 16 bit words instead of bytewise */
-#define ETHER_EQUAL(a,b)	(((const u_int32_t *)(a))[0] \
-					== ((const u_int32_t *)(b))[0] \
-				    && ((const u_int16_t *)(a))[2] \
-					== ((const u_int16_t *)(b))[2])
+#define ETHER_EQUAL(a,b)	(((const uint32_t *)(a))[0] \
+					== ((const uint32_t *)(b))[0] \
+				    && ((const uint16_t *)(a))[2] \
+					== ((const uint16_t *)(b))[2])
 
 /* Minimum and maximum number of hash buckets. Must be a power of two. */
 #define MIN_BUCKETS		(1 << 5)	/* 32 */
@@ -188,7 +188,7 @@ ng_bridge_getTableLength(const struct ng_parse_type *type,
 	const u_char *start, const u_char *buf)
 {
 	const struct ng_bridge_host_ary *const hary
-	    = (const struct ng_bridge_host_ary *)(buf - sizeof(u_int32_t));
+	    = (const struct ng_bridge_host_ary *)(buf - sizeof(uint32_t));
 
 	return hary->numHosts;
 }
@@ -365,7 +365,7 @@ ng_bridge_newhook(node_p node, hook_p hook, const char *name)
 {
 	const priv_p priv = NG_NODE_PRIVATE(node);
 	char linkName[NG_HOOKSIZ];
-	u_int32_t linkNum;
+	uint32_t linkNum;
 	link_p link;
 	const char *prefix = NG_BRIDGE_HOOK_LINK_PREFIX;
 	bool isUplink;
@@ -544,7 +544,7 @@ ng_bridge_rcvmsg(node_p node, item_p item, hook_p lasthook)
 			int linkNum;
 			    
 			/* Get link number */
-			if (msg->header.arglen != sizeof(u_int32_t)) {
+			if (msg->header.arglen != sizeof(uint32_t)) {
 				error = EINVAL;
 				break;
 			}
@@ -953,9 +953,9 @@ ng_bridge_disconnect(hook_p hook)
 /*
  * Hash algorithm
  */
-#define HASH(addr,mask)		( (((const u_int16_t *)(addr))[0] 	\
-				 ^ ((const u_int16_t *)(addr))[1] 	\
-				 ^ ((const u_int16_t *)(addr))[2]) & (mask) )
+#define HASH(addr,mask)		( (((const uint16_t *)(addr))[0] 	\
+				 ^ ((const uint16_t *)(addr))[1] 	\
+				 ^ ((const uint16_t *)(addr))[2]) & (mask) )
 
 /*
  * Find a host entry in the table.

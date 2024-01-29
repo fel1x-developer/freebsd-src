@@ -105,20 +105,20 @@
 struct randomtab {
 	const int	ru_bits; /* resulting bits */
 	const long	ru_out;	/* Time after which will be reseeded */
-	const u_int32_t ru_max;	/* Uniq cycle, avoid blackjack prediction */
-	const u_int32_t ru_gen;	/* Starting generator */
-	const u_int32_t ru_n;	/* ru_n: prime, ru_n - 1: product of pfacts[] */
-	const u_int32_t ru_agen; /* determine ru_a as ru_agen^(2*rand) */
-	const u_int32_t ru_m;	/* ru_m = 2^x*3^y */
-	const u_int32_t pfacts[4];	/* factors of ru_n */
+	const uint32_t ru_max;	/* Uniq cycle, avoid blackjack prediction */
+	const uint32_t ru_gen;	/* Starting generator */
+	const uint32_t ru_n;	/* ru_n: prime, ru_n - 1: product of pfacts[] */
+	const uint32_t ru_agen; /* determine ru_a as ru_agen^(2*rand) */
+	const uint32_t ru_m;	/* ru_m = 2^x*3^y */
+	const uint32_t pfacts[4];	/* factors of ru_n */
 
-	u_int32_t ru_counter;
-	u_int32_t ru_msb;
+	uint32_t ru_counter;
+	uint32_t ru_msb;
 
-	u_int32_t ru_x;
-	u_int32_t ru_seed, ru_seed2;
-	u_int32_t ru_a, ru_b;
-	u_int32_t ru_g;
+	uint32_t ru_x;
+	uint32_t ru_seed, ru_seed2;
+	uint32_t ru_a, ru_b;
+	uint32_t ru_g;
 	long ru_reseed;
 };
 
@@ -144,18 +144,18 @@ static struct randomtab randomtab_20 = {
 	{ 2, 3, 14563, 0 },	/* factors of ru_n */
 };
 
-static u_int32_t pmod(u_int32_t, u_int32_t, u_int32_t);
+static uint32_t pmod(uint32_t, uint32_t, uint32_t);
 static void initid(struct randomtab *);
-static u_int32_t randomid(struct randomtab *);
+static uint32_t randomid(struct randomtab *);
 
 /*
  * Do a fast modular exponation, returned value will be in the range
  * of 0 - (mod-1)
  */
-static u_int32_t
-pmod(u_int32_t gen, u_int32_t expo, u_int32_t mod)
+static uint32_t
+pmod(uint32_t gen, uint32_t expo, uint32_t mod)
 {
-	u_int64_t s, t, u;
+	uint64_t s, t, u;
 
 	s = 1;
 	t = gen;
@@ -181,7 +181,7 @@ pmod(u_int32_t gen, u_int32_t expo, u_int32_t mod)
 static void
 initid(struct randomtab *p)
 {
-	u_int32_t j, i;
+	uint32_t j, i;
 	int noprime = 1;
 
 	p->ru_x = arc4random() % p->ru_m;
@@ -222,7 +222,7 @@ initid(struct randomtab *p)
 	p->ru_msb = p->ru_msb ? 0 : (1U << (p->ru_bits - 1));
 }
 
-static u_int32_t
+static uint32_t
 randomid(struct randomtab *p)
 {
 	int i, n;
@@ -237,7 +237,7 @@ randomid(struct randomtab *p)
 
 	for (i = 0; i <= n; i++) {
 		/* Linear Congruential Generator */
-		p->ru_x = (u_int32_t)((u_int64_t)p->ru_a * p->ru_x + p->ru_b) % p->ru_m;
+		p->ru_x = (uint32_t)((uint64_t)p->ru_a * p->ru_x + p->ru_b) % p->ru_m;
 	}
 
 	p->ru_counter += i;
@@ -246,14 +246,14 @@ randomid(struct randomtab *p)
 	    p->ru_msb;
 }
 
-u_int32_t
+uint32_t
 ip6_randomid(void)
 {
 
 	return randomid(&randomtab_32);
 }
 
-u_int32_t
+uint32_t
 ip6_randomflowlabel(void)
 {
 

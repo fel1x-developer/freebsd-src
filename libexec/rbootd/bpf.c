@@ -61,7 +61,7 @@
 
 static int BpfFd = -1;
 static unsigned BpfLen = 0;
-static u_int8_t *BpfPkt = NULL;
+static uint8_t *BpfPkt = NULL;
 
 /*
 **  BpfOpen -- Open and initialize a BPF device.
@@ -151,7 +151,7 @@ BpfOpen(void)
 		Exit(0);
 	}
 	if (BpfPkt == NULL)
-		BpfPkt = (u_int8_t *)malloc(BpfLen);
+		BpfPkt = (uint8_t *)malloc(BpfLen);
 
 	if (BpfPkt == NULL) {
 		syslog(LOG_ERR, "bpf: out of memory (%u bytes for bpfpkt)",
@@ -289,7 +289,7 @@ int
 BpfRead(RMPCONN *rconn, int doread)
 {
 	int datlen, caplen, hdrlen;
-	static u_int8_t *bp = NULL, *ep = NULL;
+	static uint8_t *bp = NULL, *ep = NULL;
 	int cc;
 
 	/*

@@ -43,7 +43,7 @@
 static int
 pci_hostb_probe(device_t dev)
 {
-	u_int32_t id;
+	uint32_t id;
 
 	id = pci_get_devid(dev);
 

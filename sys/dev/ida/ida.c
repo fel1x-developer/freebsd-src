@@ -442,7 +442,7 @@ ida_map_qcb(struct ida_softc *ida, struct ida_qcb *qcb, void *data,
 
 int
 ida_command(struct ida_softc *ida, int command, void *data, int datasize,
-	int drive, u_int32_t pblkno, int flags)
+	int drive, uint32_t pblkno, int flags)
 {
 	struct ida_hardware_qcb *hwqcb;
 	struct ida_qcb *qcb;

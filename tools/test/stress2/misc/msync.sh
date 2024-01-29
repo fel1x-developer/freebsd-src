@@ -70,8 +70,8 @@ EOF
 #include <unistd.h>
 
 int syscallno = SYS_msync;
-#define N (128 * 1024 / (int)sizeof(u_int32_t))
-u_int32_t r[N];
+#define N (128 * 1024 / (int)sizeof(uint32_t))
+uint32_t r[N];
 
 static void
 hand(int i __unused) {	/* handler */

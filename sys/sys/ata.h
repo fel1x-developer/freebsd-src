@@ -34,7 +34,7 @@
 
 /* ATA/ATAPI device parameters */
 struct ata_params {
-/*000*/ u_int16_t       config;         /* configuration info */
+/*000*/ uint16_t       config;         /* configuration info */
 #define ATA_PROTO_MASK                  0x8003
 #define ATA_PROTO_ATAPI                 0x8000
 #define ATA_PROTO_ATAPI_12              0x8000
@@ -52,47 +52,47 @@ struct ata_params {
 #define ATA_DRQ_FAST                    0x0040  /* accel 50 us delay */
 #define ATA_RESP_INCOMPLETE             0x0004
 
-/*001*/ u_int16_t       cylinders;              /* # of cylinders */
-/*002*/ u_int16_t       specconf;		/* specific configuration */
-/*003*/ u_int16_t       heads;                  /* # heads */
-	u_int16_t       obsolete4;
-	u_int16_t       obsolete5;
-/*006*/ u_int16_t       sectors;                /* # sectors/track */
-/*007*/ u_int16_t       vendor7[3];
-/*010*/ u_int8_t        serial[20];             /* serial number */
-/*020*/ u_int16_t       retired20;
-	u_int16_t       retired21;
-	u_int16_t       obsolete22;
-/*023*/ u_int8_t        revision[8];            /* firmware revision */
-/*027*/ u_int8_t        model[40];              /* model name */
-/*047*/ u_int16_t       sectors_intr;           /* sectors per interrupt */
-/*048*/ u_int16_t       tcg;                    /* Trusted Computing Group */
+/*001*/ uint16_t       cylinders;              /* # of cylinders */
+/*002*/ uint16_t       specconf;		/* specific configuration */
+/*003*/ uint16_t       heads;                  /* # heads */
+	uint16_t       obsolete4;
+	uint16_t       obsolete5;
+/*006*/ uint16_t       sectors;                /* # sectors/track */
+/*007*/ uint16_t       vendor7[3];
+/*010*/ uint8_t        serial[20];             /* serial number */
+/*020*/ uint16_t       retired20;
+	uint16_t       retired21;
+	uint16_t       obsolete22;
+/*023*/ uint8_t        revision[8];            /* firmware revision */
+/*027*/ uint8_t        model[40];              /* model name */
+/*047*/ uint16_t       sectors_intr;           /* sectors per interrupt */
+/*048*/ uint16_t       tcg;                    /* Trusted Computing Group */
 #define ATA_SUPPORT_TCG                 0x0001
-/*049*/ u_int16_t       capabilities1;
+/*049*/ uint16_t       capabilities1;
 #define ATA_SUPPORT_DMA                 0x0100
 #define ATA_SUPPORT_LBA                 0x0200
 #define ATA_SUPPORT_IORDYDIS            0x0400
 #define ATA_SUPPORT_IORDY               0x0800
 #define ATA_SUPPORT_OVERLAP             0x4000
 
-/*050*/ u_int16_t       capabilities2;
-/*051*/ u_int16_t       retired_piomode;        /* PIO modes 0-2 */
+/*050*/ uint16_t       capabilities2;
+/*051*/ uint16_t       retired_piomode;        /* PIO modes 0-2 */
 #define ATA_RETIRED_PIO_MASK            0x0300
 
-/*052*/ u_int16_t       retired_dmamode;        /* DMA modes */
+/*052*/ uint16_t       retired_dmamode;        /* DMA modes */
 #define ATA_RETIRED_DMA_MASK            0x0003
 
-/*053*/ u_int16_t       atavalid;               /* fields valid */
+/*053*/ uint16_t       atavalid;               /* fields valid */
 #define ATA_FLAG_54_58                  0x0001  /* words 54-58 valid */
 #define ATA_FLAG_64_70                  0x0002  /* words 64-70 valid */
 #define ATA_FLAG_88                     0x0004  /* word 88 valid */
 
-/*054*/ u_int16_t       current_cylinders;
-/*055*/ u_int16_t       current_heads;
-/*056*/ u_int16_t       current_sectors;
-/*057*/ u_int16_t       current_size_1;
-/*058*/ u_int16_t       current_size_2;
-/*059*/ u_int16_t       multi;
+/*054*/ uint16_t       current_cylinders;
+/*055*/ uint16_t       current_heads;
+/*056*/ uint16_t       current_sectors;
+/*057*/ uint16_t       current_size_1;
+/*058*/ uint16_t       current_size_2;
+/*059*/ uint16_t       multi;
 #define ATA_SUPPORT_BLOCK_ERASE_EXT     0x8000
 #define ATA_SUPPORT_OVERWRITE_EXT       0x4000
 #define ATA_SUPPORT_CRYPTO_SCRAMBLE_EXT 0x2000
@@ -101,17 +101,17 @@ struct ata_params {
 #define	ATA_SUPPORT_ANTIFREEZE_LOCK_EXT	0x0400
 #define ATA_MULTI_VALID                 0x0100
 
-/*060*/ u_int16_t       lba_size_1;
-	u_int16_t       lba_size_2;
-	u_int16_t       obsolete62;
-/*063*/ u_int16_t       mwdmamodes;             /* multiword DMA modes */
-/*064*/ u_int16_t       apiomodes;              /* advanced PIO modes */
+/*060*/ uint16_t       lba_size_1;
+	uint16_t       lba_size_2;
+	uint16_t       obsolete62;
+/*063*/ uint16_t       mwdmamodes;             /* multiword DMA modes */
+/*064*/ uint16_t       apiomodes;              /* advanced PIO modes */
 
-/*065*/ u_int16_t       mwdmamin;               /* min. M/W DMA time/word ns */
-/*066*/ u_int16_t       mwdmarec;               /* rec. M/W DMA time ns */
-/*067*/ u_int16_t       pioblind;               /* min. PIO cycle w/o flow */
-/*068*/ u_int16_t       pioiordy;               /* min. PIO cycle IORDY flow */
-/*069*/ u_int16_t       support3;
+/*065*/ uint16_t       mwdmamin;               /* min. M/W DMA time/word ns */
+/*066*/ uint16_t       mwdmarec;               /* rec. M/W DMA time ns */
+/*067*/ uint16_t       pioblind;               /* min. PIO cycle w/o flow */
+/*068*/ uint16_t       pioiordy;               /* min. PIO cycle IORDY flow */
+/*069*/ uint16_t       support3;
 #define ATA_SUPPORT_RZAT                0x0020
 #define ATA_SUPPORT_DRAT                0x4000
 #define ATA_ENCRYPTS_ALL_USER_DATA      0x0010  /* Self-encrypting drive */
@@ -119,15 +119,15 @@ struct ata_params {
 #define	ATA_SUPPORT_ZONE_NR		0x0000
 #define	ATA_SUPPORT_ZONE_HOST_AWARE	0x0001
 #define	ATA_SUPPORT_ZONE_DEV_MANAGED	0x0002
-	u_int16_t       reserved70;
-/*071*/ u_int16_t       rlsovlap;               /* rel time (us) for overlap */
-/*072*/ u_int16_t       rlsservice;             /* rel time (us) for service */
-	u_int16_t       reserved73;
-	u_int16_t       reserved74;
-/*075*/ u_int16_t       queue;
+	uint16_t       reserved70;
+/*071*/ uint16_t       rlsovlap;               /* rel time (us) for overlap */
+/*072*/ uint16_t       rlsservice;             /* rel time (us) for service */
+	uint16_t       reserved73;
+	uint16_t       reserved74;
+/*075*/ uint16_t       queue;
 #define ATA_QUEUE_LEN(x)                ((x) & 0x001f)
 
-/*76*/  u_int16_t       satacapabilities;
+/*76*/  uint16_t       satacapabilities;
 #define ATA_SATA_GEN1                   0x0002
 #define ATA_SATA_GEN2                   0x0004
 #define ATA_SATA_GEN3                   0x0008
@@ -140,13 +140,13 @@ struct ata_params {
 #define ATA_SUPPORT_DAPST               0x4000
 #define ATA_SUPPORT_READLOGDMAEXT       0x8000
 
-/*77*/  u_int16_t       satacapabilities2;
+/*77*/  uint16_t       satacapabilities2;
 #define ATA_SATA_CURR_GEN_MASK          0x0006
 #define ATA_SUPPORT_NCQ_STREAM          0x0010
 #define ATA_SUPPORT_NCQ_NON_DATA        0x0020
 #define ATA_SUPPORT_NCQ_QMANAGEMENT     ATA_SUPPORT_NCQ_NON_DATA
 #define ATA_SUPPORT_RCVSND_FPDMA_QUEUED 0x0040
-/*78*/  u_int16_t       satasupport;
+/*78*/  uint16_t       satasupport;
 #define ATA_SUPPORT_NONZERO             0x0002
 #define ATA_SUPPORT_AUTOACTIVATE        0x0004
 #define ATA_SUPPORT_IFPWRMNGT           0x0008
@@ -154,14 +154,14 @@ struct ata_params {
 #define ATA_SUPPORT_ASYNCNOTIF          0x0020
 #define ATA_SUPPORT_SOFTSETPRESERVE     0x0040
 #define ATA_SUPPORT_NCQ_AUTOSENSE       0x0080
-/*79*/  u_int16_t       sataenabled;
+/*79*/  uint16_t       sataenabled;
 #define ATA_ENABLED_DAPST               0x0080
 
-/*080*/ u_int16_t       version_major;
-/*081*/ u_int16_t       version_minor;
+/*080*/ uint16_t       version_major;
+/*081*/ uint16_t       version_minor;
 
 	struct {
-/*082/085*/ u_int16_t   command1;
+/*082/085*/ uint16_t   command1;
 #define ATA_SUPPORT_SMART               0x0001
 #define ATA_SUPPORT_SECURITY            0x0002
 #define ATA_SUPPORT_REMOVABLE           0x0004
@@ -177,7 +177,7 @@ struct ata_params {
 #define ATA_SUPPORT_READBUFFER          0x2000
 #define ATA_SUPPORT_NOP                 0x4000
 
-/*083/086*/ u_int16_t   command2;
+/*083/086*/ uint16_t   command2;
 #define ATA_SUPPORT_MICROCODE           0x0001
 #define ATA_SUPPORT_QUEUED              0x0002
 #define ATA_SUPPORT_CFA                 0x0004
@@ -192,7 +192,7 @@ struct ata_params {
 #define ATA_SUPPORT_FLUSHCACHE          0x1000
 #define ATA_SUPPORT_FLUSHCACHE48        0x2000
 
-/*084/087*/ u_int16_t   extension;
+/*084/087*/ uint16_t   extension;
 #define ATA_SUPPORT_SMARTLOG		0x0001
 #define ATA_SUPPORT_SMARTTEST		0x0002
 #define ATA_SUPPORT_MEDIASN		0x0004
@@ -205,40 +205,40 @@ struct ata_params {
 #define ATA_SUPPORT_UNLOAD		0x2000
 	} __packed support, enabled;
 
-/*088*/ u_int16_t       udmamodes;              /* UltraDMA modes */
-/*089*/ u_int16_t       erase_time;             /* time req'd in 2min units */
-/*090*/ u_int16_t       enhanced_erase_time;    /* time req'd in 2min units */
-/*091*/ u_int16_t       apm_value;
-/*092*/ u_int16_t       master_passwd_revision; /* password revision code */
-/*093*/ u_int16_t       hwres;
+/*088*/ uint16_t       udmamodes;              /* UltraDMA modes */
+/*089*/ uint16_t       erase_time;             /* time req'd in 2min units */
+/*090*/ uint16_t       enhanced_erase_time;    /* time req'd in 2min units */
+/*091*/ uint16_t       apm_value;
+/*092*/ uint16_t       master_passwd_revision; /* password revision code */
+/*093*/ uint16_t       hwres;
 #define ATA_CABLE_ID                    0x2000
 
-/*094*/ u_int16_t       acoustic;
+/*094*/ uint16_t       acoustic;
 #define ATA_ACOUSTIC_CURRENT(x)         ((x) & 0x00ff)
 #define ATA_ACOUSTIC_VENDOR(x)          (((x) & 0xff00) >> 8)
 
-/*095*/ u_int16_t       stream_min_req_size;
-/*096*/ u_int16_t       stream_transfer_time;
-/*097*/ u_int16_t       stream_access_latency;
-/*098*/ u_int32_t       stream_granularity;
-/*100*/ u_int16_t       lba_size48_1;
-	u_int16_t       lba_size48_2;
-	u_int16_t       lba_size48_3;
-	u_int16_t       lba_size48_4;
-	u_int16_t       reserved104;
-/*105*/	u_int16_t       max_dsm_blocks;
-/*106*/	u_int16_t       pss;
+/*095*/ uint16_t       stream_min_req_size;
+/*096*/ uint16_t       stream_transfer_time;
+/*097*/ uint16_t       stream_access_latency;
+/*098*/ uint32_t       stream_granularity;
+/*100*/ uint16_t       lba_size48_1;
+	uint16_t       lba_size48_2;
+	uint16_t       lba_size48_3;
+	uint16_t       lba_size48_4;
+	uint16_t       reserved104;
+/*105*/	uint16_t       max_dsm_blocks;
+/*106*/	uint16_t       pss;
 #define ATA_PSS_LSPPS			0x000F
 #define ATA_PSS_LSSABOVE512		0x1000
 #define ATA_PSS_MULTLS			0x2000
 #define ATA_PSS_VALID_MASK		0xC000
 #define ATA_PSS_VALID_VALUE		0x4000
-/*107*/ u_int16_t       isd;
-/*108*/ u_int16_t       wwn[4];
-	u_int16_t       reserved112[5];
-/*117*/ u_int16_t       lss_1;
-/*118*/ u_int16_t       lss_2;
-/*119*/ u_int16_t       support2;
+/*107*/ uint16_t       isd;
+/*108*/ uint16_t       wwn[4];
+	uint16_t       reserved112[5];
+/*117*/ uint16_t       lss_1;
+/*118*/ uint16_t       lss_2;
+/*119*/ uint16_t       support2;
 #define ATA_SUPPORT_WRITEREADVERIFY	0x0002
 #define ATA_SUPPORT_WRITEUNCORREXT	0x0004
 #define ATA_SUPPORT_RWLOGDMAEXT		0x0008
@@ -248,16 +248,16 @@ struct ata_params {
 #define ATA_SUPPORT_EPC			0x0080
 #define ATA_SUPPORT_AMAX_ADDR		0x0100
 #define ATA_SUPPORT_DSN			0x0200
-/*120*/ u_int16_t       enabled2;
+/*120*/ uint16_t       enabled2;
 #define ATA_ENABLED_WRITEREADVERIFY	0x0002
 #define ATA_ENABLED_WRITEUNCORREXT	0x0004
 #define ATA_ENABLED_FREEFALL		0x0020
 #define ATA_ENABLED_SENSE_REPORT	0x0040
 #define ATA_ENABLED_EPC			0x0080
 #define ATA_ENABLED_DSN			0x0200
-	u_int16_t       reserved121[6];
-/*127*/ u_int16_t       removable_status;
-/*128*/ u_int16_t       security_status;
+	uint16_t       reserved121[6];
+/*127*/ uint16_t       removable_status;
+/*128*/ uint16_t       security_status;
 #define ATA_SECURITY_LEVEL		0x0100	/* 0: high, 1: maximum */
 #define ATA_SECURITY_ENH_SUPP		0x0020	/* enhanced erase supported */
 #define ATA_SECURITY_COUNT_EXP		0x0010	/* count expired */
@@ -266,14 +266,14 @@ struct ata_params {
 #define ATA_SECURITY_ENABLED		0x0002	/* ATA Security is enabled */
 #define ATA_SECURITY_SUPPORTED		0x0001	/* ATA Security is supported */
 
-	u_int16_t       reserved129[31];
-/*160*/ u_int16_t       cfa_powermode1;
-	u_int16_t       reserved161;
-/*162*/ u_int16_t       cfa_kms_support;
-/*163*/ u_int16_t       cfa_trueide_modes;
-/*164*/ u_int16_t       cfa_memory_modes;
-	u_int16_t       reserved165[3];
-/*168*/ u_int16_t       form_factor;
+	uint16_t       reserved129[31];
+/*160*/ uint16_t       cfa_powermode1;
+	uint16_t       reserved161;
+/*162*/ uint16_t       cfa_kms_support;
+/*163*/ uint16_t       cfa_trueide_modes;
+/*164*/ uint16_t       cfa_memory_modes;
+	uint16_t       reserved165[3];
+/*168*/ uint16_t       form_factor;
 #define ATA_FORM_FACTOR_MASK		0x000f
 #define ATA_FORM_FACTOR_NOT_REPORTED	0x0000
 #define ATA_FORM_FACTOR_5_25		0x0001
@@ -285,32 +285,32 @@ struct ata_params {
 #define ATA_FORM_FACTOR_M_2		0x0007
 #define ATA_FORM_FACTOR_MICRO_SSD	0x0008
 #define ATA_FORM_FACTOR_C_FAST		0x0009
-/*169*/	u_int16_t       support_dsm;
+/*169*/	uint16_t       support_dsm;
 #define ATA_SUPPORT_DSM_TRIM		0x0001
-/*170*/ u_int8_t        product_id[8];	/* Additional Product Identifier */
-	u_int16_t       reserved174[2];
-/*176*/ u_int8_t        media_serial[60];
-/*206*/ u_int16_t       sct;
-	u_int16_t       reserved207[2];
-/*209*/ u_int16_t       lsalign;
-/*210*/ u_int16_t       wrv_sectors_m3_1;
-	u_int16_t       wrv_sectors_m3_2;
-/*212*/ u_int16_t       wrv_sectors_m2_1;
-	u_int16_t       wrv_sectors_m2_2;
-/*214*/ u_int16_t       nv_cache_caps;
-/*215*/ u_int16_t       nv_cache_size_1;
-	u_int16_t       nv_cache_size_2;
-/*217*/ u_int16_t       media_rotation_rate;
+/*170*/ uint8_t        product_id[8];	/* Additional Product Identifier */
+	uint16_t       reserved174[2];
+/*176*/ uint8_t        media_serial[60];
+/*206*/ uint16_t       sct;
+	uint16_t       reserved207[2];
+/*209*/ uint16_t       lsalign;
+/*210*/ uint16_t       wrv_sectors_m3_1;
+	uint16_t       wrv_sectors_m3_2;
+/*212*/ uint16_t       wrv_sectors_m2_1;
+	uint16_t       wrv_sectors_m2_2;
+/*214*/ uint16_t       nv_cache_caps;
+/*215*/ uint16_t       nv_cache_size_1;
+	uint16_t       nv_cache_size_2;
+/*217*/ uint16_t       media_rotation_rate;
 #define ATA_RATE_NOT_REPORTED		0x0000
 #define ATA_RATE_NON_ROTATING		0x0001
-	u_int16_t       reserved218;
-/*219*/ u_int16_t       nv_cache_opt;
-/*220*/ u_int16_t       wrv_mode;
-	u_int16_t       reserved221;
-/*222*/ u_int16_t       transport_major;
-/*223*/ u_int16_t       transport_minor;
-	u_int16_t       reserved224[31];
-/*255*/ u_int16_t       integrity;
+	uint16_t       reserved218;
+/*219*/ uint16_t       nv_cache_opt;
+/*220*/ uint16_t       wrv_mode;
+	uint16_t       reserved221;
+/*222*/ uint16_t       transport_major;
+/*223*/ uint16_t       transport_minor;
+	uint16_t       reserved224[31];
+/*255*/ uint16_t       integrity;
 } __packed __aligned(2);
 
 /* ATA Dataset Management */
@@ -597,11 +597,11 @@ struct ata_ioc_devices {
 
 /* ATAPI request sense structure */
 struct atapi_sense {
-    u_int8_t	error;				/* current or deferred errors */
+    uint8_t	error;				/* current or deferred errors */
 #define	ATA_SENSE_VALID			0x80
 
-    u_int8_t	segment;			/* segment number */
-    u_int8_t	key;				/* sense key */
+    uint8_t	segment;			/* segment number */
+    uint8_t	key;				/* sense key */
 #define ATA_SENSE_KEY_MASK		0x0f    /* sense key mask */
 #define ATA_SENSE_NO_SENSE		0x00    /* no specific sense key info */
 #define ATA_SENSE_RECOVERED_ERROR 	0x01    /* command OK, data recovered */
@@ -623,18 +623,18 @@ struct atapi_sense {
 #define	ATA_SENSE_EOM			0x40;
 #define	ATA_SENSE_FILEMARK		0x80;
 
-    u_int32_t   cmd_info;		/* cmd information */
-    u_int8_t	sense_length;		/* additional sense len (n-7) */
-    u_int32_t   cmd_specific_info;	/* additional cmd spec info */
-    u_int8_t    asc;			/* additional sense code */
-    u_int8_t    ascq;			/* additional sense code qual */
-    u_int8_t    replaceable_unit_code;	/* replaceable unit code */
-    u_int8_t	specific;		/* sense key specific */
+    uint32_t   cmd_info;		/* cmd information */
+    uint8_t	sense_length;		/* additional sense len (n-7) */
+    uint32_t   cmd_specific_info;	/* additional cmd spec info */
+    uint8_t    asc;			/* additional sense code */
+    uint8_t    ascq;			/* additional sense code qual */
+    uint8_t    replaceable_unit_code;	/* replaceable unit code */
+    uint8_t	specific;		/* sense key specific */
 #define	ATA_SENSE_SPEC_VALID	0x80
 #define	ATA_SENSE_SPEC_MASK	0x7f
 
-    u_int8_t	specific1;		/* sense key specific */
-    u_int8_t	specific2;		/* sense key specific */
+    uint8_t	specific1;		/* sense key specific */
+    uint8_t	specific2;		/* sense key specific */
 } __packed;
 
 /*
@@ -967,10 +967,10 @@ struct ata_zoned_info_log {
 struct ata_ioc_request {
     union {
 	struct {
-	    u_int8_t            command;
-	    u_int8_t            feature;
-	    u_int64_t           lba;
-	    u_int16_t           count;
+	    uint8_t            command;
+	    uint8_t            feature;
+	    uint64_t           lba;
+	    uint16_t           count;
 	} ata;
 	struct {
 	    char                ccb[16];
@@ -990,7 +990,7 @@ struct ata_ioc_request {
 };
 
 struct ata_security_password {
-	u_int16_t		ctrl;
+	uint16_t		ctrl;
 #define ATA_SECURITY_PASSWORD_USER	0x0000
 #define ATA_SECURITY_PASSWORD_MASTER	0x0001
 #define ATA_SECURITY_ERASE_NORMAL	0x0000
@@ -998,9 +998,9 @@ struct ata_security_password {
 #define ATA_SECURITY_LEVEL_HIGH		0x0000
 #define ATA_SECURITY_LEVEL_MAXIMUM	0x0100
 
-	u_int8_t		password[32];
-	u_int16_t		revision;
-	u_int16_t		reserved[238];
+	uint8_t		password[32];
+	uint16_t		revision;
+	uint16_t		reserved[238];
 };
 
 /* pr device ATA ioctl calls */

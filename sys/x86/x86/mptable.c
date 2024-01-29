@@ -204,7 +204,7 @@ static void	mptable_walk_extended_table(
     mptable_extended_entry_handler *handler, void *arg);
 #endif
 static void	mptable_walk_table(mptable_entry_handler *handler, void *arg);
-static int	search_for_sig(u_int32_t target, int count);
+static int	search_for_sig(uint32_t target, int count);
 
 static struct apic_enumerator mptable_enumerator = {
 	.apic_name = "MPTable",
@@ -219,16 +219,16 @@ static struct apic_enumerator mptable_enumerator = {
  */
 
 static int
-search_for_sig(u_int32_t target, int count)
+search_for_sig(uint32_t target, int count)
 {
 	int     x;
-	u_int32_t *addr;
+	uint32_t *addr;
 
-	addr = (u_int32_t *)BIOS_PADDRTOVADDR(target);
+	addr = (uint32_t *)BIOS_PADDRTOVADDR(target);
 	for (x = 0; x < count; x += 4)
 		if (addr[x] == MP_SIG)
 			/* make array index a byte index */
-			return (target + (x * sizeof(u_int32_t)));
+			return (target + (x * sizeof(uint32_t)));
 	return (-1);
 }
 
@@ -280,23 +280,23 @@ mptable_probe(void)
 {
 	int     x;
 	u_long  segment;
-	u_int32_t target;
+	uint32_t target;
 
 	/* see if EBDA exists */
 	if ((segment = *(u_short *)BIOS_PADDRTOVADDR(0x40e)) != 0) {
 		/* search first 1K of EBDA */
-		target = (u_int32_t) (segment << 4);
+		target = (uint32_t) (segment << 4);
 		if ((x = search_for_sig(target, 1024 / 4)) >= 0)
 			goto found;
 	} else {
 		/* last 1K of base memory, effective 'top of base' passed in */
-		target = (u_int32_t) ((basemem * 1024) - 0x400);
+		target = (uint32_t) ((basemem * 1024) - 0x400);
 		if ((x = search_for_sig(target, 1024 / 4)) >= 0)
 			goto found;
 	}
 
 	/* search the BIOS */
-	target = (u_int32_t) BIOS_BASE;
+	target = (uint32_t) BIOS_BASE;
 	if ((x = search_for_sig(target, BIOS_COUNT)) >= 0)
 		goto found;
 

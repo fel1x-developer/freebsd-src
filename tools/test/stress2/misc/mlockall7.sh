@@ -72,7 +72,7 @@ EOF
 #define PARALLEL 50
 #define RUNTIME 180
 
-static u_int32_t r[N];
+static uint32_t r[N];
 static void *p;
 
 static unsigned long

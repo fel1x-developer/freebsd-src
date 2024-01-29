@@ -81,14 +81,14 @@ static int collect_data(HTAB *, BUFHEAD *, int, int);
 int
 __big_insert(HTAB *hashp, BUFHEAD *bufp, const DBT *key, const DBT *val)
 {
-	u_int16_t *p;
+	uint16_t *p;
 	int key_size, n;
 	unsigned int val_size;
-	u_int16_t space, move_bytes, off;
+	uint16_t space, move_bytes, off;
 	char *cp, *key_data, *val_data;
 
 	cp = bufp->page;		/* Character pointer of p. */
-	p = (u_int16_t *)cp;
+	p = (uint16_t *)cp;
 
 	key_data = (char *)key->data;
 	key_size = key->size;
@@ -139,7 +139,7 @@ __big_insert(HTAB *hashp, BUFHEAD *bufp, const DBT *key, const DBT *val)
 				p[n - 2] = FULL_KEY;
 			}
 		}
-		p = (u_int16_t *)bufp->page;
+		p = (uint16_t *)bufp->page;
 		cp = bufp->page;
 		bufp->flags |= BUF_MOD;
 	}
@@ -169,7 +169,7 @@ __big_insert(HTAB *hashp, BUFHEAD *bufp, const DBT *key, const DBT *val)
 			if (!bufp)
 				return (-1);
 			cp = bufp->page;
-			p = (u_int16_t *)cp;
+			p = (uint16_t *)cp;
 		} else
 			p[n] = FULL_KEY_DATA;
 		bufp->flags |= BUF_MOD;
@@ -192,12 +192,12 @@ int
 __big_delete(HTAB *hashp, BUFHEAD *bufp)
 {
 	BUFHEAD *last_bfp, *rbufp;
-	u_int16_t *bp, pageno;
+	uint16_t *bp, pageno;
 	int key_done, n;
 
 	rbufp = bufp;
 	last_bfp = NULL;
-	bp = (u_int16_t *)bufp->page;
+	bp = (uint16_t *)bufp->page;
 	pageno = 0;
 	key_done = 0;
 
@@ -220,7 +220,7 @@ __big_delete(HTAB *hashp, BUFHEAD *bufp)
 		last_bfp = rbufp;
 		if (!rbufp)
 			return (-1);		/* Error. */
-		bp = (u_int16_t *)rbufp->page;
+		bp = (uint16_t *)rbufp->page;
 	}
 
 	/*
@@ -235,7 +235,7 @@ __big_delete(HTAB *hashp, BUFHEAD *bufp)
 	pageno = bp[n - 1];
 
 	/* Now, bp is the first page of the pair. */
-	bp = (u_int16_t *)bufp->page;
+	bp = (uint16_t *)bufp->page;
 	if (n > 2) {
 		/* There is an overflow page. */
 		bp[1] = pageno;
@@ -268,13 +268,13 @@ __big_delete(HTAB *hashp, BUFHEAD *bufp)
 int
 __find_bigpair(HTAB *hashp, BUFHEAD *bufp, int ndx, char *key, int size)
 {
-	u_int16_t *bp;
+	uint16_t *bp;
 	char *p;
 	int ksize;
-	u_int16_t bytes;
+	uint16_t bytes;
 	char *kkey;
 
-	bp = (u_int16_t *)bufp->page;
+	bp = (uint16_t *)bufp->page;
 	p = bufp->page;
 	ksize = size;
 	kkey = key;
@@ -290,7 +290,7 @@ __find_bigpair(HTAB *hashp, BUFHEAD *bufp, int ndx, char *key, int size)
 		if (!bufp)
 			return (-3);
 		p = bufp->page;
-		bp = (u_int16_t *)p;
+		bp = (uint16_t *)p;
 		ndx = 1;
 	}
 
@@ -312,15 +312,15 @@ __find_bigpair(HTAB *hashp, BUFHEAD *bufp, int ndx, char *key, int size)
  * of the pair; 0 if there isn't any (i.e. big pair is the last key in the
  * bucket)
  */
-u_int16_t
+uint16_t
 __find_last_page(HTAB *hashp, BUFHEAD **bpp)
 {
 	BUFHEAD *bufp;
-	u_int16_t *bp, pageno;
+	uint16_t *bp, pageno;
 	int n;
 
 	bufp = *bpp;
-	bp = (u_int16_t *)bufp->page;
+	bp = (uint16_t *)bufp->page;
 	for (;;) {
 		n = bp[0];
 
@@ -337,7 +337,7 @@ __find_last_page(HTAB *hashp, BUFHEAD **bpp)
 		bufp = __get_buf(hashp, pageno, bufp, 0);
 		if (!bufp)
 			return (0);	/* Need to indicate an error! */
-		bp = (u_int16_t *)bufp->page;
+		bp = (uint16_t *)bufp->page;
 	}
 
 	*bpp = bufp;
@@ -355,15 +355,15 @@ int
 __big_return(HTAB *hashp, BUFHEAD *bufp, int ndx, DBT *val, int set_current)
 {
 	BUFHEAD *save_p;
-	u_int16_t *bp, len, off, save_addr;
+	uint16_t *bp, len, off, save_addr;
 	char *tp;
 
-	bp = (u_int16_t *)bufp->page;
+	bp = (uint16_t *)bufp->page;
 	while (bp[ndx + 1] == PARTIAL_KEY) {
 		bufp = __get_buf(hashp, bp[bp[0] - 1], bufp, 0);
 		if (!bufp)
 			return (-1);
-		bp = (u_int16_t *)bufp->page;
+		bp = (uint16_t *)bufp->page;
 		ndx = 1;
 	}
 
@@ -371,7 +371,7 @@ __big_return(HTAB *hashp, BUFHEAD *bufp, int ndx, DBT *val, int set_current)
 		bufp = __get_buf(hashp, bp[bp[0] - 1], bufp, 0);
 		if (!bufp)
 			return (-1);
-		bp = (u_int16_t *)bufp->page;
+		bp = (uint16_t *)bufp->page;
 		save_p = bufp;
 		save_addr = save_p->addr;
 		off = bp[1];
@@ -392,7 +392,7 @@ __big_return(HTAB *hashp, BUFHEAD *bufp, int ndx, DBT *val, int set_current)
 			bufp = __get_buf(hashp, bp[bp[0] - 1], bufp, 0);
 			if (!bufp)
 				return (-1);
-			bp = (u_int16_t *)bufp->page;
+			bp = (uint16_t *)bufp->page;
 		} else {
 			/* The data is all on one page. */
 			tp = (char *)bp;
@@ -411,7 +411,7 @@ __big_return(HTAB *hashp, BUFHEAD *bufp, int ndx, DBT *val, int set_current)
 					if (!hashp->cpage)
 						return (-1);
 					hashp->cndx = 1;
-					if (!((u_int16_t *)
+					if (!((uint16_t *)
 					    hashp->cpage->page)[0]) {
 						hashp->cbucket++;
 						hashp->cpage = NULL;
@@ -440,14 +440,14 @@ __big_return(HTAB *hashp, BUFHEAD *bufp, int ndx, DBT *val, int set_current)
 static int
 collect_data(HTAB *hashp, BUFHEAD *bufp, int len, int set)
 {
-	u_int16_t *bp;
+	uint16_t *bp;
 	char *p;
 	BUFHEAD *xbp;
-	u_int16_t save_addr;
+	uint16_t save_addr;
 	int mylen, totlen;
 
 	p = bufp->page;
-	bp = (u_int16_t *)p;
+	bp = (uint16_t *)p;
 	mylen = hashp->BSIZE - bp[1];
 	save_addr = bufp->addr;
 
@@ -467,7 +467,7 @@ collect_data(HTAB *hashp, BUFHEAD *bufp, int len, int set)
 				    __get_buf(hashp, bp[bp[0] - 1], bufp, 0);
 				if (!hashp->cpage)
 					return (-1);
-				else if (!((u_int16_t *)hashp->cpage->page)[0]) {
+				else if (!((uint16_t *)hashp->cpage->page)[0]) {
 					hashp->cbucket++;
 					hashp->cpage = NULL;
 				}
@@ -510,10 +510,10 @@ collect_key(HTAB *hashp, BUFHEAD *bufp, int len, DBT *val, int set)
 	BUFHEAD *xbp;
 	char *p;
 	int mylen, totlen;
-	u_int16_t *bp, save_addr;
+	uint16_t *bp, save_addr;
 
 	p = bufp->page;
-	bp = (u_int16_t *)p;
+	bp = (uint16_t *)p;
 	mylen = hashp->BSIZE - bp[1];
 
 	save_addr = bufp->addr;
@@ -550,13 +550,13 @@ __big_split(HTAB *hashp,
     BUFHEAD *np,	/* Pointer to new bucket page */
     BUFHEAD *big_keyp,	/* Pointer to first page containing the big key/data */
     int addr,		/* Address of big_keyp */
-    u_int32_t obucket,	/* Old Bucket */
+    uint32_t obucket,	/* Old Bucket */
     SPLIT_RETURN *ret)
 {
 	BUFHEAD *bp, *tmpp;
 	DBT key, val;
-	u_int32_t change;
-	u_int16_t free_space, n, off, *tp;
+	uint32_t change;
+	uint16_t free_space, n, off, *tp;
 
 	bp = big_keyp;
 
@@ -588,14 +588,14 @@ __big_split(HTAB *hashp,
 	    (tmpp->ovfl ? tmpp->ovfl->addr : 0), (bp ? bp->addr : 0));
 #endif
 	tmpp->ovfl = bp;	/* one of op/np point to big_keyp */
-	tp = (u_int16_t *)tmpp->page;
+	tp = (uint16_t *)tmpp->page;
 #ifdef DEBUG
 	assert(FREESPACE(tp) >= OVFLSIZE);
 #endif
 	n = tp[0];
 	off = OFFSET(tp);
 	free_space = FREESPACE(tp);
-	tp[++n] = (u_int16_t)addr;
+	tp[++n] = (uint16_t)addr;
 	tp[++n] = OVFLPAGE;
 	tp[0] = n;
 	OFFSET(tp) = off;
@@ -611,7 +611,7 @@ __big_split(HTAB *hashp,
 	ret->newp = np;
 	ret->oldp = op;
 
-	tp = (u_int16_t *)big_keyp->page;
+	tp = (uint16_t *)big_keyp->page;
 	big_keyp->flags |= BUF_MOD;
 	if (tp[0] > 2) {
 		/*

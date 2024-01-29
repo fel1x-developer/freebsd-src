@@ -41,7 +41,7 @@
 
 #define PFLOW_MAX_ENTRIES	128
 
-#define PFLOW_ID_LEN	sizeof(u_int64_t)
+#define PFLOW_ID_LEN	sizeof(uint64_t)
 
 #define PFLOW_MAXFLOWS 30
 #define PFLOW_ENGINE_TYPE 42
@@ -80,44 +80,44 @@
 #define PFIX_IE_timeStamp			323
 
 struct pflow_flow {
-	u_int32_t	src_ip;
-	u_int32_t	dest_ip;
-	u_int32_t	nexthop_ip;
-	u_int16_t	if_index_in;
-	u_int16_t	if_index_out;
-	u_int32_t	flow_packets;
-	u_int32_t	flow_octets;
-	u_int32_t	flow_start;
-	u_int32_t	flow_finish;
-	u_int16_t	src_port;
-	u_int16_t	dest_port;
-	u_int8_t	pad1;
-	u_int8_t	tcp_flags;
-	u_int8_t	protocol;
-	u_int8_t	tos;
-	u_int16_t	src_as;
-	u_int16_t	dest_as;
-	u_int8_t	src_mask;
-	u_int8_t	dest_mask;
-	u_int16_t	pad2;
+	uint32_t	src_ip;
+	uint32_t	dest_ip;
+	uint32_t	nexthop_ip;
+	uint16_t	if_index_in;
+	uint16_t	if_index_out;
+	uint32_t	flow_packets;
+	uint32_t	flow_octets;
+	uint32_t	flow_start;
+	uint32_t	flow_finish;
+	uint16_t	src_port;
+	uint16_t	dest_port;
+	uint8_t	pad1;
+	uint8_t	tcp_flags;
+	uint8_t	protocol;
+	uint8_t	tos;
+	uint16_t	src_as;
+	uint16_t	dest_as;
+	uint8_t	src_mask;
+	uint8_t	dest_mask;
+	uint16_t	pad2;
 } __packed;
 
 struct pflow_set_header {
-	u_int16_t	set_id;
-	u_int16_t	set_length; /* total length of the set,
+	uint16_t	set_id;
+	uint16_t	set_length; /* total length of the set,
 				       in octets, including the set header */
 } __packed;
 
 #define PFLOW_SET_HDRLEN sizeof(struct pflow_set_header)
 
 struct pflow_tmpl_hdr {
-	u_int16_t	tmpl_id;
-	u_int16_t	field_count;
+	uint16_t	tmpl_id;
+	uint16_t	field_count;
 } __packed;
 
 struct pflow_tmpl_fspec {
-	u_int16_t	field_id;
-	u_int16_t	len;
+	uint16_t	field_id;
+	uint16_t	len;
 } __packed;
 
 /* update pflow_clone_create() when changing pflow_ipfix_tmpl_ipv4 */
@@ -183,49 +183,49 @@ struct pflow_ipfix_tmpl {
 } __packed;
 
 struct pflow_ipfix_flow4 {
-	u_int32_t	src_ip;		/* sourceIPv4Address*/
-	u_int32_t	dest_ip;	/* destinationIPv4Address */
-	u_int32_t	if_index_in;	/* ingressInterface */
-	u_int32_t	if_index_out;	/* egressInterface */
-	u_int64_t	flow_packets;	/* packetDeltaCount */
-	u_int64_t	flow_octets;	/* octetDeltaCount */
+	uint32_t	src_ip;		/* sourceIPv4Address*/
+	uint32_t	dest_ip;	/* destinationIPv4Address */
+	uint32_t	if_index_in;	/* ingressInterface */
+	uint32_t	if_index_out;	/* egressInterface */
+	uint64_t	flow_packets;	/* packetDeltaCount */
+	uint64_t	flow_octets;	/* octetDeltaCount */
 	int64_t		flow_start;	/* flowStartMilliseconds */
 	int64_t		flow_finish;	/* flowEndMilliseconds */
-	u_int16_t	src_port;	/* sourceTransportPort */
-	u_int16_t	dest_port;	/* destinationTransportPort */
-	u_int8_t	tos;		/* ipClassOfService */
-	u_int8_t	protocol;	/* protocolIdentifier */
+	uint16_t	src_port;	/* sourceTransportPort */
+	uint16_t	dest_port;	/* destinationTransportPort */
+	uint8_t	tos;		/* ipClassOfService */
+	uint8_t	protocol;	/* protocolIdentifier */
 	/* XXX padding needed? */
 } __packed;
 
 struct pflow_ipfix_flow6 {
 	struct in6_addr src_ip;		/* sourceIPv6Address */
 	struct in6_addr dest_ip;	/* destinationIPv6Address */
-	u_int32_t	if_index_in;	/* ingressInterface */
-	u_int32_t	if_index_out;	/* egressInterface */
-	u_int64_t	flow_packets;	/* packetDeltaCount */
-	u_int64_t	flow_octets;	/* octetDeltaCount */
+	uint32_t	if_index_in;	/* ingressInterface */
+	uint32_t	if_index_out;	/* egressInterface */
+	uint64_t	flow_packets;	/* packetDeltaCount */
+	uint64_t	flow_octets;	/* octetDeltaCount */
 	int64_t		flow_start;	/* flowStartMilliseconds */
 	int64_t		flow_finish;	/* flowEndMilliseconds */
-	u_int16_t	src_port;	/* sourceTransportPort */
-	u_int16_t	dest_port;	/* destinationTransportPort */
-	u_int8_t	tos;		/* ipClassOfService */
-	u_int8_t	protocol;	/* protocolIdentifier */
+	uint16_t	src_port;	/* sourceTransportPort */
+	uint16_t	dest_port;	/* destinationTransportPort */
+	uint8_t	tos;		/* ipClassOfService */
+	uint8_t	protocol;	/* protocolIdentifier */
 	/* XXX padding needed? */
 } __packed;
 
 struct pflow_ipfix_nat4 {
-	u_int64_t	timestamp;	/* timeStamp */
-	u_int8_t	nat_event;	/* natEvent */
-	u_int8_t	protocol;	/* protocolIdentifier */
-	u_int32_t	src_ip;		/* sourceIPv4Address */
-	u_int16_t	src_port;	/* sourceTransportPort */
-	u_int32_t	postnat_src_ip;	/* postNATSourceIPv4Address */
-	u_int16_t	postnat_src_port;/* postNAPTSourceTransportPort */
-	u_int32_t	dest_ip;	/* destinationIPv4Address */
-	u_int16_t	dest_port;	/* destinationTransportPort */
-	u_int32_t	postnat_dest_ip;/* postNATDestinationIPv4Address */
-	u_int16_t	postnat_dest_port;/* postNAPTDestinationTransportPort */
+	uint64_t	timestamp;	/* timeStamp */
+	uint8_t	nat_event;	/* natEvent */
+	uint8_t	protocol;	/* protocolIdentifier */
+	uint32_t	src_ip;		/* sourceIPv4Address */
+	uint16_t	src_port;	/* sourceTransportPort */
+	uint32_t	postnat_src_ip;	/* postNATSourceIPv4Address */
+	uint16_t	postnat_src_port;/* postNAPTSourceTransportPort */
+	uint32_t	dest_ip;	/* destinationIPv4Address */
+	uint16_t	dest_port;	/* destinationTransportPort */
+	uint32_t	postnat_dest_ip;/* postNATDestinationIPv4Address */
+	uint16_t	postnat_dest_port;/* postNAPTDestinationTransportPort */
 } __packed;
 
 #ifdef _KERNEL
@@ -246,8 +246,8 @@ struct pflow_softc {
 	unsigned int		 sc_maxcount4;
 	unsigned int		 sc_maxcount6;
 	unsigned int		 sc_maxcount_nat4;
-	u_int32_t		 sc_gcounter;
-	u_int32_t		 sc_sequence;
+	uint32_t		 sc_gcounter;
+	uint32_t		 sc_sequence;
 	struct callout		 sc_tmo;
 	struct callout		 sc_tmo6;
 	struct callout		 sc_tmo_nat4;
@@ -260,8 +260,8 @@ struct pflow_softc {
 	struct sockaddr		*sc_flowsrc;
 	struct sockaddr		*sc_flowdst;
 	struct pflow_ipfix_tmpl	 sc_tmpl_ipfix;
-	u_int8_t		 sc_version;
-	u_int32_t		 sc_observation_dom;
+	uint8_t		 sc_version;
+	uint32_t		 sc_observation_dom;
 	struct mbuf		*sc_mbuf;	/* current cumulative mbuf */
 	struct mbuf		*sc_mbuf6;	/* current cumulative mbuf */
 	struct mbuf		*sc_mbuf_nat4;
@@ -272,35 +272,35 @@ struct pflow_softc {
 #endif /* _KERNEL */
 
 struct pflow_header {
-	u_int16_t	version;
-	u_int16_t	count;
-	u_int32_t	uptime_ms;
-	u_int32_t	time_sec;
-	u_int32_t	time_nanosec;
-	u_int32_t	flow_sequence;
-	u_int8_t	engine_type;
-	u_int8_t	engine_id;
-	u_int8_t	reserved1;
-	u_int8_t	reserved2;
+	uint16_t	version;
+	uint16_t	count;
+	uint32_t	uptime_ms;
+	uint32_t	time_sec;
+	uint32_t	time_nanosec;
+	uint32_t	flow_sequence;
+	uint8_t	engine_type;
+	uint8_t	engine_id;
+	uint8_t	reserved1;
+	uint8_t	reserved2;
 } __packed;
 
 #define PFLOW_HDRLEN sizeof(struct pflow_header)
 
 struct pflow_v10_header {
-	u_int16_t	version;
-	u_int16_t	length;
-	u_int32_t	time_sec;
-	u_int32_t	flow_sequence;
-	u_int32_t	observation_dom;
+	uint16_t	version;
+	uint16_t	length;
+	uint32_t	time_sec;
+	uint32_t	flow_sequence;
+	uint32_t	observation_dom;
 } __packed;
 
 #define PFLOW_IPFIX_HDRLEN sizeof(struct pflow_v10_header)
 
 struct pflowstats {
-	u_int64_t	pflow_flows;
-	u_int64_t	pflow_packets;
-	u_int64_t	pflow_onomem;
-	u_int64_t	pflow_oerrors;
+	uint64_t	pflow_flows;
+	uint64_t	pflow_packets;
+	uint64_t	pflow_onomem;
+	uint64_t	pflow_oerrors;
 };
 
 /* Supported flow protocols */
@@ -312,7 +312,7 @@ struct pflowstats {
 
 struct pflow_protos {
 	const char	*ppr_name;
-	u_int8_t	 ppr_proto;
+	uint8_t	 ppr_proto;
 };
 
 #define PFLOW_PROTOS {                                 \

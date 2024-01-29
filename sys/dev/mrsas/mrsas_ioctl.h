@@ -85,14 +85,14 @@
 
 #pragma pack(1)
 struct mrsas_iocpacket {
-	u_int16_t host_no;
-	u_int16_t __pad1;
-	u_int32_t sgl_off;
-	u_int32_t sge_count;
-	u_int32_t sense_off;
-	u_int32_t sense_len;
+	uint16_t host_no;
+	uint16_t __pad1;
+	uint32_t sgl_off;
+	uint32_t sge_count;
+	uint32_t sense_off;
+	uint32_t sense_len;
 	union {
-		u_int8_t raw[MEGAMFI_RAW_FRAME_SIZE];
+		uint8_t raw[MEGAMFI_RAW_FRAME_SIZE];
 		struct mrsas_header hdr;
 	}	frame;
 	struct iovec sgl[MAX_IOCTL_SGE];
@@ -103,14 +103,14 @@ struct mrsas_iocpacket {
 #ifdef COMPAT_FREEBSD32
 #pragma pack(1)
 struct mrsas_iocpacket32 {
-	u_int16_t host_no;
-	u_int16_t __pad1;
-	u_int32_t sgl_off;
-	u_int32_t sge_count;
-	u_int32_t sense_off;
-	u_int32_t sense_len;
+	uint16_t host_no;
+	uint16_t __pad1;
+	uint32_t sgl_off;
+	uint32_t sge_count;
+	uint32_t sense_off;
+	uint32_t sense_len;
 	union {
-		u_int8_t raw[MEGAMFI_RAW_FRAME_SIZE];
+		uint8_t raw[MEGAMFI_RAW_FRAME_SIZE];
 		struct mrsas_header hdr;
 	}	frame;
 	struct iovec32 sgl[MAX_IOCTL_SGE];

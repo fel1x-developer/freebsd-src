@@ -12,7 +12,7 @@ int krpc_call(struct sockaddr_in *_sin,
 	struct mbuf **data, struct sockaddr **from, struct thread *td);
 
 int krpc_portmap(struct sockaddr_in *_sin,
-	u_int prog, u_int vers, u_int16_t *portp, struct thread *td);
+	u_int prog, u_int vers, uint16_t *portp, struct thread *td);
 
 struct mbuf *xdr_string_encode(char *str, int len);
 

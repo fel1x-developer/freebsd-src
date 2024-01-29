@@ -320,8 +320,8 @@ static struct localhints {
 static void
 ${1}_isa_identify (driver_t *driver, device_t parent)
 {
-	u_int32_t	irq=0;
-	u_int32_t	ioport;
+	uint32_t	irq=0;
+	uint32_t	ioport;
 	device_t	child;
 	int i;
 
@@ -573,7 +573,7 @@ DRIVER_MODULE(${1}, cardbus, ${1}_pci_driver, ${1}_devclass, 0, 0);
 
 static struct _pcsid
 {
-	u_int32_t	type;
+	uint32_t	type;
 	const char	*desc;
 } pci_ids[] = {
 	{ 0x1234abcd,	"ACME PCI Widgetplus"	},
@@ -594,7 +594,7 @@ static struct _pcsid
 static int
 ${1}_pci_probe (device_t device)
 {
-	u_int32_t	type = pci_get_devid(device);
+	uint32_t	type = pci_get_devid(device);
 	struct _pcsid	*ep =pci_ids;
 
 	while (ep->type && ep->type != type)

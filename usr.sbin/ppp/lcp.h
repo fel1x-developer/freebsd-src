@@ -48,11 +48,11 @@ struct callback {
 
 struct lcp {
   struct fsm fsm;		/* The finite state machine */
-  u_int16_t his_mru;		/* Peers maximum packet size */
-  u_int16_t his_mrru;		/* Peers maximum reassembled packet size (MP) */
-  u_int32_t his_accmap;		/* Peeers async char control map */
-  u_int32_t his_magic;		/* Peers magic number */
-  u_int32_t his_lqrperiod;	/* Peers LQR frequency (100ths of seconds) */
+  uint16_t his_mru;		/* Peers maximum packet size */
+  uint16_t his_mrru;		/* Peers maximum reassembled packet size (MP) */
+  uint32_t his_accmap;		/* Peeers async char control map */
+  uint32_t his_magic;		/* Peers magic number */
+  uint32_t his_lqrperiod;	/* Peers LQR frequency (100ths of seconds) */
   u_short his_auth;		/* Peer wants this type of authentication */
   u_char his_authtype;		/* Fifth octet of REQ/NAK/REJ */
   struct callback his_callback;	/* Peer wants callback ? */
@@ -63,9 +63,9 @@ struct lcp {
 
   u_short want_mru;		/* Our maximum packet size */
   u_short want_mrru;		/* Our maximum reassembled packet size (MP) */
-  u_int32_t want_accmap;	/* Our async char control map */
-  u_int32_t want_magic;		/* Our magic number */
-  u_int32_t want_lqrperiod;	/* Our LQR frequency (100ths of seconds) */
+  uint32_t want_accmap;	/* Our async char control map */
+  uint32_t want_magic;		/* Our magic number */
+  uint32_t want_lqrperiod;	/* Our LQR frequency (100ths of seconds) */
   u_short want_auth;		/* We want this type of authentication */
   u_char want_authtype;		/* Fifth octet of REQ/NAK/REJ */
   struct callback want_callback;/* We want callback ? */
@@ -73,8 +73,8 @@ struct lcp {
   unsigned want_protocomp : 1;	/* Do we do protocol field compression */
   unsigned want_acfcomp : 1;	/* Do we do addr & cntrl fld compression */
 
-  u_int32_t his_reject;		/* Request codes rejected by peer */
-  u_int32_t my_reject;		/* Request codes I have rejected */
+  uint32_t his_reject;		/* Request codes rejected by peer */
+  uint32_t my_reject;		/* Request codes I have rejected */
 
   u_short auth_iwait;		/* I must authenticate to the peer */
   u_short auth_ineed;		/* I require that the peer authenticates */
@@ -86,9 +86,9 @@ struct lcp {
     u_short max_mru;		/* Preferred MRU value */
     u_short mtu;		/* Preferred MTU */
     u_short max_mtu;		/* Preferred MTU */
-    u_int32_t accmap;		/* Initial ACCMAP value */
+    uint32_t accmap;		/* Initial ACCMAP value */
     int openmode;		/* when to start CFG REQs */
-    u_int32_t lqrperiod;	/* LQR frequency (seconds) */
+    uint32_t lqrperiod;	/* LQR frequency (seconds) */
     struct fsm_retry fsm;	/* How often/frequently to resend requests */
     unsigned acfcomp : 2;	/* Address & Control Field Compression neg */
     unsigned chap05 : 2;	/* Challenge Handshake Authentication proto */

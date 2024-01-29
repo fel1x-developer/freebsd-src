@@ -97,10 +97,10 @@ char *SHA1_version="SHA1 part of SSLeay 0.9.0b 11-Oct-1998";
 
 #ifndef NOPROTO
 #  ifdef SHA1_ASM
-     void sha1_block_x86(SHA_CTX *c, const u_int32_t *p, int num);
+     void sha1_block_x86(SHA_CTX *c, const uint32_t *p, int num);
 #    define sha1_block sha1_block_x86
 #  else
-     void sha1_block(SHA_CTX *c, const u_int32_t *p, int num);
+     void sha1_block(SHA_CTX *c, const uint32_t *p, int num);
 #  endif
 #else
 #  ifdef SHA1_ASM
@@ -141,9 +141,9 @@ void SHA1_Init(SHA_CTX *c)
 void
 SHA1_Update(SHA_CTX *c, const void *in, size_t len)
 {
-	u_int32_t *p;
+	uint32_t *p;
 	int ew,ec,sw,sc;
-	u_int32_t l;
+	uint32_t l;
 	const unsigned char *data = in;
 
 	if (len == 0) return;
@@ -211,13 +211,13 @@ SHA1_Update(SHA_CTX *c, const void *in, size_t len)
 	 */
 #if 1
 #if BYTE_ORDER == BIG_ENDIAN || defined(SHA1_ASM)
-	if ((((unsigned int)data)%sizeof(u_int32_t)) == 0)
+	if ((((unsigned int)data)%sizeof(uint32_t)) == 0)
 		{
 		sw=len/SHA_CBLOCK;
 		if (sw)
 			{
 			sw*=SHA_CBLOCK;
-			sha1_block(c,(u_int32_t *)data,sw);
+			sha1_block(c,(uint32_t *)data,sw);
 			data+=sw;
 			len-=sw;
 			}
@@ -230,7 +230,7 @@ SHA1_Update(SHA_CTX *c, const void *in, size_t len)
 	while (len >= SHA_CBLOCK)
 		{
 #if BYTE_ORDER == BIG_ENDIAN || BYTE_ORDER == LITTLE_ENDIAN
-		if (p != (u_int32_t *)data)
+		if (p != (uint32_t *)data)
 			memcpy(p,data,SHA_CBLOCK);
 		data+=SHA_CBLOCK;
 #  if BYTE_ORDER == LITTLE_ENDIAN
@@ -272,9 +272,9 @@ SHA1_Update(SHA_CTX *c, const void *in, size_t len)
 
 void SHA1_Transform(SHA_CTX *c, unsigned char *b)
 	{
-	u_int32_t p[16];
+	uint32_t p[16];
 #if BYTE_ORDER != BIG_ENDIAN
-	u_int32_t *q;
+	uint32_t *q;
 	int i;
 #endif
 
@@ -295,7 +295,7 @@ void SHA1_Transform(SHA_CTX *c, unsigned char *b)
 	q=p;
 	for (i=(SHA_LBLOCK/4); i; i--)
 		{
-		u_int32_t l;
+		uint32_t l;
 		c2nl(b,l); *(q++)=l;
 		c2nl(b,l); *(q++)=l;
 		c2nl(b,l); *(q++)=l;
@@ -308,10 +308,10 @@ void SHA1_Transform(SHA_CTX *c, unsigned char *b)
 #ifndef SHA1_ASM
 
 void 
-sha1_block(SHA_CTX *c, const u_int32_t *W, int num)
+sha1_block(SHA_CTX *c, const uint32_t *W, int num)
 {
-	u_int32_t A,B,C,D,E,T;
-	u_int32_t X[16];
+	uint32_t A,B,C,D,E,T;
+	uint32_t X[16];
 
 	A=c->h0;
 	B=c->h1;
@@ -428,8 +428,8 @@ sha1_block(SHA_CTX *c, const u_int32_t *W, int num)
 void SHA1_Final(unsigned char *md, SHA_CTX *c)
 	{
 	int i,j;
-	u_int32_t l;
-	u_int32_t *p;
+	uint32_t l;
+	uint32_t *p;
 	static unsigned char end[4]={0x80,0x00,0x00,0x00};
 	unsigned char *cp=end;
 

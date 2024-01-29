@@ -104,8 +104,8 @@ EOF
 #define THREADS 50
 
 int fd[900], fds[2], socketpr[2];
-#define N (128 * 1024 / (int)sizeof(u_int32_t))
-static u_int32_t r[N];
+#define N (128 * 1024 / (int)sizeof(uint32_t))
+static uint32_t r[N];
 static int syscallno;
 
 static void

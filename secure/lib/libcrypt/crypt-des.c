@@ -52,7 +52,7 @@
  *
  * ARCHITECTURE ASSUMPTIONS:
  *	It is assumed that the 8-byte arrays passed by reference can be
- *	addressed as arrays of u_int32_t's (ie. the CPU is not picky about
+ *	addressed as arrays of uint32_t's (ie. the CPU is not picky about
  *	alignment).
  */
 
@@ -160,7 +160,7 @@ static const u_char	pbox[32] = {
 	 2,  8, 24, 14, 32, 27,  3,  9, 19, 13, 30,  6, 22, 11,  4, 25
 };
 
-static const u_int32_t	bits32[32] =
+static const uint32_t	bits32[32] =
 {
 	0x80000000, 0x40000000, 0x20000000, 0x10000000,
 	0x08000000, 0x04000000, 0x02000000, 0x01000000,
@@ -174,20 +174,20 @@ static const u_int32_t	bits32[32] =
 
 static const u_char	bits8[8] = { 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
 
-static __thread u_int32_t	saltbits;
-static __thread u_int32_t	old_salt;
-static __thread const u_int32_t	*bits28, *bits24;
+static __thread uint32_t	saltbits;
+static __thread uint32_t	old_salt;
+static __thread const uint32_t	*bits28, *bits24;
 static __thread u_char		init_perm[64], final_perm[64];
-static __thread u_int32_t	en_keysl[16], en_keysr[16];
-static __thread u_int32_t	de_keysl[16], de_keysr[16];
+static __thread uint32_t	en_keysl[16], en_keysr[16];
+static __thread uint32_t	de_keysl[16], de_keysr[16];
 static __thread int		des_initialised = 0;
 static __thread u_char		m_sbox[4][4096];
-static __thread u_int32_t	psbox[4][256];
-static __thread u_int32_t	ip_maskl[8][256], ip_maskr[8][256];
-static __thread u_int32_t	fp_maskl[8][256], fp_maskr[8][256];
-static __thread u_int32_t	key_perm_maskl[8][128], key_perm_maskr[8][128];
-static __thread u_int32_t	comp_maskl[8][128], comp_maskr[8][128];
-static __thread u_int32_t	old_rawkey0, old_rawkey1;
+static __thread uint32_t	psbox[4][256];
+static __thread uint32_t	ip_maskl[8][256], ip_maskr[8][256];
+static __thread uint32_t	fp_maskl[8][256], fp_maskr[8][256];
+static __thread uint32_t	key_perm_maskl[8][128], key_perm_maskr[8][128];
+static __thread uint32_t	comp_maskl[8][128], comp_maskr[8][128];
+static __thread uint32_t	old_rawkey0, old_rawkey1;
 
 static const u_char	ascii64[] =
 	 "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
@@ -216,7 +216,7 @@ static void
 des_init(void)
 {
 	int	i, j, b, k, inbit, obit;
-	u_int32_t	*p, *il, *ir, *fl, *fr;
+	uint32_t	*p, *il, *ir, *fl, *fr;
 
 	old_rawkey0 = old_rawkey1 = 0L;
 	saltbits = 0L;
@@ -342,9 +342,9 @@ des_init(void)
 }
 
 static void
-setup_salt(u_int32_t salt)
+setup_salt(uint32_t salt)
 {
-	u_int32_t	obit, saltbit;
+	uint32_t	obit, saltbit;
 	int		i;
 
 	if (salt == old_salt)
@@ -365,14 +365,14 @@ setup_salt(u_int32_t salt)
 static int
 des_setkey(const char *key)
 {
-	u_int32_t	k0, k1, rawkey0, rawkey1;
+	uint32_t	k0, k1, rawkey0, rawkey1;
 	int		shifts, round;
 
 	if (!des_initialised)
 		des_init();
 
-	rawkey0 = ntohl(*(const u_int32_t *) key);
-	rawkey1 = ntohl(*(const u_int32_t *) (key + 4));
+	rawkey0 = ntohl(*(const uint32_t *) key);
+	rawkey1 = ntohl(*(const uint32_t *) (key + 4));
 
 	if ((rawkey0 | rawkey1)
 	    && rawkey0 == old_rawkey0
@@ -412,7 +412,7 @@ des_setkey(const char *key)
 	 */
 	shifts = 0;
 	for (round = 0; round < 16; round++) {
-		u_int32_t	t0, t1;
+		uint32_t	t0, t1;
 
 		shifts += key_shifts[round];
 
@@ -443,13 +443,13 @@ des_setkey(const char *key)
 }
 
 static int
-do_des(	u_int32_t l_in, u_int32_t r_in, u_int32_t *l_out, u_int32_t *r_out, int count)
+do_des(	uint32_t l_in, uint32_t r_in, uint32_t *l_out, uint32_t *r_out, int count)
 {
 	/*
 	 *	l_in, r_in, l_out, and r_out are in pseudo-"big-endian" format.
 	 */
-	u_int32_t	l, r, *kl, *kr, *kl1, *kr1;
-	u_int32_t	f, r48l, r48r;
+	uint32_t	l, r, *kl, *kr, *kl1, *kr1;
+	uint32_t	f, r48l, r48r;
 	int		round;
 
 	if (count == 0) {
@@ -561,10 +561,10 @@ do_des(	u_int32_t l_in, u_int32_t r_in, u_int32_t *l_out, u_int32_t *r_out, int 
 static int
 des_cipher(const char *in, char *out, u_long salt, int count)
 {
-	u_int32_t	l_out, r_out, rawl, rawr;
+	uint32_t	l_out, r_out, rawl, rawr;
 	int		retval;
 	union {
-		u_int32_t	*ui32;
+		uint32_t	*ui32;
 		const char	*c;
 	} trans;
 
@@ -589,7 +589,7 @@ int
 crypt_des(const char *key, const char *setting, char *buffer)
 {
 	int		i;
-	u_int32_t	count, salt, l, r0, r1, keybuf[2];
+	uint32_t	count, salt, l, r0, r1, keybuf[2];
 	u_char		*q;
 
 	if (!des_initialised)

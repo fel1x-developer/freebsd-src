@@ -391,7 +391,7 @@ res_nsend(res_state statp,
 		struct sockaddr_in ina;
 		int lastns = statp->nscount - 1;
 		int fd;
-		u_int16_t nstime;
+		uint16_t nstime;
 
 		if (EXT(statp).ext != NULL)
 			inu = EXT(statp).ext->nsaddrs[0];

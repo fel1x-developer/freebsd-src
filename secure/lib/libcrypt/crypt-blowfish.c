@@ -70,13 +70,13 @@
 #define BCRYPT_MINLOGROUNDS 4	/* we have log2(rounds) in salt */
 
 
-static void encode_base64(u_int8_t *, u_int8_t *, u_int16_t);
-static void decode_base64(u_int8_t *, u_int16_t, const u_int8_t *);
+static void encode_base64(uint8_t *, uint8_t *, uint16_t);
+static void decode_base64(uint8_t *, uint16_t, const uint8_t *);
 
-const static u_int8_t Base64Code[] =
+const static uint8_t Base64Code[] =
 "./ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
-const static u_int8_t index_64[128] = {
+const static uint8_t index_64[128] = {
 	255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
 	255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
 	255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
@@ -94,11 +94,11 @@ const static u_int8_t index_64[128] = {
 #define CHAR64(c)  ( (c) > 127 ? 255 : index_64[(c)])
 
 static void
-decode_base64(u_int8_t *buffer, u_int16_t len, const u_int8_t *data)
+decode_base64(uint8_t *buffer, uint16_t len, const uint8_t *data)
 {
-	u_int8_t *bp = buffer;
-	const u_int8_t *p = data;
-	u_int8_t c1, c2, c3, c4;
+	uint8_t *bp = buffer;
+	const uint8_t *p = data;
+	uint8_t c1, c2, c3, c4;
 	while (bp < buffer + len) {
 		c1 = CHAR64(*p);
 		c2 = CHAR64(*(p + 1));
@@ -135,13 +135,13 @@ int
 crypt_blowfish(const char *key, const char *salt, char *buffer)
 {
 	blf_ctx state;
-	u_int32_t rounds, i, k;
-	u_int16_t j;
+	uint32_t rounds, i, k;
+	uint16_t j;
 	size_t key_len;
-	u_int8_t salt_len, logr, minr;
-	u_int8_t ciphertext[4 * BCRYPT_BLOCKS] = "OrpheanBeholderScryDoubt";
-	u_int8_t csalt[BCRYPT_MAXSALT];
-	u_int32_t cdata[BCRYPT_BLOCKS];
+	uint8_t salt_len, logr, minr;
+	uint8_t ciphertext[4 * BCRYPT_BLOCKS] = "OrpheanBeholderScryDoubt";
+	uint8_t csalt[BCRYPT_MAXSALT];
+	uint32_t cdata[BCRYPT_BLOCKS];
 	char arounds[3];
 
 	/* Defaults */
@@ -198,10 +198,10 @@ crypt_blowfish(const char *key, const char *salt, char *buffer)
 		return (-1);
 
 	/* We dont want the base64 salt but the raw data */
-	decode_base64(csalt, BCRYPT_MAXSALT, (const u_int8_t *) salt);
+	decode_base64(csalt, BCRYPT_MAXSALT, (const uint8_t *) salt);
 	salt_len = BCRYPT_MAXSALT;
 	if (minr <= 'a')
-		key_len = (u_int8_t)(strlen(key) + (minr >= 'a' ? 1 : 0));
+		key_len = (uint8_t)(strlen(key) + (minr >= 'a' ? 1 : 0));
 	else {
 		/* strlen() returns a size_t, but the function calls
 		 * below result in implicit casts to a narrower integer
@@ -216,9 +216,9 @@ crypt_blowfish(const char *key, const char *salt, char *buffer)
 	/* Setting up S-Boxes and Subkeys */
 	Blowfish_initstate(&state);
 	Blowfish_expandstate(&state, csalt, salt_len,
-	    (const u_int8_t *) key, key_len);
+	    (const uint8_t *) key, key_len);
 	for (k = 0; k < rounds; k++) {
-		Blowfish_expand0state(&state, (const u_int8_t *) key, key_len);
+		Blowfish_expand0state(&state, (const uint8_t *) key, key_len);
 		Blowfish_expand0state(&state, csalt, salt_len);
 	}
 
@@ -251,9 +251,9 @@ crypt_blowfish(const char *key, const char *salt, char *buffer)
 	snprintf(buffer, 4, "%2.2u$", logr);
 	buffer += 3;
 
-	encode_base64((u_int8_t *)buffer, csalt, BCRYPT_MAXSALT);
+	encode_base64((uint8_t *)buffer, csalt, BCRYPT_MAXSALT);
 	buffer += strlen(buffer);
-	encode_base64((u_int8_t *)buffer, ciphertext, 4 * BCRYPT_BLOCKS - 1);
+	encode_base64((uint8_t *)buffer, ciphertext, 4 * BCRYPT_BLOCKS - 1);
 	memset(&state, 0, sizeof(state));
 	memset(ciphertext, 0, sizeof(ciphertext));
 	memset(csalt, 0, sizeof(csalt));
@@ -262,11 +262,11 @@ crypt_blowfish(const char *key, const char *salt, char *buffer)
 }
 
 static void
-encode_base64(u_int8_t *buffer, u_int8_t *data, u_int16_t len)
+encode_base64(uint8_t *buffer, uint8_t *data, uint16_t len)
 {
-	u_int8_t *bp = buffer;
-	u_int8_t *p = data;
-	u_int8_t c1, c2;
+	uint8_t *bp = buffer;
+	uint8_t *p = data;
+	uint8_t c1, c2;
 	while (p < data + len) {
 		c1 = *p++;
 		*bp++ = Base64Code[(c1 >> 2)];

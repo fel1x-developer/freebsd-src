@@ -86,7 +86,7 @@ yp_bind_host(char *server, u_long program, u_long version, u_short port,
 			errx(1, "gethostbyname: unknown host %s.",
 			    server);
 		}
-		rsrv_sin.sin_addr.s_addr = *(u_int32_t *)h->h_addr;
+		rsrv_sin.sin_addr.s_addr = *(uint32_t *)h->h_addr;
 	}
 
 	tv.tv_sec = 10;
@@ -276,7 +276,7 @@ yp_all_host(CLIENT *client, char *indomain, char *inmap,
 }
 
 int
-yp_order_host(CLIENT *client, char *indomain, char *inmap, u_int32_t *outorder)
+yp_order_host(CLIENT *client, char *indomain, char *inmap, uint32_t *outorder)
 {
 	struct ypresp_order ypro;
 	struct ypreq_nokey yprnk;

@@ -88,7 +88,7 @@ enum {
 };
 
 struct ng_rfc1490_encap_t {
-	u_int8_t	method;
+	uint8_t	method;
 	const char	*name;
 };
 
@@ -333,10 +333,10 @@ ng_rfc1490_rcvdata(hook_p hook, item_p item)
 		switch (*ptr++) {
 		case NLPID_SNAP:
 			if (OUICMP(ptr, 0, 0, 0)) {	/* It's an ethertype */
-				u_int16_t etype;
+				uint16_t etype;
 
 				ptr += 3;
-switch_on_etype:		etype = ntohs(*((const u_int16_t *)ptr));
+switch_on_etype:		etype = ntohs(*((const uint16_t *)ptr));
 				ptr += 2;
 				m_adj(m, ptr - start);
 				switch (etype) {
@@ -411,14 +411,14 @@ switch_on_etype:		etype = ntohs(*((const u_int16_t *)ptr));
 			mtod(m, u_char *)[1] = 0x00;			/* PAD */
 			mtod(m, u_char *)[2] = NLPID_SNAP;
 			bzero((char *)(mtod(m, u_char *) + 3), 3);	/* OUI 0-0-0 */
-			*((u_int16_t *)mtod(m, u_int16_t *) + 6/sizeof(u_int16_t))
+			*((uint16_t *)mtod(m, uint16_t *) + 6/sizeof(uint16_t))
 			    = htons(ETHERTYPE_IP);  /* PID */
 			break;
 		case NG_RFC1490_ENCAP_CISCO:
 			M_PREPEND(m, 2, M_NOWAIT);	/* Prepend IP ethertype */
 			if (!m)
 				ERROUT(ENOBUFS);
-			*((u_int16_t *)mtod(m, u_int16_t *)) = htons(ETHERTYPE_IP);
+			*((uint16_t *)mtod(m, uint16_t *)) = htons(ETHERTYPE_IP);
 			break;
 		}
 		NG_FWD_NEW_DATA(error, item, priv->downlink, m);

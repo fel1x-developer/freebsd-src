@@ -109,7 +109,7 @@ altq_fetch(void)
 	close(pffd);
 }
 
-u_int32_t
+uint32_t
 altq_name_to_qid(const char *name)
 {
 	struct pf_altq *altq;
@@ -124,7 +124,7 @@ altq_name_to_qid(const char *name)
 }
 
 static const char *
-altq_qid_to_name(u_int32_t qid)
+altq_qid_to_name(uint32_t qid)
 {
 	struct pf_altq *altq;
 

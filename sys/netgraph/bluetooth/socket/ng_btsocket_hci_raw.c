@@ -111,15 +111,15 @@ static struct ng_type typestruct = {
 };
 
 /* Globals */
-static u_int32_t				ng_btsocket_hci_raw_debug_level;
-static u_int32_t				ng_btsocket_hci_raw_ioctl_timeout;
+static uint32_t				ng_btsocket_hci_raw_debug_level;
+static uint32_t				ng_btsocket_hci_raw_ioctl_timeout;
 static node_p					ng_btsocket_hci_raw_node;
 static struct ng_bt_itemq			ng_btsocket_hci_raw_queue;
 static struct mtx				ng_btsocket_hci_raw_queue_mtx;
 static struct task				ng_btsocket_hci_raw_task;
 static LIST_HEAD(, ng_btsocket_hci_raw_pcb)	ng_btsocket_hci_raw_sockets;
 static struct mtx				ng_btsocket_hci_raw_sockets_mtx;
-static u_int32_t				ng_btsocket_hci_raw_token;
+static uint32_t				ng_btsocket_hci_raw_token;
 static struct mtx				ng_btsocket_hci_raw_token_mtx;
 static struct ng_btsocket_hci_raw_sec_filter	*ng_btsocket_hci_raw_sec_filter;
 static struct timeval				ng_btsocket_hci_raw_lasttime;
@@ -366,7 +366,7 @@ ng_btsocket_hci_raw_node_rcvdata(hook_p hook, item_p item)
  */
 
 static void
-ng_btsocket_hci_raw_get_token(u_int32_t *token)
+ng_btsocket_hci_raw_get_token(uint32_t *token)
 {
 	mtx_lock(&ng_btsocket_hci_raw_token_mtx);
   
@@ -679,7 +679,7 @@ ng_btsocket_hci_raw_filter(ng_btsocket_hci_raw_pcb_p pcb, struct mbuf *m, int d)
 
 	mtx_assert(&pcb->pcb_mtx, MA_OWNED);
 
-	switch ((type = *mtod(m, u_int8_t *))) {
+	switch ((type = *mtod(m, uint8_t *))) {
 	case NG_HCI_CMD_PKT:
 		if (!(pcb->flags & NG_BTSOCKET_HCI_RAW_PRIVILEGED)) {
 			opcode = le16toh(mtod(m, ng_hci_cmd_pkt_t *)->opcode);
@@ -1593,7 +1593,7 @@ ng_btsocket_hci_raw_send(struct socket *so, int flags, struct mbuf *m,
 			goto drop;
 		}
 	}
-	if (*mtod(m, u_int8_t *) != NG_HCI_CMD_PKT) {
+	if (*mtod(m, uint8_t *) != NG_HCI_CMD_PKT) {
 		error = ENOTSUP;
 		goto drop;
 	}

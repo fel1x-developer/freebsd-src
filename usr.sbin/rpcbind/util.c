@@ -66,7 +66,7 @@ static int
 bitmaskcmp(struct sockaddr *dst, struct sockaddr *src, struct sockaddr *mask)
 {
 	int i;
-	u_int8_t *p1, *p2, *netmask;
+	uint8_t *p1, *p2, *netmask;
 	int bytelen;
 
 	if (dst->sa_family != src->sa_family ||

@@ -171,12 +171,12 @@ eeprom_9300_modal_print(const OSPREY_MODAL_EEP_HEADER *m)
 	    m->tx_gain_cap);
 
 #if 0
-    u_int8_t   reserved[MAX_MODAL_RESERVED];
-    u_int16_t  switchcomspdt;
-    u_int8_t   xLNA_bias_strength;                      // bit: 0,1:chain0, 2,3:chain1, 4,5:chain2
-    u_int8_t   rf_gain_cap;
-    u_int8_t   tx_gain_cap;                             // bit0:4 txgain cap, txgain index for max_txgain + 20 (10dBm higher than max txgain)
-    u_int8_t   futureModal[MAX_MODAL_FUTURE];
+    uint8_t   reserved[MAX_MODAL_RESERVED];
+    uint16_t  switchcomspdt;
+    uint8_t   xLNA_bias_strength;                      // bit: 0,1:chain0, 2,3:chain1, 4,5:chain2
+    uint8_t   rf_gain_cap;
+    uint8_t   tx_gain_cap;                             // bit0:4 txgain cap, txgain index for max_txgain + 20 (10dBm higher than max txgain)
+    uint8_t   futureModal[MAX_MODAL_FUTURE];
     // last 12 bytes stolen and moved to newly created base extension structure
 #endif
 }

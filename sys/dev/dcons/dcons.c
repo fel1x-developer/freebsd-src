@@ -48,7 +48,7 @@
 int
 dcons_ischar(struct dcons_softc *dc)
 {
-	u_int32_t ptr, pos, gen, next_gen;
+	uint32_t ptr, pos, gen, next_gen;
 	struct dcons_ch *ch;
 
 	ch = &dc->i;
@@ -77,7 +77,7 @@ int
 dcons_checkc(struct dcons_softc *dc)
 {
 	unsigned char c;
-	u_int32_t ptr, pos, gen, next_gen;
+	uint32_t ptr, pos, gen, next_gen;
 	struct dcons_ch *ch;
 
 	ch = &dc->i;

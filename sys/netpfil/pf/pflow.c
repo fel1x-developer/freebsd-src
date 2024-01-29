@@ -83,7 +83,7 @@ static int	pflow_calc_mtu(struct pflow_softc *, int, int);
 static void	pflow_setmtu(struct pflow_softc *, int);
 static int	pflowvalidsockaddr(const struct sockaddr *, int);
 
-static struct mbuf	*pflow_get_mbuf(struct pflow_softc *, u_int16_t);
+static struct mbuf	*pflow_get_mbuf(struct pflow_softc *, uint16_t);
 static void	pflow_flush(struct pflow_softc *);
 static int	pflow_sendout_v5(struct pflow_softc *);
 static int	pflow_sendout_ipfix(struct pflow_softc *, enum pflow_family_t);
@@ -554,7 +554,7 @@ pflow_setmtu(struct pflow_softc *sc, int mtu_req)
 }
 
 static struct mbuf *
-pflow_get_mbuf(struct pflow_softc *sc, u_int16_t set_id)
+pflow_get_mbuf(struct pflow_softc *sc, uint16_t set_id)
 {
 	struct pflow_set_header	 set_hdr;
 	struct pflow_header	 h;
@@ -775,15 +775,15 @@ export_pflow_if(const struct pf_kstate *st, struct pf_state_key *sk,
     struct pflow_softc *sc)
 {
 	struct pf_kstate	 pfs_copy;
-	u_int64_t		 bytes[2];
+	uint64_t		 bytes[2];
 	int			 ret = 0;
 
 	if (sc->sc_version == PFLOW_PROTO_10)
 		return (pflow_pack_flow_ipfix(st, sk, sc));
 
 	/* PFLOW_PROTO_5 */
-	if ((st->bytes[0] < (u_int64_t)PFLOW_MAXBYTES)
-	    && (st->bytes[1] < (u_int64_t)PFLOW_MAXBYTES))
+	if ((st->bytes[0] < (uint64_t)PFLOW_MAXBYTES)
+	    && (st->bytes[1] < (uint64_t)PFLOW_MAXBYTES))
 		return (pflow_pack_flow(st, sk, sc));
 
 	/* flow > PFLOW_MAXBYTES need special handling */
@@ -801,7 +801,7 @@ export_pflow_if(const struct pf_kstate *st, struct pf_state_key *sk,
 			bytes[0] -= PFLOW_MAXBYTES;
 	}
 
-	while (bytes[1] > (u_int64_t)PFLOW_MAXBYTES) {
+	while (bytes[1] > (uint64_t)PFLOW_MAXBYTES) {
 		pfs_copy.bytes[1] = PFLOW_MAXBYTES;
 		pfs_copy.bytes[0] = 0;
 
@@ -1158,7 +1158,7 @@ pflow_sendout_ipfix(struct pflow_softc *sc, enum pflow_family_t af)
 	struct mbuf			*m;
 	struct pflow_v10_header		*h10;
 	struct pflow_set_header		*set_hdr;
-	u_int32_t			 count;
+	uint32_t			 count;
 	int				 set_length;
 
 	PFLOW_ASSERT(sc);

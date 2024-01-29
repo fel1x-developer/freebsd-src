@@ -86,7 +86,7 @@ MODULE_DEPEND(isci, cam, 1, 1, 1);
 
 static struct _pcsid
 {
-	 u_int32_t	type;
+	 uint32_t	type;
 	 const char	*desc;
 } pci_ids[] = {
 	 { 0x1d608086,	"Intel(R) C600 Series Chipset SAS Controller"  },
@@ -111,7 +111,7 @@ static struct _pcsid
 static int
 isci_probe (device_t device)
 {
-	u_int32_t	type = pci_get_devid(device);
+	uint32_t	type = pci_get_devid(device);
 	struct _pcsid	*ep = pci_ids;
 
 	while (ep->type && ep->type != type)

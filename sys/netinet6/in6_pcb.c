@@ -116,7 +116,7 @@ int
 in6_pcbsetport(struct in6_addr *laddr, struct inpcb *inp, struct ucred *cred)
 {
 	struct socket *so = inp->inp_socket;
-	u_int16_t lport = 0;
+	uint16_t lport = 0;
 	int error, lookupflags = 0;
 #ifdef INVARIANTS
 	struct inpcbinfo *pcbinfo = inp->inp_pcbinfo;
@@ -618,7 +618,7 @@ in6_pcbnotify(struct inpcbinfo *pcbinfo, struct sockaddr_in6 *sa6_dst,
 	struct inpcb *inp;
 	struct sockaddr_in6 sa6_src;
 	u_short	fport = fport_arg, lport = lport_arg;
-	u_int32_t flowinfo;
+	uint32_t flowinfo;
 
 	if (IN6_IS_ADDR_UNSPECIFIED(&sa6_dst->sin6_addr))
 		return;

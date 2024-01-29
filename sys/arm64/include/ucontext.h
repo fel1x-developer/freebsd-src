@@ -88,10 +88,10 @@ typedef struct __mcontext32 {
 typedef struct __ucontext32 {
 	sigset_t		uc_sigmask;
 	mcontext32_t		uc_mcontext;
-	u_int32_t		uc_link;
+	uint32_t		uc_link;
 	struct sigaltstack32	uc_stack;
-	u_int32_t		uc_flags;
-	u_int32_t		__spare__[4];
+	uint32_t		uc_flags;
+	uint32_t		__spare__[4];
 } ucontext32_t;
 
 typedef struct __mcontext32_vfp {

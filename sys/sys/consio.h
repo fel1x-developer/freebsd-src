@@ -289,7 +289,7 @@ struct scrshot {
 	int		y;
 	int		xsize;
 	int		ysize;
-	u_int16_t*	buf;
+	uint16_t*	buf;
 };
 typedef struct scrshot scrshot_t;
 

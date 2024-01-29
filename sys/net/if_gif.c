@@ -158,7 +158,7 @@ gif_clone_create(struct if_clone *ifc, int unit, caddr_t params)
 	GIF2IFP(sc)->if_capabilities |= IFCAP_LINKSTATE;
 	GIF2IFP(sc)->if_capenable |= IFCAP_LINKSTATE;
 	if_attach(GIF2IFP(sc));
-	bpfattach(GIF2IFP(sc), DLT_NULL, sizeof(u_int32_t));
+	bpfattach(GIF2IFP(sc), DLT_NULL, sizeof(uint32_t));
 	if (ng_gif_attach_p != NULL)
 		(*ng_gif_attach_p)(GIF2IFP(sc));
 

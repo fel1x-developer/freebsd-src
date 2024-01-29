@@ -134,7 +134,7 @@ main(int argc, char *argv[])
 	const char *cp, *tp;
 	const char *sep;
 	int c, op, i;
-	u_int32_t debug, ndebug;
+	uint32_t debug, ndebug;
 	size_t debuglen;
 	char oid[256];
 

@@ -459,63 +459,63 @@ typedef struct {
 
 typedef struct {
     FWCmdHdr    CmdHdr;
-    u_int8_t    Version;          /* version of the HW                    */
-    u_int8_t    HostIf;           /* host interface                       */
-    u_int16_t   NumOfWCB;         /* Max. number of WCB FW can handle     */
-    u_int16_t   NumOfMCastAddr;   /* MaxNbr of MC addresses FW can handle */
-    u_int8_t    PermanentAddr[6]; /* MAC address programmed in HW         */
-    u_int16_t   RegionCode;         
-    u_int16_t   NumberOfAntenna;  /* Number of antenna used      */
-    u_int32_t   FWReleaseNumber;  /* 4 byte of FW release number */
-    u_int32_t   WcbBase0;
-    u_int32_t   RxPdWrPtr;
-    u_int32_t   RxPdRdPtr;
-    u_int32_t   ulFwAwakeCookie;
-    u_int32_t   WcbBase1[TOTAL_TX_QUEUES-1];
+    uint8_t    Version;          /* version of the HW                    */
+    uint8_t    HostIf;           /* host interface                       */
+    uint16_t   NumOfWCB;         /* Max. number of WCB FW can handle     */
+    uint16_t   NumOfMCastAddr;   /* MaxNbr of MC addresses FW can handle */
+    uint8_t    PermanentAddr[6]; /* MAC address programmed in HW         */
+    uint16_t   RegionCode;         
+    uint16_t   NumberOfAntenna;  /* Number of antenna used      */
+    uint32_t   FWReleaseNumber;  /* 4 byte of FW release number */
+    uint32_t   WcbBase0;
+    uint32_t   RxPdWrPtr;
+    uint32_t   RxPdRdPtr;
+    uint32_t   ulFwAwakeCookie;
+    uint32_t   WcbBase1[TOTAL_TX_QUEUES-1];
 } __packed HostCmd_DS_GET_HW_SPEC;
 
 typedef struct {
     FWCmdHdr    CmdHdr;
-    u_int32_t   Enable;   /* FALSE: Disable or TRUE: Enable */
+    uint32_t   Enable;   /* FALSE: Disable or TRUE: Enable */
 } __packed HostCmd_DS_BSS_START;
 
 typedef struct {
-    u_int8_t    ElemId;
-    u_int8_t    Len;
-    u_int8_t    OuiType[4]; /* 00:50:f2:01 */
-    u_int8_t    Ver[2];
-    u_int8_t    GrpKeyCipher[4];
-    u_int8_t    PwsKeyCnt[2];
-    u_int8_t    PwsKeyCipherList[4];
-    u_int8_t    AuthKeyCnt[2];
-    u_int8_t    AuthKeyList[4];
+    uint8_t    ElemId;
+    uint8_t    Len;
+    uint8_t    OuiType[4]; /* 00:50:f2:01 */
+    uint8_t    Ver[2];
+    uint8_t    GrpKeyCipher[4];
+    uint8_t    PwsKeyCnt[2];
+    uint8_t    PwsKeyCipherList[4];
+    uint8_t    AuthKeyCnt[2];
+    uint8_t    AuthKeyList[4];
 } __packed RsnIE_t;
 
 typedef struct {
-    u_int8_t    ElemId;
-    u_int8_t    Len;
-    u_int8_t    Ver[2];
-    u_int8_t    GrpKeyCipher[4];
-    u_int8_t    PwsKeyCnt[2];
-    u_int8_t    PwsKeyCipherList[4];
-    u_int8_t    AuthKeyCnt[2];
-    u_int8_t    AuthKeyList[4];
-    u_int8_t    RsnCap[2];
+    uint8_t    ElemId;
+    uint8_t    Len;
+    uint8_t    Ver[2];
+    uint8_t    GrpKeyCipher[4];
+    uint8_t    PwsKeyCnt[2];
+    uint8_t    PwsKeyCipherList[4];
+    uint8_t    AuthKeyCnt[2];
+    uint8_t    AuthKeyList[4];
+    uint8_t    RsnCap[2];
 } __packed Rsn48IE_t;
 
 typedef struct {
-    u_int8_t    ElementId;
-    u_int8_t    Len;
-    u_int8_t    CfpCnt;
-    u_int8_t    CfpPeriod;
-    u_int16_t   CfpMaxDuration;
-    u_int16_t   CfpDurationRemaining;
+    uint8_t    ElementId;
+    uint8_t    Len;
+    uint8_t    CfpCnt;
+    uint8_t    CfpPeriod;
+    uint16_t   CfpMaxDuration;
+    uint16_t   CfpDurationRemaining;
 } __packed CfParams_t;
 
 typedef struct {
-    u_int8_t    ElementId;
-    u_int8_t    Len;
-    u_int16_t   AtimWindow;
+    uint8_t    ElementId;
+    uint8_t    Len;
+    uint16_t   AtimWindow;
 } __packed IbssParams_t;
 
 typedef union {
@@ -524,18 +524,18 @@ typedef union {
 } __packed SsParams_t;
 
 typedef struct {
-    u_int8_t    ElementId;
-    u_int8_t    Len;
-    u_int16_t   DwellTime;
-    u_int8_t    HopSet;
-    u_int8_t    HopPattern;
-    u_int8_t    HopIndex;
+    uint8_t    ElementId;
+    uint8_t    Len;
+    uint16_t   DwellTime;
+    uint8_t    HopSet;
+    uint8_t    HopPattern;
+    uint8_t    HopIndex;
 } __packed FhParams_t;
 
 typedef struct {
-    u_int8_t    ElementId;
-    u_int8_t    Len;
-    u_int8_t    CurrentChan;
+    uint8_t    ElementId;
+    uint8_t    Len;
+    uint8_t    CurrentChan;
 } __packed DsParams_t;
 
 typedef union {
@@ -544,45 +544,45 @@ typedef union {
 } __packed PhyParams_t;
 
 typedef struct {
-    u_int8_t    FirstChannelNum;
-    u_int8_t    NumOfChannels;
-    u_int8_t    MaxTxPwrLevel;
+    uint8_t    FirstChannelNum;
+    uint8_t    NumOfChannels;
+    uint8_t    MaxTxPwrLevel;
 } __packed ChannelInfo_t;
 
 typedef struct {
-    u_int8_t       ElementId;
-    u_int8_t       Len;
-    u_int8_t       CountryStr[3];
+    uint8_t       ElementId;
+    uint8_t       Len;
+    uint8_t       CountryStr[3];
     ChannelInfo_t  ChannelInfo[40];
 } __packed Country_t;
 
 typedef struct {
-    u_int8_t AIFSN : 4;
-    u_int8_t ACM : 1;
-    u_int8_t ACI : 2;
-    u_int8_t rsvd : 1;
+    uint8_t AIFSN : 4;
+    uint8_t ACM : 1;
+    uint8_t ACI : 2;
+    uint8_t rsvd : 1;
 
 }__packed ACIAIFSN_field_t;
 
 typedef  struct {
-    u_int8_t ECW_min : 4;
-    u_int8_t ECW_max : 4;
+    uint8_t ECW_min : 4;
+    uint8_t ECW_max : 4;
 }__packed  ECWmin_max_field_t;
 
 typedef struct {
     ACIAIFSN_field_t ACI_AIFSN;
     ECWmin_max_field_t ECW_min_max;
-    u_int16_t TXOP_lim;
+    uint16_t TXOP_lim;
 }__packed  ACparam_rcd_t;
 
 typedef struct {
-    u_int8_t    ElementId;
-    u_int8_t    Len;
-    u_int8_t    OUI[3];
-    u_int8_t    Type;
-    u_int8_t    Subtype;
-    u_int8_t    version;
-    u_int8_t    rsvd;
+    uint8_t    ElementId;
+    uint8_t    Len;
+    uint8_t    OUI[3];
+    uint8_t    Type;
+    uint8_t    Subtype;
+    uint8_t    version;
+    uint8_t    rsvd;
     ACparam_rcd_t AC_BE;
     ACparam_rcd_t AC_BK;
     ACparam_rcd_t AC_VI;
@@ -591,23 +591,23 @@ typedef struct {
 
 typedef struct {
 #ifdef MWL_MBSS_SUPPORT
-    u_int8_t	StaMacAddr[6];
+    uint8_t	StaMacAddr[6];
 #endif
-    u_int8_t    SsId[32];
-    u_int8_t    BssType;
-    u_int16_t   BcnPeriod;
-    u_int8_t    DtimPeriod;
+    uint8_t    SsId[32];
+    uint8_t    BssType;
+    uint16_t   BcnPeriod;
+    uint8_t    DtimPeriod;
     SsParams_t  SsParamSet;
     PhyParams_t PhyParamSet;
-    u_int16_t   ProbeDelay;
-    u_int16_t   CapInfo;		/* see below */
-    u_int8_t    BssBasicRateSet[14];
-    u_int8_t    OpRateSet[14];
+    uint16_t   ProbeDelay;
+    uint16_t   CapInfo;		/* see below */
+    uint8_t    BssBasicRateSet[14];
+    uint8_t    OpRateSet[14];
     RsnIE_t     RsnIE;
     Rsn48IE_t   Rsn48IE;
     WMM_param_elem_t  WMMParam;
     Country_t   Country;
-    u_int32_t   ApRFType; /* 0->B, 1->G, 2->Mixed, 3->A, 4->11J */
+    uint32_t   ApRFType; /* 0->B, 1->G, 2->Mixed, 3->A, 4->11J */
 } __packed StartCmd_t;
 
 #define HostCmd_CAPINFO_DEFAULT                0x0000

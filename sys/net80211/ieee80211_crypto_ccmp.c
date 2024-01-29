@@ -87,7 +87,7 @@ static const struct ieee80211_cipher ccmp = {
 };
 
 static	int ccmp_encrypt(struct ieee80211_key *, struct mbuf *, int hdrlen);
-static	int ccmp_decrypt(struct ieee80211_key *, u_int64_t pn,
+static	int ccmp_decrypt(struct ieee80211_key *, uint64_t pn,
 		struct mbuf *, int hdrlen);
 
 /* number of references from net80211 layer */
@@ -341,7 +341,7 @@ xor_block(uint8_t *b, const uint8_t *a, size_t len)
 
 static void
 ccmp_init_blocks(rijndael_ctx *ctx, struct ieee80211_frame *wh,
-	u_int64_t pn, size_t dlen,
+	uint64_t pn, size_t dlen,
 	uint8_t b0[AES_BLOCK_LEN], uint8_t aad[2 * AES_BLOCK_LEN],
 	uint8_t auth[AES_BLOCK_LEN], uint8_t s0[AES_BLOCK_LEN])
 {
@@ -590,7 +590,7 @@ done:
 } while (0)
 
 static int
-ccmp_decrypt(struct ieee80211_key *key, u_int64_t pn, struct mbuf *m, int hdrlen)
+ccmp_decrypt(struct ieee80211_key *key, uint64_t pn, struct mbuf *m, int hdrlen)
 {
 	struct ccmp_ctx *ctx = key->wk_private;
 	struct ieee80211vap *vap = ctx->cc_vap;

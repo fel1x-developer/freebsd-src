@@ -1209,7 +1209,7 @@ struct alias_link *
 AddPptp(struct libalias *la, struct in_addr src_addr,
     struct in_addr dst_addr,
     struct in_addr alias_addr,
-    u_int16_t src_call_id)
+    uint16_t src_call_id)
 {
 	struct alias_link *lnk;
 
@@ -1224,7 +1224,7 @@ AddPptp(struct libalias *la, struct in_addr src_addr,
 struct alias_link *
 FindPptpOutByCallId(struct libalias *la, struct in_addr src_addr,
     struct in_addr dst_addr,
-    u_int16_t src_call_id)
+    uint16_t src_call_id)
 {
 	struct alias_link *lnk;
 
@@ -1241,7 +1241,7 @@ FindPptpOutByCallId(struct libalias *la, struct in_addr src_addr,
 struct alias_link *
 FindPptpOutByPeerCallId(struct libalias *la, struct in_addr src_addr,
     struct in_addr dst_addr,
-    u_int16_t dst_call_id)
+    uint16_t dst_call_id)
 {
 	struct alias_link *lnk;
 
@@ -1258,7 +1258,7 @@ FindPptpOutByPeerCallId(struct libalias *la, struct in_addr src_addr,
 struct alias_link *
 FindPptpInByCallId(struct libalias *la, struct in_addr dst_addr,
     struct in_addr alias_addr,
-    u_int16_t dst_call_id)
+    uint16_t dst_call_id)
 {
 	struct alias_link *lnk;
 
@@ -1276,7 +1276,7 @@ FindPptpInByCallId(struct libalias *la, struct in_addr dst_addr,
 struct alias_link *
 FindPptpInByPeerCallId(struct libalias *la, struct in_addr dst_addr,
     struct in_addr alias_addr,
-    u_int16_t alias_call_id)
+    uint16_t alias_call_id)
 {
 	struct alias_link *lnk;
 
@@ -1724,7 +1724,7 @@ GetProtocolFlags(struct alias_link *lnk)
 }
 
 void
-SetDestCallId(struct alias_link *lnk, u_int16_t cid)
+SetDestCallId(struct alias_link *lnk, uint16_t cid)
 {
 	LIBALIAS_LOCK_ASSERT(lnk->la);
 	ReLink(lnk, lnk->src_addr, lnk->dst_addr, lnk->alias_addr,
@@ -2233,7 +2233,7 @@ next_cmd(ipfw_insn * cmd)
  */
 static ipfw_insn *
 fill_cmd(ipfw_insn * cmd, enum ipfw_opcodes opcode, int size,
-    int flags, u_int16_t arg)
+    int flags, uint16_t arg)
 {
 	cmd->opcode = opcode;
 	cmd->len = ((cmd->len | flags) & (F_NOT | F_OR)) | (size & F_LEN_MASK);
@@ -2242,7 +2242,7 @@ fill_cmd(ipfw_insn * cmd, enum ipfw_opcodes opcode, int size,
 }
 
 static ipfw_insn *
-fill_ip(ipfw_insn * cmd1, enum ipfw_opcodes opcode, u_int32_t addr)
+fill_ip(ipfw_insn * cmd1, enum ipfw_opcodes opcode, uint32_t addr)
 {
 	ipfw_insn_ip *cmd = (ipfw_insn_ip *)cmd1;
 
@@ -2251,7 +2251,7 @@ fill_ip(ipfw_insn * cmd1, enum ipfw_opcodes opcode, u_int32_t addr)
 }
 
 static ipfw_insn *
-fill_one_port(ipfw_insn * cmd1, enum ipfw_opcodes opcode, u_int16_t port)
+fill_one_port(ipfw_insn * cmd1, enum ipfw_opcodes opcode, uint16_t port)
 {
 	ipfw_insn_u16 *cmd = (ipfw_insn_u16 *)cmd1;
 
@@ -2262,7 +2262,7 @@ fill_one_port(ipfw_insn * cmd1, enum ipfw_opcodes opcode, u_int16_t port)
 static int
 fill_rule(void *buf, int bufsize, int rulenum,
     enum ipfw_opcodes action, int proto,
-    struct in_addr sa, u_int16_t sp, struct in_addr da, u_int16_t dp)
+    struct in_addr sa, uint16_t sp, struct in_addr da, uint16_t dp)
 {
 	struct ip_fw *rule = (struct ip_fw *)buf;
 	ipfw_insn *cmd = (ipfw_insn *)rule->cmd;
@@ -2276,10 +2276,10 @@ fill_rule(void *buf, int bufsize, int rulenum,
 	cmd = fill_ip(cmd, O_IP_DST, da.s_addr);
 	cmd = fill_one_port(cmd, O_IP_DSTPORT, dp);
 
-	rule->act_ofs = (u_int32_t *)cmd - (u_int32_t *)rule->cmd;
+	rule->act_ofs = (uint32_t *)cmd - (uint32_t *)rule->cmd;
 	cmd = fill_cmd(cmd, action, F_INSN_SIZE(ipfw_insn), 0, 0);
 
-	rule->cmd_len = (u_int32_t *)cmd - (u_int32_t *)rule->cmd;
+	rule->cmd_len = (uint32_t *)cmd - (uint32_t *)rule->cmd;
 
 	return ((char *)cmd - (char *)buf);
 }
@@ -2361,7 +2361,7 @@ PunchFWHole(struct alias_link *lnk)
 	 * accept tcp from DAddr DPort to OAddr OPort
 	 */
 	if (GetOriginalPort(lnk) != 0 && GetDestPort(lnk) != 0) {
-		u_int32_t rulebuf[255];
+		uint32_t rulebuf[255];
 		int i;
 
 		i = fill_rule(rulebuf, sizeof(rulebuf), fwhole,

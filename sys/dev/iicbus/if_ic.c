@@ -66,7 +66,7 @@
 
 #define PCF_MASTER_ADDRESS 0xaa
 
-#define ICHDRLEN	sizeof(u_int32_t)
+#define ICHDRLEN	sizeof(uint32_t)
 #define ICMTU		1500		/* default mtu */
 
 struct ic_softc {
@@ -361,7 +361,7 @@ icoutput(if_t ifp, struct mbuf *m, const struct sockaddr *dst,
 	int len, sent;
 	struct mbuf *mm;
 	u_char *cp;
-	u_int32_t hdr;
+	uint32_t hdr;
 
 	/* BPF writes need to be handled specially. */ 
 	if (dst->sa_family == AF_UNSPEC)

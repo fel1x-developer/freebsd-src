@@ -201,70 +201,70 @@
  */
 
 typedef struct{
-	u_int8_t	command;
-	u_int8_t	id;
-	u_int8_t	drivenum;
-	u_int8_t	reserve2;
-	u_int32_t	lba;
-	u_int32_t	buffaddr;
-	u_int32_t	reserve3;
+	uint8_t	command;
+	uint8_t	id;
+	uint8_t	drivenum;
+	uint8_t	reserve2;
+	uint32_t	lba;
+	uint32_t	buffaddr;
+	uint32_t	reserve3;
 } __attribute__ ((packed)) ips_generic_cmd;
 
 typedef struct{
-	u_int8_t	command;
-	u_int8_t	id;
-	u_int8_t	drivenum;
-	u_int8_t	segnum;
-	u_int32_t	lba;
-	u_int32_t	buffaddr;
-	u_int16_t	length;
-	u_int16_t	reserve1;
+	uint8_t	command;
+	uint8_t	id;
+	uint8_t	drivenum;
+	uint8_t	segnum;
+	uint32_t	lba;
+	uint32_t	buffaddr;
+	uint16_t	length;
+	uint16_t	reserve1;
 } __attribute__ ((packed)) ips_io_cmd;
 
 typedef struct{
-	u_int8_t	command;
-	u_int8_t	id;
-	u_int8_t	pagenum;
-	u_int8_t	rw;
-	u_int32_t	reserve1;
-	u_int32_t	buffaddr;
-	u_int32_t	reserve3;
+	uint8_t	command;
+	uint8_t	id;
+	uint8_t	pagenum;
+	uint8_t	rw;
+	uint32_t	reserve1;
+	uint32_t	buffaddr;
+	uint32_t	reserve3;
 } __attribute__ ((packed)) ips_rw_nvram_cmd;
 
 typedef struct{
-	u_int8_t	command;
-	u_int8_t	id;
-	u_int8_t	drivenum;
-	u_int8_t	reserve1;
-	u_int32_t	reserve2;
-	u_int32_t	buffaddr;
-	u_int32_t	reserve3;
+	uint8_t	command;
+	uint8_t	id;
+	uint8_t	drivenum;
+	uint8_t	reserve1;
+	uint32_t	reserve2;
+	uint32_t	buffaddr;
+	uint32_t	reserve3;
 } __attribute__ ((packed)) ips_drive_cmd;
 
 typedef struct{
-	u_int8_t	command;
-	u_int8_t	id;
-	u_int8_t	reserve1;
-	u_int8_t	commandtype;
-	u_int32_t	reserve2;
-	u_int32_t	buffaddr;
-	u_int32_t	reserve3;
+	uint8_t	command;
+	uint8_t	id;
+	uint8_t	reserve1;
+	uint8_t	commandtype;
+	uint32_t	reserve2;
+	uint32_t	buffaddr;
+	uint32_t	reserve3;
 } __attribute__((packed)) ips_adapter_info_cmd;
 
 typedef struct{
-	u_int8_t	command;
-	u_int8_t	id;
-	u_int8_t	reset_count;
-	u_int8_t	reset_type;
-	u_int8_t	second;
-	u_int8_t	minute;
-	u_int8_t	hour;
-	u_int8_t	day;
-	u_int8_t	reserve1[4];
-	u_int8_t	month;
-	u_int8_t	yearH;
-	u_int8_t	yearL;
-	u_int8_t	reserve2;
+	uint8_t	command;
+	uint8_t	id;
+	uint8_t	reset_count;
+	uint8_t	reset_type;
+	uint8_t	second;
+	uint8_t	minute;
+	uint8_t	hour;
+	uint8_t	day;
+	uint8_t	reserve1[4];
+	uint8_t	month;
+	uint8_t	yearH;
+	uint8_t	yearL;
+	uint8_t	reserve2;
 } __attribute__((packed)) ips_adapter_ffdc_cmd;
 
 typedef union{
@@ -274,72 +274,72 @@ typedef union{
 } ips_cmd_buff_t;
 
 typedef struct {
-   u_int32_t  signature;
-   u_int8_t   reserved;
-   u_int8_t   adapter_slot;
-   u_int16_t  adapter_type;
-   u_int8_t   bios_high[4];
-   u_int8_t   bios_low[4];
-   u_int16_t  reserve2;
-   u_int8_t   reserve3;
-   u_int8_t   operating_system;
-   u_int8_t   driver_high[4];
-   u_int8_t   driver_low[4];
-   u_int8_t   reserve4[100];
+   uint32_t  signature;
+   uint8_t   reserved;
+   uint8_t   adapter_slot;
+   uint16_t  adapter_type;
+   uint8_t   bios_high[4];
+   uint8_t   bios_low[4];
+   uint16_t  reserve2;
+   uint8_t   reserve3;
+   uint8_t   operating_system;
+   uint8_t   driver_high[4];
+   uint8_t   driver_low[4];
+   uint8_t   reserve4[100];
 }__attribute__((packed)) ips_nvram_page5;
 
 typedef struct{
-	u_int32_t	addr;
-	u_int32_t	len;
+	uint32_t	addr;
+	uint32_t	len;
 } ips_sg_element_t;
 
 typedef struct{
-	u_int8_t	drivenum;
-	u_int8_t	merge_id;
-	u_int8_t	raid_lvl;
-	u_int8_t	state;
-	u_int32_t	sector_count;
+	uint8_t	drivenum;
+	uint8_t	merge_id;
+	uint8_t	raid_lvl;
+	uint8_t	state;
+	uint32_t	sector_count;
 } __attribute__((packed)) ips_drive_t;
 
 typedef struct{
-	u_int8_t	drivecount;
-	u_int8_t	reserve1;
-	u_int16_t	reserve2;
+	uint8_t	drivecount;
+	uint8_t	reserve1;
+	uint16_t	reserve2;
 	ips_drive_t drives[IPS_MAX_NUM_DRIVES];
 }__attribute__((packed)) ips_drive_info_t;
 
 typedef struct{
-	u_int8_t	drivecount;
-	u_int8_t	miscflags;
-	u_int8_t	SLTflags;
-	u_int8_t	BSTflags;
-	u_int8_t	pwr_chg_count;
-	u_int8_t	wrong_addr_count;
-	u_int8_t	unident_count;
-	u_int8_t	nvram_dev_chg_count;
-	u_int8_t	codeblock_version[8];
-	u_int8_t	bootblock_version[8];
-	u_int32_t	drive_sector_count[IPS_MAX_NUM_DRIVES];
-	u_int8_t	max_concurrent_cmds;
-	u_int8_t	max_phys_devices;
-	u_int16_t	flash_prog_count;
-	u_int8_t	defunct_disks;
-	u_int8_t	rebuildflags;
-	u_int8_t	offline_drivecount;
-	u_int8_t	critical_drivecount;
-	u_int16_t	config_update_count;
-	u_int8_t	blockedflags;
-	u_int8_t	psdn_error;
-	u_int16_t	addr_dead_disk[IPS_MAX_CHANNELS][IPS_MAX_TARGETS];
+	uint8_t	drivecount;
+	uint8_t	miscflags;
+	uint8_t	SLTflags;
+	uint8_t	BSTflags;
+	uint8_t	pwr_chg_count;
+	uint8_t	wrong_addr_count;
+	uint8_t	unident_count;
+	uint8_t	nvram_dev_chg_count;
+	uint8_t	codeblock_version[8];
+	uint8_t	bootblock_version[8];
+	uint32_t	drive_sector_count[IPS_MAX_NUM_DRIVES];
+	uint8_t	max_concurrent_cmds;
+	uint8_t	max_phys_devices;
+	uint16_t	flash_prog_count;
+	uint8_t	defunct_disks;
+	uint8_t	rebuildflags;
+	uint8_t	offline_drivecount;
+	uint8_t	critical_drivecount;
+	uint16_t	config_update_count;
+	uint8_t	blockedflags;
+	uint8_t	psdn_error;
+	uint16_t	addr_dead_disk[IPS_MAX_CHANNELS][IPS_MAX_TARGETS];
 }__attribute__((packed)) ips_adapter_info_t;
 
 typedef struct {
-	u_int8_t	initiator;
-	u_int8_t	parameters;
-	u_int8_t	miscflag;
-	u_int8_t	state;
-	u_int32_t	blkcount;
-	u_int8_t	deviceid[28];
+	uint8_t	initiator;
+	uint8_t	parameters;
+	uint8_t	miscflag;
+	uint8_t	state;
+	uint32_t	blkcount;
+	uint8_t	deviceid[28];
 } __attribute__((packed)) ips_devstate_t;
 
 /*
@@ -352,60 +352,60 @@ typedef struct {
 #define IPS_DEVSTATE_MEMBER	0x08
 
 typedef struct {
-	u_int8_t	channel;
-	u_int8_t	target;
-	u_int16_t	reserved;
-	u_int32_t	startsectors;
-	u_int32_t	numsectors;
+	uint8_t	channel;
+	uint8_t	target;
+	uint16_t	reserved;
+	uint32_t	startsectors;
+	uint32_t	numsectors;
 } __attribute__((packed)) ips_chunk_t;
 
 typedef struct {
-	u_int16_t	userfield;
-	u_int8_t	state;
-	u_int8_t	raidcacheparam;
-	u_int8_t	numchunkunits;
-	u_int8_t	stripesize;
-	u_int8_t	params;
-	u_int8_t	reserved;
-	u_int32_t	ldsize;
+	uint16_t	userfield;
+	uint8_t	state;
+	uint8_t	raidcacheparam;
+	uint8_t	numchunkunits;
+	uint8_t	stripesize;
+	uint8_t	params;
+	uint8_t	reserved;
+	uint32_t	ldsize;
 	ips_chunk_t	chunk[IPS_MAX_CHUNKS];
 } __attribute__((packed)) ips_ld_t;
 
 typedef struct {
-	u_int8_t	boarddisc[8];
-	u_int8_t	processor[8];
-	u_int8_t	numchantype;
-	u_int8_t	numhostinttype;
-	u_int8_t	compression;
-	u_int8_t	nvramtype;
-	u_int32_t	nvramsize;
+	uint8_t	boarddisc[8];
+	uint8_t	processor[8];
+	uint8_t	numchantype;
+	uint8_t	numhostinttype;
+	uint8_t	compression;
+	uint8_t	nvramtype;
+	uint32_t	nvramsize;
 } __attribute__((packed)) ips_hardware_t;
 
 typedef struct {
-	u_int8_t	ldcount;
-	u_int8_t	day;
-	u_int8_t	month;
-	u_int8_t	year;
-	u_int8_t	initiatorid[4];
-	u_int8_t	hostid[12];
-	u_int8_t	timesign[8];
-	u_int32_t	useropt;
-	u_int16_t	userfield;
-	u_int8_t	rebuildrate;
-	u_int8_t	reserve;
+	uint8_t	ldcount;
+	uint8_t	day;
+	uint8_t	month;
+	uint8_t	year;
+	uint8_t	initiatorid[4];
+	uint8_t	hostid[12];
+	uint8_t	timesign[8];
+	uint32_t	useropt;
+	uint16_t	userfield;
+	uint8_t	rebuildrate;
+	uint8_t	reserve;
 	ips_hardware_t	hardwaredisc;
 	ips_ld_t	ld[IPS_MAX_LD];
 	ips_devstate_t	dev[IPS_MAX_CHANNELS][IPS_MAX_TARGETS+1];
-	u_int8_t	reserved[512];
+	uint8_t	reserved[512];
 } __attribute__((packed)) ips_conf_t;
 
 typedef union {
    struct {
-      u_int8_t  reserved;
-      u_int8_t  command_id;
-      u_int8_t  basic_status;
-      u_int8_t  extended_status;
+      uint8_t  reserved;
+      uint8_t  command_id;
+      uint8_t  basic_status;
+      uint8_t  extended_status;
    } fields;
-   volatile u_int32_t    value;
+   volatile uint32_t    value;
 } ips_cmd_status_t;
 

@@ -130,8 +130,8 @@
 #include "ping6.h"
 
 struct tv32 {
-	u_int32_t tv32_sec;
-	u_int32_t tv32_nsec;
+	uint32_t tv32_sec;
+	uint32_t tv32_nsec;
 };
 
 #define MAXPACKETLEN	131072
@@ -214,7 +214,7 @@ static const char *DOT = ".";
 static size_t DOTlen = 1;
 static size_t DOTidx = 0;
 static int ident;		/* process id to identify our packets */
-static u_int8_t nonce[8];	/* nonce field for node information */
+static uint8_t nonce[8];	/* nonce field for node information */
 static int hoplimit = -1;	/* hoplimit */
 static int tclass = -1;		/* traffic class */
 static int pcp = -2;		/* vlan priority code point */
@@ -256,7 +256,7 @@ static void	 pr_pack(u_char *, int, struct msghdr *);
 static void	 pr_exthdrs(struct msghdr *);
 static void	 pr_ip6opt(void *, size_t);
 static void	 pr_rthdr(void *, size_t);
-static int	 pr_bitrange(u_int32_t, int, int);
+static int	 pr_bitrange(uint32_t, int, int);
 static void	 pr_retip(struct ip6_hdr *, u_char *);
 #ifdef IPSEC
 #ifdef IPSEC_POLICY_IPSEC
@@ -1432,9 +1432,9 @@ myechoreply(const struct icmp6_hdr *icp)
 static int
 mynireply(const struct icmp6_nodeinfo *nip)
 {
-	if (memcmp(nip->icmp6_ni_nonce + sizeof(u_int16_t),
-	    nonce + sizeof(u_int16_t),
-	    sizeof(nonce) - sizeof(u_int16_t)) == 0)
+	if (memcmp(nip->icmp6_ni_nonce + sizeof(uint16_t),
+	    nonce + sizeof(uint16_t),
+	    sizeof(nonce) - sizeof(uint16_t)) == 0)
 		return 1;
 	else
 		return 0;
@@ -1541,7 +1541,7 @@ pr_pack(u_char *buf, int cc, struct msghdr *mhdr)
 	int dupflag;
 	size_t off;
 	int oldfqdn;
-	u_int16_t seq;
+	uint16_t seq;
 	char dnsname[MAXDNAME + 1];
 
 	(void)clock_gettime(CLOCK_MONOTONIC, &tv);
@@ -1855,12 +1855,12 @@ pr_ip6opt(void *extbuf, size_t bufsize)
 {
 	struct ip6_hbh *ext;
 	int currentlen;
-	u_int8_t type;
+	uint8_t type;
 	socklen_t extlen, len;
 	void *databuf;
 	size_t offset;
-	u_int16_t value2;
-	u_int32_t value4;
+	uint16_t value2;
+	uint32_t value4;
 
 	ext = (struct ip6_hbh *)extbuf;
 	extlen = (ext->ip6h_len + 1) * 8;
@@ -1894,7 +1894,7 @@ pr_ip6opt(void *extbuf, size_t bufsize)
 			offset = inet6_opt_get_val(databuf, offset,
 			    &value4, sizeof(value4));
 			printf("    Jumbo Payload Opt: Length %u\n",
-			    (u_int32_t)ntohl(value4));
+			    (uint32_t)ntohl(value4));
 			break;
 		case IP6OPT_ROUTER_ALERT:
 			offset = 0;
@@ -1968,7 +1968,7 @@ pr_rthdr(void *extbuf, size_t bufsize)
 }
 
 static int
-pr_bitrange(u_int32_t v, int soff, int ii)
+pr_bitrange(uint32_t v, int soff, int ii)
 {
 	int off;
 	int i;
@@ -2018,12 +2018,12 @@ pr_suptypes(struct icmp6_nodeinfo *ni, size_t nilen)
 	/* ni->qtype must be SUPTYPES */
 {
 	size_t clen;
-	u_int32_t v;
+	uint32_t v;
 	const u_char *cp, *end;
-	u_int16_t cur;
+	uint16_t cur;
 	struct cbit {
-		u_int16_t words;	/*32bit count*/
-		u_int16_t skip;
+		uint16_t words;	/*32bit count*/
+		uint16_t skip;
 	} cbit;
 #define MAXQTYPES	(1 << 16)
 	size_t off;
@@ -2066,7 +2066,7 @@ pr_suptypes(struct icmp6_nodeinfo *ni, size_t nilen)
 
 		for (off = 0; off < clen; off += sizeof(v)) {
 			memcpy(&v, cp + off, sizeof(v));
-			v = (u_int32_t)ntohl(v);
+			v = (uint32_t)ntohl(v);
 			b = pr_bitrange(v, (int)(cur + off * 8), b);
 		}
 		/* flush the remaining bits */
@@ -2111,18 +2111,18 @@ pr_nodeaddr(struct icmp6_nodeinfo *ni, int nilen)
 	 * by the length of the data, but note that the detection algorithm
 	 * is incomplete. We assume the latest draft by default.
 	 */
-	if (nilen % (sizeof(u_int32_t) + sizeof(struct in6_addr)) == 0)
+	if (nilen % (sizeof(uint32_t) + sizeof(struct in6_addr)) == 0)
 		withttl = 1;
 	while (nilen > 0) {
-		u_int32_t ttl = 0;
+		uint32_t ttl = 0;
 
 		if (withttl) {
 			uint32_t t;
 
 			memcpy(&t, cp, sizeof(t));
-			ttl = (u_int32_t)ntohl(t);
-			cp += sizeof(u_int32_t);
-			nilen -= sizeof(u_int32_t);
+			ttl = (uint32_t)ntohl(t);
+			cp += sizeof(uint32_t);
+			nilen -= sizeof(uint32_t);
 		}
 
 		if (inet_ntop(AF_INET6, cp, ntop_buf, sizeof(ntop_buf)) ==
@@ -2338,7 +2338,7 @@ pr_icmph(struct icmp6_hdr *icp, u_char *end)
 			break;
 		}
 		(void)printf("pointer = 0x%02x\n",
-		    (u_int32_t)ntohl(icp->icmp6_pptr));
+		    (uint32_t)ntohl(icp->icmp6_pptr));
 		pr_retip((struct ip6_hdr *)(icp + 1), end);
 		break;
 	case ICMP6_ECHO_REQUEST:
@@ -2498,8 +2498,8 @@ pr_icmph(struct icmp6_hdr *icp, u_char *end)
 static void
 pr_iph(struct ip6_hdr *ip6)
 {
-	u_int32_t flow = ip6->ip6_flow & IPV6_FLOWLABEL_MASK;
-	u_int8_t tc;
+	uint32_t flow = ip6->ip6_flow & IPV6_FLOWLABEL_MASK;
+	uint8_t tc;
 	char ntop_buf[INET6_ADDRSTRLEN];
 
 	tc = *(&ip6->ip6_vfc + 1); /* XXX */
@@ -2508,7 +2508,7 @@ pr_iph(struct ip6_hdr *ip6)
 
 	printf("Vr TC  Flow Plen Nxt Hlim\n");
 	printf(" %1x %02x %05x %04x  %02x   %02x\n",
-	    (ip6->ip6_vfc & IPV6_VERSION_MASK) >> 4, tc, (u_int32_t)ntohl(flow),
+	    (ip6->ip6_vfc & IPV6_VERSION_MASK) >> 4, tc, (uint32_t)ntohl(flow),
 	    ntohs(ip6->ip6_plen), ip6->ip6_nxt, ip6->ip6_hlim);
 	if (!inet_ntop(AF_INET6, &ip6->ip6_src, ntop_buf, sizeof(ntop_buf)))
 		strlcpy(ntop_buf, "?", sizeof(ntop_buf));
@@ -2688,8 +2688,8 @@ nigroup(char *name, int nig_oldmcprefix)
 	char *p;
 	char *q;
 	MD5_CTX ctxt;
-	u_int8_t digest[16];
-	u_int8_t c;
+	uint8_t digest[16];
+	uint8_t c;
 	size_t l;
 	char hbuf[NI_MAXHOST];
 	struct in6_addr in6;

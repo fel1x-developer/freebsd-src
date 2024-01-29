@@ -63,12 +63,12 @@
 #include "pfctl_parser.h"
 #include "pfctl.h"
 
-void		 print_op (u_int8_t, const char *, const char *);
-void		 print_port (u_int8_t, u_int16_t, u_int16_t, const char *, int);
-void		 print_ugid (u_int8_t, unsigned, unsigned, const char *, unsigned);
-void		 print_flags (u_int8_t);
+void		 print_op (uint8_t, const char *, const char *);
+void		 print_port (uint8_t, uint16_t, uint16_t, const char *, int);
+void		 print_ugid (uint8_t, unsigned, unsigned, const char *, unsigned);
+void		 print_flags (uint8_t);
 void		 print_fromto(struct pf_rule_addr *, pf_osfp_t,
-		    struct pf_rule_addr *, sa_family_t, u_int8_t, int, int);
+		    struct pf_rule_addr *, sa_family_t, uint8_t, int, int);
 int		 ifa_skip_if(const char *filter, struct node_host *p);
 
 struct node_host	*host_if(const char *, int, int *);
@@ -226,7 +226,7 @@ pfctl_parser_init(void)
 }
 
 const struct icmptypeent *
-geticmptypebynumber(u_int8_t type, sa_family_t af)
+geticmptypebynumber(uint8_t type, sa_family_t af)
 {
 	unsigned int	i;
 
@@ -264,7 +264,7 @@ geticmptypebyname(char *w, sa_family_t af)
 }
 
 const struct icmpcodeent *
-geticmpcodebynumber(u_int8_t type, u_int8_t code, sa_family_t af)
+geticmpcodebynumber(uint8_t type, uint8_t code, sa_family_t af)
 {
 	unsigned int	i;
 
@@ -306,7 +306,7 @@ geticmpcodebyname(u_long type, char *w, sa_family_t af)
 }
 
 void
-print_op(u_int8_t op, const char *a1, const char *a2)
+print_op(uint8_t op, const char *a1, const char *a2)
 {
 	if (op == PF_OP_IRG)
 		printf(" %s >< %s", a1, a2);
@@ -329,7 +329,7 @@ print_op(u_int8_t op, const char *a1, const char *a2)
 }
 
 void
-print_port(u_int8_t op, u_int16_t p1, u_int16_t p2, const char *proto, int numeric)
+print_port(uint8_t op, uint16_t p1, uint16_t p2, const char *proto, int numeric)
 {
 	char		 a1[6], a2[6];
 	struct servent	*s;
@@ -350,7 +350,7 @@ print_port(u_int8_t op, u_int16_t p1, u_int16_t p2, const char *proto, int numer
 }
 
 void
-print_ugid(u_int8_t op, unsigned u1, unsigned u2, const char *t, unsigned umax)
+print_ugid(uint8_t op, unsigned u1, unsigned u2, const char *t, unsigned umax)
 {
 	char	a1[11], a2[11];
 
@@ -364,7 +364,7 @@ print_ugid(u_int8_t op, unsigned u1, unsigned u2, const char *t, unsigned umax)
 }
 
 void
-print_flags(u_int8_t f)
+print_flags(uint8_t f)
 {
 	int	i;
 
@@ -375,7 +375,7 @@ print_flags(u_int8_t f)
 
 void
 print_fromto(struct pf_rule_addr *src, pf_osfp_t osfp, struct pf_rule_addr *dst,
-    sa_family_t af, u_int8_t proto, int verbose, int numeric)
+    sa_family_t af, uint8_t proto, int verbose, int numeric)
 {
 	char buf[PF_OSFP_LEN*3];
 	if (src->addr.type == PF_ADDR_ADDRMASK &&
@@ -415,7 +415,7 @@ print_fromto(struct pf_rule_addr *src, pf_osfp_t osfp, struct pf_rule_addr *dst,
 }
 
 void
-print_pool(struct pfctl_pool *pool, u_int16_t p1, u_int16_t p2,
+print_pool(struct pfctl_pool *pool, uint16_t p1, uint16_t p2,
     sa_family_t af, int id)
 {
 	struct pf_pooladdr	*pooladdr;
@@ -1283,7 +1283,7 @@ int
 parse_flags(char *s)
 {
 	char		*p, *q;
-	u_int8_t	 f = 0;
+	uint8_t	 f = 0;
 
 	for (p = s; *p; p++) {
 		if ((q = strchr(tcpflags, *p)) == NULL)
@@ -1295,7 +1295,7 @@ parse_flags(char *s)
 }
 
 void
-set_ipmask(struct node_host *h, u_int8_t b)
+set_ipmask(struct node_host *h, uint8_t b)
 {
 	struct pf_addr	*m, *n;
 	int		 i, j = 0;
@@ -2054,7 +2054,7 @@ pfctl_add_trans(struct pfr_buffer *buf, int rs_num, const char *anchor)
 	return pfr_buf_add(buf, &trans);
 }
 
-u_int32_t
+uint32_t
 pfctl_get_ticket(struct pfr_buffer *buf, int rs_num, const char *anchor)
 {
 	struct pfioc_trans_e *p;

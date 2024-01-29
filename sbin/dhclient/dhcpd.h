@@ -84,7 +84,7 @@
 
 struct option_data {
 	size_t		 len;
-	u_int8_t	*data;
+	uint8_t	*data;
 };
 
 struct string_list {
@@ -115,9 +115,9 @@ struct packet {
 };
 
 struct hardware {
-	u_int8_t htype;
-	u_int8_t hlen;
-	u_int8_t haddr[16];
+	uint8_t htype;
+	uint8_t hlen;
+	uint8_t haddr[16];
 };
 
 struct client_lease {
@@ -154,10 +154,10 @@ struct client_config {
 	} default_actions[256];
 
 	struct option_data	 send_options[256];
-	u_int8_t		 required_options[256];
-	u_int8_t		 requested_options[256];
+	uint8_t		 required_options[256];
+	uint8_t		 requested_options[256];
 	int			 requested_option_count;
-	u_int8_t		 ignored_options[256];
+	uint8_t		 ignored_options[256];
 	u_int			 vlan_pcp;
 	time_t			 timeout;
 	time_t			 initial_interval;
@@ -181,8 +181,8 @@ struct client_state {
 	struct client_lease	 *alias;
 	enum dhcp_state		  state;
 	struct iaddr		  destination;
-	u_int32_t		  xid;
-	u_int16_t		  secs;
+	uint32_t		  xid;
+	uint16_t		  secs;
 	time_t			  first_sending;
 	time_t			  interval;
 	struct string_list	 *medium;
@@ -213,7 +213,7 @@ struct interface_info {
 	int			 noifmedia;
 	int			 errors;
 	int			 dead;
-	u_int16_t		 index;
+	uint16_t		 index;
 	int			 linkstat;
 };
 
@@ -257,7 +257,7 @@ struct hash_table {
 
 /* options.c */
 int cons_options(struct packet *, struct dhcp_packet *, int,
-    struct tree_cache **, int, int, int, u_int8_t *, int);
+    struct tree_cache **, int, int, int, uint8_t *, int);
 const char *pretty_print_option(unsigned int,
     unsigned char *, int, int, int);
 void do_packet(struct interface_info *, struct dhcp_packet *,
@@ -325,8 +325,8 @@ void cancel_timeout(void (*)(void *), void *);
 void add_protocol(const char *, int, void (*)(struct protocol *), void *);
 void remove_protocol(struct protocol *);
 int interface_link_status(char *);
-void interface_set_mtu_unpriv(int, u_int16_t);
-void interface_set_mtu_priv(char *, u_int16_t); 
+void interface_set_mtu_unpriv(int, uint16_t);
+void interface_set_mtu_priv(char *, uint16_t); 
 
 /* hash.c */
 struct hash_table *new_hash(void);
@@ -342,11 +342,11 @@ extern struct universe dhcp_universe;
 void initialize_universes(void);
 
 /* convert.c */
-u_int32_t getULong(unsigned char *);
+uint32_t getULong(unsigned char *);
 int32_t getLong(unsigned char *);
-u_int16_t getUShort(unsigned char *);
+uint16_t getUShort(unsigned char *);
 int16_t getShort(unsigned char *);
-void putULong(unsigned char *, u_int32_t);
+void putULong(unsigned char *, uint32_t);
 void putLong(unsigned char *, int32_t);
 void putUShort(unsigned char *, unsigned int);
 void putShort(unsigned char *, int);
@@ -419,7 +419,7 @@ void dhcp(struct packet *);
 
 /* packet.c */
 void assemble_hw_header(struct interface_info *, unsigned char *, int *);
-void assemble_udp_ip_header(unsigned char *, int *, u_int32_t, u_int32_t,
+void assemble_udp_ip_header(unsigned char *, int *, uint32_t, uint32_t,
     unsigned int, unsigned char *, int);
 ssize_t decode_hw_header(unsigned char *, int, struct hardware *);
 ssize_t decode_udp_ip_header(unsigned char *, int, struct sockaddr_in *,
@@ -430,8 +430,8 @@ int read_client_conf(void);
 void read_client_leases(void);
 void parse_client_statement(FILE *, struct interface_info *,
     struct client_config *);
-unsigned parse_X(FILE *, u_int8_t *, unsigned);
-int parse_option_list(FILE *, u_int8_t *);
+unsigned parse_X(FILE *, uint8_t *, unsigned);
+int parse_option_list(FILE *, uint8_t *);
 void parse_interface_declaration(FILE *, struct client_config *);
 struct interface_info *interface_or_dummy(char *);
 void make_client_state(struct interface_info *);

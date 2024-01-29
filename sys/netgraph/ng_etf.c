@@ -132,7 +132,7 @@ struct ETF_hookinfo {
 
 struct filter {
 	LIST_ENTRY(filter) next;
-	u_int16_t	ethertype;	/* network order ethertype */
+	uint16_t	ethertype;	/* network order ethertype */
 	hook_p		match_hook;	/* Hook to use on a match */
 };
 
@@ -147,13 +147,13 @@ struct ETF {
 	node_p		node;		/* back pointer to node */
 	u_int   	packets_in;	/* packets in from downstream */
 	u_int   	packets_out;	/* packets out towards downstream */
-	u_int32_t	flags;
+	uint32_t	flags;
 	struct filterhead hashtable[HASHSIZE];
 };
 typedef struct ETF *etf_p;
 
 static struct filter *
-ng_etf_findentry(etf_p etfp, u_int16_t ethertype)
+ng_etf_findentry(etf_p etfp, uint16_t ethertype)
 {
 	struct filterhead *chain = etfp->hashtable + HASH(ethertype);
 	struct filter *fil;
@@ -269,11 +269,11 @@ ng_etf_rcvmsg(node_p node, item_p item, hook_p lasthook)
 			break;
 		    }
 		case NGM_ETF_SET_FLAG:
-			if (msg->header.arglen != sizeof(u_int32_t)) {
+			if (msg->header.arglen != sizeof(uint32_t)) {
 				error = EINVAL;
 				break;
 			}
-			etfp->flags = *((u_int32_t *) msg->data);
+			etfp->flags = *((uint32_t *) msg->data);
 			break;
 		case NGM_ETF_SET_FILTER:
 			{
@@ -365,7 +365,7 @@ ng_etf_rcvdata(hook_p hook, item_p item )
 	struct ether_header *eh;
 	int error = 0;
 	struct mbuf *m;
-	u_int16_t ethertype;
+	uint16_t ethertype;
 	struct filter *fil;
 
 	if (NG_HOOK_PRIVATE(hook) == NULL) { /* Shouldn't happen but.. */

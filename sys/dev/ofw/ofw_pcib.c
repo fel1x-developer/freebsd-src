@@ -142,7 +142,7 @@ ofw_pcib_init(device_t dev)
 {
 	struct ofw_pci_softc *sc;
 	phandle_t node;
-	u_int32_t busrange[2];
+	uint32_t busrange[2];
 	struct ofw_pci_range *rp;
 	int i, error;
 	struct ofw_pci_cell_info *cell_info;

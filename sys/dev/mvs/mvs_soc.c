@@ -301,7 +301,7 @@ mvs_intr(void *data)
 	struct mvs_intr_arg arg;
 	void (*function)(void *);
 	int p, chan_num;
-	u_int32_t ic, aic;
+	uint32_t ic, aic;
 
 	ic = ATA_INL(ctlr->r_mem, CHIP_SOC_MIC);
 	if ((ic & IC_HC0) == 0)

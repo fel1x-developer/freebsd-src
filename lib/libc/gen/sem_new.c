@@ -63,7 +63,7 @@ __weak_reference(_sem_unlink, sem_unlink);
 __weak_reference(_sem_wait, sem_wait);
 
 #define SEM_PREFIX	"/tmp/SEMD"
-#define SEM_MAGIC	((u_int32_t)0x73656d32)
+#define SEM_MAGIC	((uint32_t)0x73656d32)
 
 _Static_assert(SEM_VALUE_MAX <= USEM_MAX_COUNT, "SEM_VALUE_MAX too large");
 
@@ -130,7 +130,7 @@ _sem_init(sem_t *sem, int pshared, unsigned int value)
  
 	bzero(sem, sizeof(sem_t));
 	sem->_magic = SEM_MAGIC;
-	sem->_kern._count = (u_int32_t)value;
+	sem->_kern._count = (uint32_t)value;
 	sem->_kern._flags = pshared ? USYNC_PROCESS_SHARED : 0;
 	return (0);
 }

@@ -88,19 +88,19 @@ static int 	extract_ports4(struct mbuf *, struct ip *, struct flowinfo_in *);
 static int 	extract_ports6(struct mbuf *, struct ip6_hdr *,
 			       struct flowinfo_in6 *);
 #endif
-static int	apply_filter4(u_int32_t, struct flow_filter *,
+static int	apply_filter4(uint32_t, struct flow_filter *,
 			      struct flowinfo_in *);
-static int	apply_ppfilter4(u_int32_t, struct flow_filter *,
+static int	apply_ppfilter4(uint32_t, struct flow_filter *,
 				struct flowinfo_in *);
 #ifdef INET6
-static int	apply_filter6(u_int32_t, struct flow_filter6 *,
+static int	apply_filter6(uint32_t, struct flow_filter6 *,
 			      struct flowinfo_in6 *);
 #endif
-static int	apply_tosfilter4(u_int32_t, struct flow_filter *,
+static int	apply_tosfilter4(uint32_t, struct flow_filter *,
 				 struct flowinfo_in *);
 static u_long	get_filt_handle(struct acc_classifier *, int);
 static struct acc_filter *filth_to_filtp(struct acc_classifier *, u_long);
-static u_int32_t filt2fibmask(struct flow_filter *);
+static uint32_t filt2fibmask(struct flow_filter *);
 
 static void 	ip4f_cache(struct ip *, struct flowinfo_in *);
 static int 	ip4f_lookup(struct ip *, struct flowinfo_in *);
@@ -287,7 +287,7 @@ tbr_dequeue(struct ifaltq *ifq, int op)
 	struct tb_regulator *tbr;
 	struct mbuf *m;
 	int64_t interval;
-	u_int64_t now;
+	uint64_t now;
 
 	IFQ_LOCK_ASSERT(ifq);
 	tbr = ifq->altq_tbr;
@@ -737,15 +737,15 @@ altq_getqstats(struct pf_altq *a, void *ubuf, int *nbytes, int version)
 /*
  * read and write diffserv field in IPv4 or IPv6 header
  */
-u_int8_t
+uint8_t
 read_dsfield(struct mbuf *m, struct altq_pktattr *pktattr)
 {
 	struct mbuf *m0;
-	u_int8_t ds_field = 0;
+	uint8_t ds_field = 0;
 
 	if (pktattr == NULL ||
 	    (pktattr->pattr_af != AF_INET && pktattr->pattr_af != AF_INET6))
-		return ((u_int8_t)0);
+		return ((uint8_t)0);
 
 	/* verify that pattr_hdr is within the mbuf data */
 	for (m0 = m; m0 != NULL; m0 = m0->m_next)
@@ -758,24 +758,24 @@ read_dsfield(struct mbuf *m, struct altq_pktattr *pktattr)
 #ifdef ALTQ_DEBUG
 		printf("read_dsfield: can't locate header!\n");
 #endif
-		return ((u_int8_t)0);
+		return ((uint8_t)0);
 	}
 
 	if (pktattr->pattr_af == AF_INET) {
 		struct ip *ip = (struct ip *)pktattr->pattr_hdr;
 
 		if (ip->ip_v != 4)
-			return ((u_int8_t)0);	/* version mismatch! */
+			return ((uint8_t)0);	/* version mismatch! */
 		ds_field = ip->ip_tos;
 	}
 #ifdef INET6
 	else if (pktattr->pattr_af == AF_INET6) {
 		struct ip6_hdr *ip6 = (struct ip6_hdr *)pktattr->pattr_hdr;
-		u_int32_t flowlabel;
+		uint32_t flowlabel;
 
 		flowlabel = ntohl(ip6->ip6_flow);
 		if ((flowlabel >> 28) != 6)
-			return ((u_int8_t)0);	/* version mismatch! */
+			return ((uint8_t)0);	/* version mismatch! */
 		ds_field = (flowlabel >> 20) & 0xff;
 	}
 #endif
@@ -783,7 +783,7 @@ read_dsfield(struct mbuf *m, struct altq_pktattr *pktattr)
 }
 
 void
-write_dsfield(struct mbuf *m, struct altq_pktattr *pktattr, u_int8_t dsfield)
+write_dsfield(struct mbuf *m, struct altq_pktattr *pktattr, uint8_t dsfield)
 {
 	struct mbuf *m0;
 
@@ -807,7 +807,7 @@ write_dsfield(struct mbuf *m, struct altq_pktattr *pktattr, u_int8_t dsfield)
 
 	if (pktattr->pattr_af == AF_INET) {
 		struct ip *ip = (struct ip *)pktattr->pattr_hdr;
-		u_int8_t old;
+		uint8_t old;
 		int32_t sum;
 
 		if (ip->ip_v != 4)
@@ -831,7 +831,7 @@ write_dsfield(struct mbuf *m, struct altq_pktattr *pktattr, u_int8_t dsfield)
 #ifdef INET6
 	else if (pktattr->pattr_af == AF_INET6) {
 		struct ip6_hdr *ip6 = (struct ip6_hdr *)pktattr->pattr_hdr;
-		u_int32_t flowlabel;
+		uint32_t flowlabel;
 
 		flowlabel = ntohl(ip6->ip6_flow);
 		if ((flowlabel >> 28) != 6)
@@ -854,11 +854,11 @@ write_dsfield(struct mbuf *m, struct altq_pktattr *pktattr, u_int8_t dsfield)
 #define	MACHCLK_SHIFT	8
 
 int machclk_usepcc;
-u_int32_t machclk_freq;
-u_int32_t machclk_per_tick;
+uint32_t machclk_freq;
+uint32_t machclk_per_tick;
 
 #if defined(__i386__) && defined(__NetBSD__)
-extern u_int64_t cpu_tsc_freq;
+extern uint64_t cpu_tsc_freq;
 #endif
 
 /* Update TSC freq with the value indicated by the caller. */
@@ -940,7 +940,7 @@ init_machclk(void)
 	if (machclk_freq == 0) {
 		static int	wait;
 		struct timeval	tv_start, tv_end;
-		u_int64_t	start, end, diff;
+		uint64_t	start, end, diff;
 		int		timo;
 
 		microtime(&tv_start);
@@ -949,7 +949,7 @@ init_machclk(void)
 		(void)tsleep(&wait, PWAIT | PCATCH, "init_machclk", timo);
 		microtime(&tv_end);
 		end = read_machclk();
-		diff = (u_int64_t)(tv_end.tv_sec - tv_start.tv_sec) * 1000000
+		diff = (uint64_t)(tv_end.tv_sec - tv_start.tv_sec) * 1000000
 		    + tv_end.tv_usec - tv_start.tv_usec;
 		if (diff != 0)
 			machclk_freq = (u_int)((end - start) * 1000000 / diff);
@@ -963,19 +963,19 @@ init_machclk(void)
 }
 
 #if defined(__OpenBSD__) && defined(__i386__)
-static __inline u_int64_t
+static __inline uint64_t
 rdtsc(void)
 {
-	u_int64_t rv;
+	uint64_t rv;
 	__asm __volatile(".byte 0x0f, 0x31" : "=A" (rv));
 	return (rv);
 }
 #endif /* __OpenBSD__ && __i386__ */
 
-u_int64_t
+uint64_t
 read_machclk(void)
 {
-	u_int64_t val;
+	uint64_t val;
 
 	if (machclk_usepcc) {
 #if defined(__amd64__) || defined(__i386__)
@@ -988,7 +988,7 @@ read_machclk(void)
 
 		microtime(&tv);
 		getboottime(&boottime);
-		val = (((u_int64_t)(tv.tv_sec - boottime.tv_sec) * 1000000
+		val = (((uint64_t)(tv.tv_sec - boottime.tv_sec) * 1000000
 		    + tv.tv_usec) << MACHCLK_SHIFT);
 	}
 	return (val);
@@ -1014,7 +1014,7 @@ altq_extractflow(m, af, flow, filt_bmask)
 	struct mbuf *m;
 	int af;
 	struct flowinfo *flow;
-	u_int32_t	filt_bmask;
+	uint32_t	filt_bmask;
 {
 
 	switch (af) {
@@ -1100,10 +1100,10 @@ altq_extractflow(m, af, flow, filt_bmask)
  */
 /* structure for ipsec and ipv6 option header template */
 struct _opt6 {
-	u_int8_t	opt6_nxt;	/* next header */
-	u_int8_t	opt6_hlen;	/* header extension length */
-	u_int16_t	_pad;
-	u_int32_t	ah_spi;		/* security parameter index
+	uint8_t	opt6_nxt;	/* next header */
+	uint8_t	opt6_hlen;	/* header extension length */
+	uint16_t	_pad;
+	uint32_t	ah_spi;		/* security parameter index
 					   for authentication header */
 };
 
@@ -1118,7 +1118,7 @@ extract_ports4(m, ip, fin)
 {
 	struct mbuf *m0;
 	u_short ip_off;
-	u_int8_t proto;
+	uint8_t proto;
 	int 	off;
 
 	fin->fi_sport = 0;
@@ -1173,9 +1173,9 @@ extract_ports4(m, ip, fin)
 #ifdef ALTQ_IPSEC
 	case IPPROTO_ESP:
 		if (fin->fi_gpi == 0){
-			u_int32_t *gpi;
+			uint32_t *gpi;
 
-			gpi = (u_int32_t *)(mtod(m0, caddr_t) + off);
+			gpi = (uint32_t *)(mtod(m0, caddr_t) + off);
 			fin->fi_gpi   = *gpi;
 		}
 		fin->fi_proto = proto;
@@ -1216,7 +1216,7 @@ extract_ports6(m, ip6, fin6)
 {
 	struct mbuf *m0;
 	int	off;
-	u_int8_t proto;
+	uint8_t proto;
 
 	fin6->fi6_gpi   = 0;
 	fin6->fi6_sport = 0;
@@ -1260,9 +1260,9 @@ extract_ports6(m, ip6, fin6)
 
 		case IPPROTO_ESP:
 			if (fin6->fi6_gpi == 0) {
-				u_int32_t *gpi;
+				uint32_t *gpi;
 
-				gpi = (u_int32_t *)(mtod(m0, caddr_t) + off);
+				gpi = (uint32_t *)(mtod(m0, caddr_t) + off);
 				fin6->fi6_gpi   = *gpi;
 			}
 			fin6->fi6_proto = proto;
@@ -1588,7 +1588,7 @@ acc_classify(clfier, m, af)
 
 static int
 apply_filter4(fbmask, filt, pkt)
-	u_int32_t	fbmask;
+	uint32_t	fbmask;
 	struct flow_filter *filt;
 	struct flowinfo_in *pkt;
 {
@@ -1623,7 +1623,7 @@ apply_filter4(fbmask, filt, pkt)
  */
 static int
 apply_ppfilter4(fbmask, filt, pkt)
-	u_int32_t	fbmask;
+	uint32_t	fbmask;
 	struct flow_filter *filt;
 	struct flowinfo_in *pkt;
 {
@@ -1644,7 +1644,7 @@ apply_ppfilter4(fbmask, filt, pkt)
  */
 static int
 apply_tosfilter4(fbmask, filt, pkt)
-	u_int32_t	fbmask;
+	uint32_t	fbmask;
 	struct flow_filter *filt;
 	struct flowinfo_in *pkt;
 {
@@ -1660,7 +1660,7 @@ apply_tosfilter4(fbmask, filt, pkt)
 #ifdef INET6
 static int
 apply_filter6(fbmask, filt, pkt)
-	u_int32_t	fbmask;
+	uint32_t	fbmask;
 	struct flow_filter6 *filt;
 	struct flowinfo_in6 *pkt;
 {
@@ -1756,11 +1756,11 @@ filth_to_filtp(classifier, handle)
 }
 
 /* create flowinfo bitmask */
-static u_int32_t
+static uint32_t
 filt2fibmask(filt)
 	struct flow_filter *filt;
 {
-	u_int32_t mask = 0;
+	uint32_t mask = 0;
 #ifdef INET6
 	struct flow_filter6 *filt6;
 #endif

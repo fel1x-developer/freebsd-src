@@ -44,8 +44,8 @@ void
 ar9285BTCoexAntennaDiversity(struct ath_hal *ah)
 {
 	struct ath_hal_5416 *ahp = AH5416(ah);
-	u_int32_t regVal;
-	u_int8_t ant_div_control1, ant_div_control2;
+	uint32_t regVal;
+	uint8_t ant_div_control1, ant_div_control2;
 
 	HALDEBUG(ah, HAL_DEBUG_BT_COEX,
 	    "%s: btCoexFlag: ALLOW=%d, ENABLE=%d\n",
@@ -126,7 +126,7 @@ ar9285BTCoexAntennaDiversity(struct ath_hal *ah)
 }
 
 void
-ar9285BTCoexSetParameter(struct ath_hal *ah, u_int32_t type, u_int32_t value)
+ar9285BTCoexSetParameter(struct ath_hal *ah, uint32_t type, uint32_t value)
 {
 	struct ath_hal_5416 *ahp = AH5416(ah);
 

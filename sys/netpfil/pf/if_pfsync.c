@@ -158,7 +158,7 @@ static int (*pfsync_acts[])(struct mbuf *, int, int, int, int) = {
 struct pfsync_q {
 	void		(*write)(struct pf_kstate *, void *);
 	size_t		len;
-	u_int8_t	action;
+	uint8_t	action;
 };
 
 /* We have the following sync queues */
@@ -192,7 +192,7 @@ static struct pfsync_q pfsync_qs[] = {
 };
 
 /* Map queue to pf_kstate->sync_state */
-static u_int8_t pfsync_qid_sstate[] = {
+static uint8_t pfsync_qid_sstate[] = {
 	PFSYNC_S_INS,   /* PFSYNC_Q_INS_1301 */
 	PFSYNC_S_INS,   /* PFSYNC_Q_INS_1400 */
 	PFSYNC_S_IACK,  /* PFSYNC_Q_IACK */
@@ -203,7 +203,7 @@ static u_int8_t pfsync_qid_sstate[] = {
 };
 
 /* Map pf_kstate->sync_state to queue */
-static enum pfsync_q_id pfsync_sstate_to_qid(u_int8_t);
+static enum pfsync_q_id pfsync_sstate_to_qid(uint8_t);
 
 static void	pfsync_q_ins(struct pf_kstate *, int sync_state, bool);
 static void	pfsync_q_del(struct pf_kstate *, bool, struct pfsync_bucket *);
@@ -342,7 +342,7 @@ static void	pfsync_undefer_state_locked(struct pf_kstate *, int);
 static void	pfsync_undefer_state(struct pf_kstate *, int);
 static void	pfsync_defer_tmo(void *);
 
-static void	pfsync_request_update(u_int32_t, u_int64_t);
+static void	pfsync_request_update(uint32_t, uint64_t);
 static bool	pfsync_update_state_req(struct pf_kstate *);
 
 static void	pfsync_drop(struct pfsync_softc *);
@@ -350,7 +350,7 @@ static void	pfsync_sendout(int, int);
 static void	pfsync_send_plus(void *, size_t);
 
 static void	pfsync_bulk_start(void);
-static void	pfsync_bulk_status(u_int8_t);
+static void	pfsync_bulk_status(uint8_t);
 static void	pfsync_bulk_update(void *);
 static void	pfsync_bulk_fail(void *);
 
@@ -966,7 +966,7 @@ pfsync_in_clr(struct mbuf *m, int offset, int count, int flags, int action)
 	struct mbuf *mp;
 	int len = sizeof(*clr) * count;
 	int i, offp;
-	u_int32_t creatorid;
+	uint32_t creatorid;
 
 	mp = m_pulldown(m, offset, len, &offp);
 	if (mp == NULL) {
@@ -2190,7 +2190,7 @@ pfsync_update_state(struct pf_kstate *st)
 }
 
 static void
-pfsync_request_update(u_int32_t creatorid, u_int64_t id)
+pfsync_request_update(uint32_t creatorid, uint64_t id)
 {
 	struct pfsync_softc *sc = V_pfsyncif;
 	struct pfsync_bucket *b = &sc->sc_buckets[0];
@@ -2324,7 +2324,7 @@ pfsync_delete_state(struct pf_kstate *st)
 }
 
 static void
-pfsync_clear_states(u_int32_t creatorid, const char *ifname)
+pfsync_clear_states(uint32_t creatorid, const char *ifname)
 {
 	struct {
 		struct pfsync_subheader subh;
@@ -2344,7 +2344,7 @@ pfsync_clear_states(u_int32_t creatorid, const char *ifname)
 }
 
 static enum pfsync_q_id
-pfsync_sstate_to_qid(u_int8_t sync_state)
+pfsync_sstate_to_qid(uint8_t sync_state)
 {
 	struct pfsync_softc *sc = V_pfsyncif;
 
@@ -2507,7 +2507,7 @@ full:
 }
 
 static void
-pfsync_bulk_status(u_int8_t status)
+pfsync_bulk_status(uint8_t status)
 {
 	struct {
 		struct pfsync_subheader subh;

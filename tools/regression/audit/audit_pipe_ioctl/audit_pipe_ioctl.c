@@ -44,7 +44,7 @@ int
 main(int argc, char *argv[])
 {
 	u_int len, minlen, maxlen;
-	u_int64_t astat;
+	uint64_t astat;
 	int fd;
 
 	fd = open("/dev/auditpipe", O_RDONLY);
@@ -113,28 +113,28 @@ main(int argc, char *argv[])
 	 * Check that we can query the defined stats.  No attempt to
 	 * validate.
 	 */
-	astat = (u_int64_t)(int64_t)(-1);
+	astat = (uint64_t)(int64_t)(-1);
 	if (ioctl(fd, AUDITPIPE_GET_INSERTS, &astat) < 0)
 		err(-1, "AUDITPIPE_GET_INSERTS");
-	if (astat == (u_int64_t)(int64_t)(-1))
+	if (astat == (uint64_t)(int64_t)(-1))
 		errx(-1, "AUDITPIPE_GET_INSERTS: unchanged");
 
-	astat = (u_int64_t)(int64_t)(-1);
+	astat = (uint64_t)(int64_t)(-1);
 	if (ioctl(fd, AUDITPIPE_GET_READS, &astat) < 0)
 		err(-1, "AUDITPIPE_GET_READS");
-	if (astat == (u_int64_t)(int64_t)(-1))
+	if (astat == (uint64_t)(int64_t)(-1))
 		errx(-1, "AUDITPIPE_GET_READS: unchanged");
 
-	astat = (u_int64_t)(int64_t)(-1);
+	astat = (uint64_t)(int64_t)(-1);
 	if (ioctl(fd, AUDITPIPE_GET_DROPS, &astat) < 0)
 		err(-1, "AUDITPIPE_GET_DROPS");
-	if (astat == (u_int64_t)(int64_t)(-1))
+	if (astat == (uint64_t)(int64_t)(-1))
 		errx(-1, "AUDITPIPE_GET_DROPS: unchanged");
 
-	astat = (u_int64_t)(int64_t)(-1);
+	astat = (uint64_t)(int64_t)(-1);
 	if (ioctl(fd, AUDITPIPE_GET_TRUNCATES, &astat) < 0)
 		err(-1, "AUDITPIPE_GET_TRUNCATES");
-	if (astat == (u_int64_t)(int64_t)(-1))
+	if (astat == (uint64_t)(int64_t)(-1))
 		errx(-1, "AUDITPIPE_GET_TRUNCATES: unchanged");
 
 	return (0);

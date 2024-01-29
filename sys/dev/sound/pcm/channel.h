@@ -29,9 +29,9 @@
  */
 
 struct pcmchan_caps {
-	u_int32_t minspeed, maxspeed;
-	u_int32_t *fmtlist;
-	u_int32_t caps;
+	uint32_t minspeed, maxspeed;
+	uint32_t *fmtlist;
+	uint32_t caps;
 };
 
 struct pcmchan_matrix {
@@ -86,14 +86,14 @@ struct pcm_channel {
 	pid_t pid;
 	int refcount;
 	struct pcm_feeder *feeder;
-	u_int32_t align;
+	uint32_t align;
 
 	int latency;
-	u_int32_t speed;
-	u_int32_t format;
-	u_int32_t flags;
-	u_int32_t feederflags;
-	u_int64_t blocks;
+	uint32_t speed;
+	uint32_t format;
+	uint32_t flags;
+	uint32_t feederflags;
+	uint64_t blocks;
 
 	int direction;
 	unsigned int interrupts, xruns, feedcount;
@@ -137,7 +137,7 @@ struct pcm_channel {
 	 */
 	struct pcmchan_syncmember *sm;
 #ifdef OSSV4_EXPERIMENT
-	u_int16_t lpeak, rpeak;	/**< Peak value from 0-32767. */
+	uint16_t lpeak, rpeak;	/**< Peak value from 0-32767. */
 #endif
 
 	struct {
@@ -257,14 +257,14 @@ struct pcm_channel {
 int chn_reinit(struct pcm_channel *c);
 int chn_write(struct pcm_channel *c, struct uio *buf);
 int chn_read(struct pcm_channel *c, struct uio *buf);
-u_int32_t chn_start(struct pcm_channel *c, int force);
+uint32_t chn_start(struct pcm_channel *c, int force);
 int chn_sync(struct pcm_channel *c, int threshold);
 int chn_flush(struct pcm_channel *c);
 int chn_poll(struct pcm_channel *c, int ev, struct thread *td);
 
 int chn_init(struct pcm_channel *c, void *devinfo, int dir, int direction);
 int chn_kill(struct pcm_channel *c);
-int chn_reset(struct pcm_channel *c, u_int32_t fmt, u_int32_t spd);
+int chn_reset(struct pcm_channel *c, uint32_t fmt, uint32_t spd);
 int chn_setvolume(struct pcm_channel *c, int left, int right);
 int chn_setvolume_multi(struct pcm_channel *c, int vc, int left, int right,
     int center);
@@ -283,7 +283,7 @@ void chn_syncstate(struct pcm_channel *c);
 int chn_trigger(struct pcm_channel *c, int go);
 int chn_getptr(struct pcm_channel *c);
 struct pcmchan_caps *chn_getcaps(struct pcm_channel *c);
-u_int32_t chn_getformats(struct pcm_channel *c);
+uint32_t chn_getformats(struct pcm_channel *c);
 
 struct pcmchan_matrix *chn_getmatrix(struct pcm_channel *);
 int chn_setmatrix(struct pcm_channel *, struct pcmchan_matrix *);
@@ -297,7 +297,7 @@ void chn_intr_locked(struct pcm_channel *c);
 void chn_intr(struct pcm_channel *c);
 int chn_abort(struct pcm_channel *c);
 
-int chn_notify(struct pcm_channel *c, u_int32_t flags);
+int chn_notify(struct pcm_channel *c, uint32_t flags);
 
 int chn_getrates(struct pcm_channel *c, int **rates);
 int chn_syncdestroy(struct pcm_channel *c);

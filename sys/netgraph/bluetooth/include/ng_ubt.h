@@ -60,7 +60,7 @@
 
 #define NGM_UBT_NODE_SET_DEBUG	1		/* set debug level */
 #define NGM_UBT_NODE_GET_DEBUG	2		/* get debug level */
-typedef u_int16_t		ng_ubt_node_debug_ep; 
+typedef uint16_t		ng_ubt_node_debug_ep; 
 
 #define NGM_UBT_NODE_SET_QLEN	3		/* set queue length */
 #define NGM_UBT_NODE_GET_QLEN	4		/* get queue length */ 
@@ -75,17 +75,17 @@ typedef struct {
 
 #define NGM_UBT_NODE_GET_STAT	5		/* get statistic */
 typedef struct {
-	u_int32_t	pckts_recv;		/* # of packets received */
-	u_int32_t	bytes_recv;		/* # of bytes received */
-	u_int32_t	pckts_sent;		/* # of packets sent */
-	u_int32_t	bytes_sent;		/* # of bytes sent */
-	u_int32_t	oerrors;		/* # of output errors */
-	u_int32_t	ierrors;		/* # of input errors */
+	uint32_t	pckts_recv;		/* # of packets received */
+	uint32_t	bytes_recv;		/* # of bytes received */
+	uint32_t	pckts_sent;		/* # of packets sent */
+	uint32_t	bytes_sent;		/* # of bytes sent */
+	uint32_t	oerrors;		/* # of output errors */
+	uint32_t	ierrors;		/* # of input errors */
 } ng_ubt_node_stat_ep;
 
 #define NGM_UBT_NODE_RESET_STAT	6		/* reset statistic */
 
 #define NGM_UBT_NODE_DEV_NODES	7		/* on/off device interface */
-typedef u_int16_t	ng_ubt_node_dev_nodes_ep;
+typedef uint16_t	ng_ubt_node_dev_nodes_ep;
 
 #endif /* ndef _NG_UBT_H_ */

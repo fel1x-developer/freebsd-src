@@ -92,8 +92,8 @@ VNET_DEFINE(int, nd6_defifindex);
 VNET_DEFINE(int, ip6_use_tempaddr) = 0;
 
 VNET_DEFINE(int, ip6_desync_factor);
-VNET_DEFINE(u_int32_t, ip6_temp_preferred_lifetime) = DEF_TEMP_PREFERRED_LIFETIME;
-VNET_DEFINE(u_int32_t, ip6_temp_valid_lifetime) = DEF_TEMP_VALID_LIFETIME;
+VNET_DEFINE(uint32_t, ip6_temp_preferred_lifetime) = DEF_TEMP_PREFERRED_LIFETIME;
+VNET_DEFINE(uint32_t, ip6_temp_valid_lifetime) = DEF_TEMP_VALID_LIFETIME;
 
 VNET_DEFINE(int, ip6_temp_regen_advance) = TEMPADDR_REGEN_ADVANCE;
 
@@ -419,7 +419,7 @@ nd6_ra_input(struct mbuf *m, int off, int icmp6len)
 	dr = NULL;
     {
 	struct nd_defrouter dr0;
-	u_int32_t advreachable = nd_ra->nd_ra_reachable;
+	uint32_t advreachable = nd_ra->nd_ra_reachable;
 
 	/* remember if this is a multicasted advertisement */
 	if (IN6_IS_ADDR_MULTICAST(&ip6->ip6_dst))
@@ -1589,7 +1589,7 @@ prelist_update(struct nd_prefixctl *new, struct nd_defrouter *dr,
 	 */
 	CK_STAILQ_FOREACH(ifa, &ifp->if_addrhead, ifa_link) {
 		struct in6_ifaddr *ifa6;
-		u_int32_t remaininglifetime;
+		uint32_t remaininglifetime;
 
 		if (ifa->ifa_addr->sa_family != AF_INET6)
 			continue;
@@ -1678,10 +1678,10 @@ prelist_update(struct nd_prefixctl *new, struct nd_defrouter *dr,
 		 * intervals.
 		 */
 		if ((ifa6->ia6_flags & IN6_IFF_TEMPORARY) != 0) {
-			u_int32_t maxvltime, maxpltime;
+			uint32_t maxvltime, maxpltime;
 
 			if (V_ip6_temp_valid_lifetime >
-			    (u_int32_t)((time_uptime - ifa6->ia6_createtime) +
+			    (uint32_t)((time_uptime - ifa6->ia6_createtime) +
 			    V_ip6_desync_factor)) {
 				maxvltime = V_ip6_temp_valid_lifetime -
 				    (time_uptime - ifa6->ia6_createtime) -
@@ -1689,7 +1689,7 @@ prelist_update(struct nd_prefixctl *new, struct nd_defrouter *dr,
 			} else
 				maxvltime = 0;
 			if (V_ip6_temp_preferred_lifetime >
-			    (u_int32_t)((time_uptime - ifa6->ia6_createtime) +
+			    (uint32_t)((time_uptime - ifa6->ia6_createtime) +
 			    V_ip6_desync_factor)) {
 				maxpltime = V_ip6_temp_preferred_lifetime -
 				    (time_uptime - ifa6->ia6_createtime) -
@@ -2242,7 +2242,7 @@ in6_tmpifadd(const struct in6_ifaddr *ia0, int forcegen, int delay)
 	int error;
 	int trylimit = 3;	/* XXX: adhoc value */
 	int updateflags;
-	u_int32_t randid[2];
+	uint32_t randid[2];
 	time_t vltime0, pltime0;
 
 	in6_prepare_ifra(&ifra, &ia0->ia_addr.sin6_addr,
@@ -2254,8 +2254,8 @@ in6_tmpifadd(const struct in6_ifaddr *ia0, int forcegen, int delay)
 	    &ifra.ifra_prefixmask.sin6_addr);
 
   again:
-	if (in6_get_tmpifid(ifp, (u_int8_t *)randid,
-	    (const u_int8_t *)&ia0->ia_addr.sin6_addr.s6_addr[8], forcegen)) {
+	if (in6_get_tmpifid(ifp, (uint8_t *)randid,
+	    (const uint8_t *)&ia0->ia_addr.sin6_addr.s6_addr[8], forcegen)) {
 		nd6log((LOG_NOTICE, "%s: failed to find a good random IFID\n",
 		    __func__));
 		return (EINVAL);

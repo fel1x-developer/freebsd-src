@@ -76,7 +76,7 @@ DispPkt(RMPCONN *rconn, int direct)
 	struct tm *tmp;
 	struct rmp_packet *rmp;
 	int i, omask;
-	u_int32_t t;
+	uint32_t t;
 
 	/*
 	 *  Since we will be working with RmpConns as well as DbgFp, we
@@ -195,7 +195,7 @@ DispPkt(RMPCONN *rconn, int direct)
 **		  be copied if it's to be saved.
 */
 char *
-GetEtherAddr(u_int8_t *addr)
+GetEtherAddr(uint8_t *addr)
 {
 	static char Hex[] = "0123456789abcdef";
 	static char etherstr[RMP_ADDRLEN*3];
@@ -260,7 +260,7 @@ DspFlnm(u_int size, char *flnm)
 **		- If malloc() fails, a log message will be generated.
 */
 CLIENT *
-NewClient(u_int8_t *addr)
+NewClient(uint8_t *addr)
 {
 	CLIENT *ctmp;
 

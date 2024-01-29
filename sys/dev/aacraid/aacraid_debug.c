@@ -473,10 +473,10 @@ const unsigned long aacraid_debug_flags = /* Variable to setup with above flags.
 
 int aacraid_get_fw_debug_buffer(struct aac_softc *sc)
 {
-	u_int32_t MonDriverBufferPhysAddrLow = 0;
-	u_int32_t MonDriverBufferPhysAddrHigh = 0;
-	u_int32_t MonDriverBufferSize = 0;
-	u_int32_t MonDriverHeaderSize = 0;
+	uint32_t MonDriverBufferPhysAddrLow = 0;
+	uint32_t MonDriverBufferPhysAddrHigh = 0;
+	uint32_t MonDriverBufferSize = 0;
+	uint32_t MonDriverHeaderSize = 0;
 
 	/*
 	 * Get the firmware print buffer parameters from the firmware
@@ -519,7 +519,7 @@ int aacraid_get_fw_debug_buffer(struct aac_softc *sc)
 void aacraid_fw_printf(struct aac_softc *sc, unsigned long PrintFlags, const char * fmt, ...)
 {
 	va_list args;
-	u_int32_t Count, i;
+	uint32_t Count, i;
 	char PrintBuffer_P[PRINT_BUFFER_SIZE];
 	unsigned long PrintType;
 
@@ -553,7 +553,7 @@ void aacraid_fw_printf(struct aac_softc *sc, unsigned long PrintFlags, const cha
 			 */
 			Count = strlen(PrintBuffer_P);
 			if (Count > sc->FwDebugBufferSize)
-				Count = (u_int16_t)sc->FwDebugBufferSize;
+				Count = (uint16_t)sc->FwDebugBufferSize;
 
 			/*
 			 * Wait for no more than PRINT_TIMEOUT for the previous
@@ -614,10 +614,10 @@ void aacraid_fw_printf(struct aac_softc *sc, unsigned long PrintFlags, const cha
 	}
 }
 
-void aacraid_fw_print_mem(struct aac_softc *sc, unsigned long PrintFlags, u_int8_t *Addr, int Count)
+void aacraid_fw_print_mem(struct aac_softc *sc, unsigned long PrintFlags, uint8_t *Addr, int Count)
 {
 	int Offset, i;
-	u_int32_t DebugFlags = 0;
+	uint32_t DebugFlags = 0;
 	char Buffer[100];
 	char *LineBuffer_P;
 

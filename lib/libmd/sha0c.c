@@ -88,7 +88,7 @@ char *SHA_version="SHA part of SSLeay 0.9.0b 11-Oct-1998";
 #define K_60_79 0xca62c1d6L
 
 #ifndef NOPROTO
-   void sha_block(SHA_CTX *c, const u_int32_t *p, int num);
+   void sha_block(SHA_CTX *c, const uint32_t *p, int num);
 #else
    void sha_block();
 #endif
@@ -113,9 +113,9 @@ void SHA_Init(SHA_CTX *c)
 
 void SHA_Update(SHA_CTX *c, const void *in, size_t len)
 	{
-	u_int32_t *p;
+	uint32_t *p;
 	int ew,ec,sw,sc;
-	u_int32_t l;
+	uint32_t l;
 	const unsigned char *data = in;
 
 	if (len == 0) return;
@@ -183,13 +183,13 @@ void SHA_Update(SHA_CTX *c, const void *in, size_t len)
 	 */
 #if 1
 #if BYTE_ORDER == BIG_ENDIAN || defined(SHA_ASM)
-	if ((((unsigned int)data)%sizeof(u_int32_t)) == 0)
+	if ((((unsigned int)data)%sizeof(uint32_t)) == 0)
 		{
 		sw=len/SHA_CBLOCK;
 		if (sw)
 			{
 			sw*=SHA_CBLOCK;
-			sha_block(c,(u_int32_t *)data,sw);
+			sha_block(c,(uint32_t *)data,sw);
 			data+=sw;
 			len-=sw;
 			}
@@ -202,7 +202,7 @@ void SHA_Update(SHA_CTX *c, const void *in, size_t len)
 	while (len >= SHA_CBLOCK)
 		{
 #if BYTE_ORDER == BIG_ENDIAN || BYTE_ORDER == LITTLE_ENDIAN
-		if (p != (u_int32_t *)data)
+		if (p != (uint32_t *)data)
 			memcpy(p,data,SHA_CBLOCK);
 		data+=SHA_CBLOCK;
 #  if BYTE_ORDER == LITTLE_ENDIAN
@@ -244,9 +244,9 @@ void SHA_Update(SHA_CTX *c, const void *in, size_t len)
 
 void SHA_Transform(SHA_CTX *c, unsigned char *b)
 	{
-	u_int32_t p[16];
+	uint32_t p[16];
 #if BYTE_ORDER == LITTLE_ENDIAN
-	u_int32_t *q;
+	uint32_t *q;
 	int i;
 #endif
 
@@ -267,7 +267,7 @@ void SHA_Transform(SHA_CTX *c, unsigned char *b)
 	q=p;
 	for (i=(SHA_LBLOCK/4); i; i--)
 		{
-		u_int32_t l;
+		uint32_t l;
 		c2nl(b,l); *(q++)=l;
 		c2nl(b,l); *(q++)=l;
 		c2nl(b,l); *(q++)=l;
@@ -277,10 +277,10 @@ void SHA_Transform(SHA_CTX *c, unsigned char *b)
 	sha_block(c,p,64);
 	}
 
-void sha_block(SHA_CTX *c, const u_int32_t *W, int num)
+void sha_block(SHA_CTX *c, const uint32_t *W, int num)
 	{
-	u_int32_t A,B,C,D,E,T;
-	u_int32_t X[16];
+	uint32_t A,B,C,D,E,T;
+	uint32_t X[16];
 
 	A=c->h0;
 	B=c->h1;
@@ -396,8 +396,8 @@ void sha_block(SHA_CTX *c, const u_int32_t *W, int num)
 void SHA_Final(unsigned char *md, SHA_CTX *c)
 	{
 	int i,j;
-	u_int32_t l;
-	u_int32_t *p;
+	uint32_t l;
+	uint32_t *p;
 	static unsigned char end[4]={0x80,0x00,0x00,0x00};
 	unsigned char *cp=end;
 

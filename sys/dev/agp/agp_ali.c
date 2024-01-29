@@ -47,7 +47,7 @@
 
 struct agp_ali_softc {
 	struct agp_softc agp;
-	u_int32_t	initial_aperture; /* aperture size at startup */
+	uint32_t	initial_aperture; /* aperture size at startup */
 	struct agp_gatt *gatt;
 };
 
@@ -95,7 +95,7 @@ agp_ali_attach(device_t dev)
 	struct agp_ali_softc *sc = device_get_softc(dev);
 	struct agp_gatt *gatt;
 	int error;
-	u_int32_t attbase;
+	uint32_t attbase;
 
 	error = agp_generic_attach(dev);
 	if (error)
@@ -138,7 +138,7 @@ static int
 agp_ali_detach(device_t dev)
 {
 	struct agp_ali_softc *sc = device_get_softc(dev);
-	u_int32_t attbase;
+	uint32_t attbase;
 
 	agp_free_cdev(dev);
 
@@ -157,7 +157,7 @@ agp_ali_detach(device_t dev)
 
 #define M 1024*1024
 
-static u_int32_t agp_ali_table[] = {
+static uint32_t agp_ali_table[] = {
 	0,			/* 0 - invalid */
 	1,			/* 1 - invalid */
 	2,			/* 2 - invalid */
@@ -172,7 +172,7 @@ static u_int32_t agp_ali_table[] = {
 };
 #define	AGP_ALI_TABLE_SIZE nitems(agp_ali_table)
 
-static u_int32_t
+static uint32_t
 agp_ali_get_aperture(device_t dev)
 {
 	/*
@@ -186,10 +186,10 @@ agp_ali_get_aperture(device_t dev)
 }
 
 static int
-agp_ali_set_aperture(device_t dev, u_int32_t aperture)
+agp_ali_set_aperture(device_t dev, uint32_t aperture)
 {
 	int i;
-	u_int32_t attbase;
+	uint32_t attbase;
 
 	for (i = 0; i < AGP_ALI_TABLE_SIZE; i++)
 		if (agp_ali_table[i] == aperture)

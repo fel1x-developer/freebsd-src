@@ -1414,7 +1414,7 @@ HAL_BOOL
 ar5212GetMibCycleCounts(struct ath_hal *ah, HAL_SURVEY_SAMPLE *hsample)
 {
 	struct ath_hal_5212 *ahp = AH5212(ah);
-	u_int32_t good = AH_TRUE;
+	uint32_t good = AH_TRUE;
 
 	/* XXX freeze/unfreeze mib counters */
 	uint32_t rc = OS_REG_READ(ah, AR_RCCNT);

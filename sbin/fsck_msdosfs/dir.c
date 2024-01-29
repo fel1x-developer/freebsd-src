@@ -387,7 +387,7 @@ checksize(struct fat_descriptor *fat, u_char *p, struct dosDirEntry *dir)
 {
 	int ret = FSOK;
 	size_t chainsize;
-	u_int64_t physicalSize;
+	uint64_t physicalSize;
 	struct bootblock *boot;
 
 	boot = fat_get_boot(fat);
@@ -430,7 +430,7 @@ checksize(struct fat_descriptor *fat, u_char *p, struct dosDirEntry *dir)
 		 * size.  On 32-bit platforms, since size_t is 32-bit,
 		 * it would wrap back to 0.
 		 */
-		physicalSize = (u_int64_t)chainsize * boot->ClusterSize;
+		physicalSize = (uint64_t)chainsize * boot->ClusterSize;
 	}
 	if (physicalSize < dir->size) {
 		pwarn("size of %s is %u, should at most be %ju\n",
@@ -449,7 +449,7 @@ checksize(struct fat_descriptor *fat, u_char *p, struct dosDirEntry *dir)
 		      fullpath(dir));
 		if (ask(1, "Drop superfluous clusters")) {
 			cl_t cl;
-			u_int32_t sz, len;
+			uint32_t sz, len;
 
 			for (cl = dir->head, len = sz = 0;
 			    (sz += boot->ClusterSize) < dir->size; len++)

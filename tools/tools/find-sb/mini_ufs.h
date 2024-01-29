@@ -111,12 +111,12 @@ struct fs {
         int8_t   fs_old_flags;          /* old FS_ flags */
         u_char   fs_fsmnt[MAXMNTLEN];   /* name mounted on */
         u_char   fs_volname[MAXVOLLEN]; /* volume name */
-        u_int64_t fs_swuid;             /* system-wide uid */
+        uint64_t fs_swuid;             /* system-wide uid */
         int32_t  fs_pad;                /* due to alignment of fs_swuid */
 /* these fields retain the current block allocation info */
         int32_t  fs_cgrotor;            /* last cg searched */
         void    *fs_ocsp[NOCSPTRS];     /* padding; was list of fs_cs buffers */
-        u_int8_t *fs_contigdirs;        /* (u) # of contig. allocated dirs */
+        uint8_t *fs_contigdirs;        /* (u) # of contig. allocated dirs */
         struct  csum *fs_csp;           /* (u) cg summary info buffer */
         int32_t *fs_maxcluster;         /* (u) max cluster in each cyl group */
         u_int   *fs_active;             /* (u) used by snapshots to track fs */
@@ -141,7 +141,7 @@ struct fs {
         int32_t  fs_contigsumsize;      /* size of cluster summary array */ 
         int32_t  fs_maxsymlinklen;      /* max length of an internal symlink */
         int32_t  fs_old_inodefmt;       /* format of on-disk inodes */
-        u_int64_t fs_maxfilesize;       /* maximum representable file size */
+        uint64_t fs_maxfilesize;       /* maximum representable file size */
         int64_t  fs_qbmask;             /* ~fs_bmask for use with 64-bit size */
         int64_t  fs_qfmask;             /* ~fs_fmask for use with 64-bit size */
         int32_t  fs_state;              /* validate fs_clean field */

@@ -87,11 +87,11 @@ struct netisr_work {
 	/*
 	 * Statistics -- written unlocked, but mostly from curcpu.
 	 */
-	u_int64_t	 nw_dispatched; /* Number of direct dispatches. */
-	u_int64_t	 nw_hybrid_dispatched; /* "" hybrid dispatches. */
-	u_int64_t	 nw_qdrops;	/* "" drops. */
-	u_int64_t	 nw_queued;	/* "" enqueues. */
-	u_int64_t	 nw_handled;	/* "" handled in worker. */
+	uint64_t	 nw_dispatched; /* Number of direct dispatches. */
+	uint64_t	 nw_hybrid_dispatched; /* "" hybrid dispatches. */
+	uint64_t	 nw_qdrops;	/* "" drops. */
+	uint64_t	 nw_queued;	/* "" enqueues. */
+	uint64_t	 nw_handled;	/* "" handled in worker. */
 };
 
 /*

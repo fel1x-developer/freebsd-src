@@ -542,7 +542,7 @@ static void
 cg_write(struct bufarea *bp)
 {
 	ufs1_daddr_t fragno, cgbno, maxbno;
-	u_int8_t *blksfree;
+	uint8_t *blksfree;
 	struct csum *csp;
 	struct cg *cgp;
 	int blk;
@@ -1038,7 +1038,7 @@ check_cgmagic(int cg, struct bufarea *cgbp)
 		CHK(cgp->cg_old_boff, !=, cgp->cg_old_btotoff +
 		    sblock.fs_old_cpg * sizeof(int32_t), "%jd");
 		CHK(cgp->cg_iusedoff, !=, cgp->cg_old_boff +
-		    sblock.fs_old_cpg * sizeof(u_int16_t), "%jd");
+		    sblock.fs_old_cpg * sizeof(uint16_t), "%jd");
 	}
 	CHK(cgp->cg_freeoff, !=,
 	    cgp->cg_iusedoff + howmany(sblock.fs_ipg, CHAR_BIT), "%jd");
@@ -1050,9 +1050,9 @@ check_cgmagic(int cg, struct bufarea *cgbp)
 		    "%jd");
 		CHK(cgp->cg_clustersumoff, !=,
 		    roundup(cgp->cg_freeoff + howmany(sblock.fs_fpg, CHAR_BIT),
-		    sizeof(u_int32_t)) - sizeof(u_int32_t), "%jd");
+		    sizeof(uint32_t)) - sizeof(uint32_t), "%jd");
 		CHK(cgp->cg_clusteroff, !=, cgp->cg_clustersumoff +
-		    (sblock.fs_contigsumsize + 1) * sizeof(u_int32_t), "%jd");
+		    (sblock.fs_contigsumsize + 1) * sizeof(uint32_t), "%jd");
 		CHK(cgp->cg_nextfreeoff, !=, cgp->cg_clusteroff +
 		    howmany(fragstoblks(&sblock, sblock.fs_fpg), CHAR_BIT),
 		    "%jd");
@@ -1098,17 +1098,17 @@ rebuild_cg(int cg, struct bufarea *cgbp)
 		cgp->cg_old_boff = cgp->cg_old_btotoff +
 		    sblock.fs_old_cpg * sizeof(int32_t);
 		cgp->cg_iusedoff = cgp->cg_old_boff +
-		    sblock.fs_old_cpg * sizeof(u_int16_t);
+		    sblock.fs_old_cpg * sizeof(uint16_t);
 	}
 	cgp->cg_freeoff = cgp->cg_iusedoff + howmany(sblock.fs_ipg, CHAR_BIT);
 	cgp->cg_nextfreeoff = cgp->cg_freeoff + howmany(sblock.fs_fpg,CHAR_BIT);
 	if (sblock.fs_contigsumsize > 0) {
 		cgp->cg_nclusterblks = cgp->cg_ndblk / sblock.fs_frag;
 		cgp->cg_clustersumoff =
-		    roundup(cgp->cg_nextfreeoff, sizeof(u_int32_t));
-		cgp->cg_clustersumoff -= sizeof(u_int32_t);
+		    roundup(cgp->cg_nextfreeoff, sizeof(uint32_t));
+		cgp->cg_clustersumoff -= sizeof(uint32_t);
 		cgp->cg_clusteroff = cgp->cg_clustersumoff +
-		    (sblock.fs_contigsumsize + 1) * sizeof(u_int32_t);
+		    (sblock.fs_contigsumsize + 1) * sizeof(uint32_t);
 		cgp->cg_nextfreeoff = cgp->cg_clusteroff +
 		    howmany(fragstoblks(&sblock, sblock.fs_fpg), CHAR_BIT);
 	}
@@ -1162,7 +1162,7 @@ std_checkblkavail(ufs2_daddr_t blkno, long frags)
 	ufs2_daddr_t j, k, baseblk;
 	long cg;
 
-	if ((u_int64_t)blkno > sblock.fs_size)
+	if ((uint64_t)blkno > sblock.fs_size)
 		return (0);
 	for (j = 0; j <= sblock.fs_frag - frags; j++) {
 		if (testbmap(blkno + j))
@@ -1202,9 +1202,9 @@ std_checkblkavail(ufs2_daddr_t blkno, long frags)
  * This should match the file size limit in ffs_mountfs().
  */
 int
-chkfilesize(mode_t mode, u_int64_t filesize)
+chkfilesize(mode_t mode, uint64_t filesize)
 {
-	u_int64_t kernmaxfilesize;
+	uint64_t kernmaxfilesize;
 
 	if (sblock.fs_magic == FS_UFS1_MAGIC)
 		kernmaxfilesize = (off_t)0x40000000 * sblock.fs_bsize - 1;

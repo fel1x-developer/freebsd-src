@@ -63,16 +63,16 @@ void
 ffs_sb_swap(struct fs *o, struct fs *n)
 {
 	size_t i;
-	u_int32_t *o32, *n32;
+	uint32_t *o32, *n32;
 
 	/*
 	 * In order to avoid a lot of lines, as the first N fields (52)
-	 * of the superblock up to fs_fmod are u_int32_t, we just loop
+	 * of the superblock up to fs_fmod are uint32_t, we just loop
 	 * here to convert them.
 	 */
-	o32 = (u_int32_t *)o;
-	n32 = (u_int32_t *)n;
-	for (i = 0; i < offsetof(struct fs, fs_fmod) / sizeof(u_int32_t); i++)
+	o32 = (uint32_t *)o;
+	n32 = (uint32_t *)n;
+	for (i = 0; i < offsetof(struct fs, fs_fmod) / sizeof(uint32_t); i++)
 		n32[i] = bswap32(o32[i]);
 
 	n->fs_swuid = bswap64(o->fs_swuid);
@@ -170,12 +170,12 @@ void
 ffs_csum_swap(struct csum *o, struct csum *n, int size)
 {
 	size_t i;
-	u_int32_t *oint, *nint;
+	uint32_t *oint, *nint;
 
-	oint = (u_int32_t*)o;
-	nint = (u_int32_t*)n;
+	oint = (uint32_t*)o;
+	nint = (uint32_t*)n;
 
-	for (i = 0; i < size / sizeof(u_int32_t); i++)
+	for (i = 0; i < size / sizeof(uint32_t); i++)
 		nint[i] = bswap32(oint[i]);
 }
 
@@ -195,8 +195,8 @@ void
 ffs_cg_swap(struct cg *o, struct cg *n, struct fs *fs)
 {
 	int i;
-	u_int32_t *n32, *o32;
-	u_int16_t *n16, *o16;
+	uint32_t *n32, *o32;
+	uint16_t *n16, *o16;
 	int32_t btotoff, boff, clustersumoff;
 
 	n->cg_firstfield = bswap32(o->cg_firstfield);
@@ -240,10 +240,10 @@ ffs_cg_swap(struct cg *o, struct cg *n, struct fs *fs)
 		boff = bswap32(n->cg_old_boff);
 		clustersumoff = bswap32(n->cg_clustersumoff);
 	}
-	n32 = (u_int32_t *)((u_int8_t *)n + btotoff);
-	o32 = (u_int32_t *)((u_int8_t *)o + btotoff);
-	n16 = (u_int16_t *)((u_int8_t *)n + boff);
-	o16 = (u_int16_t *)((u_int8_t *)o + boff);
+	n32 = (uint32_t *)((uint8_t *)n + btotoff);
+	o32 = (uint32_t *)((uint8_t *)o + btotoff);
+	n16 = (uint16_t *)((uint8_t *)n + boff);
+	o16 = (uint16_t *)((uint8_t *)o + boff);
 
 	for (i = 0; i < fs->fs_old_cpg; i++)
 		n32[i] = bswap32(o32[i]);
@@ -251,8 +251,8 @@ ffs_cg_swap(struct cg *o, struct cg *n, struct fs *fs)
 	for (i = 0; i < fs->fs_old_cpg * fs->fs_old_nrpos; i++)
 		n16[i] = bswap16(o16[i]);
 
-	n32 = (u_int32_t *)((u_int8_t *)n + clustersumoff);
-	o32 = (u_int32_t *)((u_int8_t *)o + clustersumoff);
+	n32 = (uint32_t *)((uint8_t *)n + clustersumoff);
+	o32 = (uint32_t *)((uint8_t *)o + clustersumoff);
 	for (i = 1; i < fs->fs_contigsumsize + 1; i++)
 		n32[i] = bswap32(o32[i]);
 }

@@ -79,7 +79,7 @@ void m_dumpm(struct mbuf *m);
 
 #define SMB_STRFREE(p)	do { if (p) smb_strfree(p); } while(0)
 
-typedef u_int16_t	smb_unichar;
+typedef uint16_t	smb_unichar;
 typedef	smb_unichar	*smb_uniptr;
 
 /*
@@ -102,7 +102,7 @@ char *smb_strdup(const char *s);
 void *smb_memdup(const void *umem, int len);
 char *smb_strdupin(char *s, size_t maxlen);
 void *smb_memdupin(void *umem, size_t len);
-void smb_strtouni(u_int16_t *dst, const char *src);
+void smb_strtouni(uint16_t *dst, const char *src);
 void smb_strfree(char *s);
 void smb_memfree(void *s);
 void *smb_zmalloc(size_t size, struct malloc_type *type, int flags);

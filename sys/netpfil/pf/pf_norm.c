@@ -96,7 +96,7 @@ struct pf_fragment {
 	TAILQ_ENTRY(pf_fragment) frag_next;
 	uint32_t	fr_timeout;
 	uint16_t	fr_maxlen;	/* maximum length of single fragment */
-	u_int16_t	fr_holes;	/* number of holes in the queue */
+	uint16_t	fr_holes;	/* number of holes in the queue */
 	TAILQ_HEAD(pf_fragq, pf_frent) fr_queue;
 };
 
@@ -232,7 +232,7 @@ pf_frag_compare(struct pf_fragment *a, struct pf_fragment *b)
 void
 pf_purge_expired_fragments(void)
 {
-	u_int32_t	expire = time_uptime -
+	uint32_t	expire = time_uptime -
 			    V_pf_default_rule.timeout[PFTM_FRAG];
 
 	pf_purge_fragments(expire);
@@ -390,9 +390,9 @@ pf_frent_index(struct pf_frent *frent)
 	 * traversal length is at most 512 and at most 16 entry points are
 	 * checked.  We need 128 additional bytes on a 64 bit architecture.
 	 */
-	CTASSERT(((u_int16_t)0xffff &~ 7) / (0x10000 / PF_FRAG_ENTRY_POINTS) ==
+	CTASSERT(((uint16_t)0xffff &~ 7) / (0x10000 / PF_FRAG_ENTRY_POINTS) ==
 	    16 - 1);
-	CTASSERT(((u_int16_t)0xffff >> 3) / PF_FRAG_ENTRY_POINTS == 512 - 1);
+	CTASSERT(((uint16_t)0xffff >> 3) / PF_FRAG_ENTRY_POINTS == 512 - 1);
 
 	return frent->fe_off / (0x10000 / PF_FRAG_ENTRY_POINTS);
 }
@@ -1053,8 +1053,8 @@ pf_normalize_ip(struct mbuf **m0, struct pfi_kkif *kif, u_short *reason,
 	struct ip		*h = mtod(m, struct ip *);
 	int			 mff = (ntohs(h->ip_off) & IP_MF);
 	int			 hlen = h->ip_hl << 2;
-	u_int16_t		 fragoff = (ntohs(h->ip_off) & IP_OFFMASK) << 3;
-	u_int16_t		 max;
+	uint16_t		 fragoff = (ntohs(h->ip_off) & IP_OFFMASK) << 3;
+	uint16_t		 max;
 	int			 ip_len;
 	int			 tag = -1;
 	int			 verdict;
@@ -1128,7 +1128,7 @@ pf_normalize_ip(struct mbuf **m0, struct pfi_kkif *kif, u_short *reason,
 	    (r != NULL && r->rule_flag & PFRULE_NODF)) &&
 	    (h->ip_off & htons(IP_DF))
 	) {
-		u_int16_t ip_off = h->ip_off;
+		uint16_t ip_off = h->ip_off;
 
 		h->ip_off &= htons(~IP_DF);
 		h->ip_sum = pf_cksum_fixup(h->ip_sum, ip_off, h->ip_off, 0);
@@ -1185,7 +1185,7 @@ pf_normalize_ip(struct mbuf **m0, struct pfi_kkif *kif, u_short *reason,
  no_fragment:
 		/* At this point, only IP_DF is allowed in ip_off */
 		if (h->ip_off & ~htons(IP_DF)) {
-			u_int16_t ip_off = h->ip_off;
+			uint16_t ip_off = h->ip_off;
 
 			h->ip_off &= htons(IP_DF);
 			h->ip_sum = pf_cksum_fixup(h->ip_sum, ip_off, h->ip_off, 0);
@@ -1218,10 +1218,10 @@ pf_normalize_ip6(struct mbuf **m0, struct pfi_kkif *kif,
 	struct ip6_ext		 ext;
 	struct ip6_opt		 opt;
 	struct ip6_frag		 frag;
-	u_int32_t		 plen;
+	uint32_t		 plen;
 	int			 optend;
 	int			 ooff;
-	u_int8_t		 proto;
+	uint8_t		 proto;
 	int			 terminal;
 	bool			 scrub_compat;
 
@@ -1391,7 +1391,7 @@ pf_normalize_tcp(struct pfi_kkif *kif, struct mbuf *m, int ipoff,
 	struct tcphdr	*th = &pd->hdr.tcp;
 	int		 rewrite = 0;
 	u_short		 reason;
-	u_int16_t	 flags;
+	uint16_t	 flags;
 	sa_family_t	 af = pd->af;
 	int		 srs;
 
@@ -1476,12 +1476,12 @@ pf_normalize_tcp(struct pfi_kkif *kif, struct mbuf *m, int ipoff,
 	/* If flags changed, or reserved data set, then adjust */
 	if (flags != tcp_get_flags(th) ||
 	    (tcp_get_flags(th) & (TH_RES1|TH_RES2|TH_RES2)) != 0) {
-		u_int16_t	ov, nv;
+		uint16_t	ov, nv;
 
-		ov = *(u_int16_t *)(&th->th_ack + 1);
+		ov = *(uint16_t *)(&th->th_ack + 1);
 		flags &= ~(TH_RES1 | TH_RES2 | TH_RES3);
 		tcp_set_flags(th, flags);
-		nv = *(u_int16_t *)(&th->th_ack + 1);
+		nv = *(uint16_t *)(&th->th_ack + 1);
 
 		th->th_sum = pf_proto_cksum_fixup(m, th->th_sum, ov, nv, 0);
 		rewrite = 1;
@@ -1512,9 +1512,9 @@ int
 pf_normalize_tcp_init(struct mbuf *m, int off, struct pf_pdesc *pd,
     struct tcphdr *th, struct pf_state_peer *src, struct pf_state_peer *dst)
 {
-	u_int32_t tsval, tsecr;
-	u_int8_t hdr[60];
-	u_int8_t *opt;
+	uint32_t tsval, tsecr;
+	uint8_t hdr[60];
+	uint8_t *opt;
 
 	KASSERT((src->scrub == NULL),
 	    ("pf_normalize_tcp_init: src->scrub != NULL"));
@@ -1569,9 +1569,9 @@ pf_normalize_tcp_init(struct mbuf *m, int off, struct pf_pdesc *pd,
 
 					/* note PFSS_PAWS not set yet */
 					memcpy(&tsval, &opt[2],
-					    sizeof(u_int32_t));
+					    sizeof(uint32_t));
 					memcpy(&tsecr, &opt[6],
-					    sizeof(u_int32_t));
+					    sizeof(uint32_t));
 					src->scrub->pfss_tsval0 = ntohl(tsval);
 					src->scrub->pfss_tsval = ntohl(tsval);
 					src->scrub->pfss_tsecr = ntohl(tsecr);
@@ -1623,10 +1623,10 @@ pf_normalize_tcp_stateful(struct mbuf *m, int off, struct pf_pdesc *pd,
     struct pf_state_peer *src, struct pf_state_peer *dst, int *writeback)
 {
 	struct timeval uptime;
-	u_int32_t tsval, tsecr;
+	uint32_t tsval, tsecr;
 	u_int tsval_from_last;
-	u_int8_t hdr[60];
-	u_int8_t *opt;
+	uint8_t hdr[60];
+	uint8_t *opt;
 	int copyback = 0;
 	int got_ts = 0;
 	size_t startoff;
@@ -1698,7 +1698,7 @@ pf_normalize_tcp_stateful(struct mbuf *m, int off, struct pf_pdesc *pd,
 				}
 				if (opt[1] >= TCPOLEN_TIMESTAMP) {
 					memcpy(&tsval, &opt[2],
-					    sizeof(u_int32_t));
+					    sizeof(uint32_t));
 					if (tsval && src->scrub &&
 					    (src->scrub->pfss_flags &
 					    PFSS_TIMESTAMP)) {
@@ -1715,7 +1715,7 @@ pf_normalize_tcp_stateful(struct mbuf *m, int off, struct pf_pdesc *pd,
 
 					/* Modulate TS reply iff valid (!0) */
 					memcpy(&tsecr, &opt[6],
-					    sizeof(u_int32_t));
+					    sizeof(uint32_t));
 					if (tsecr && dst->scrub &&
 					    (dst->scrub->pfss_flags &
 					    PFSS_TIMESTAMP)) {
@@ -2016,7 +2016,7 @@ int
 pf_normalize_mss(struct mbuf *m, int off, struct pf_pdesc *pd)
 {
 	struct tcphdr	*th = &pd->hdr.tcp;
-	u_int16_t	*mss;
+	uint16_t	*mss;
 	int		 thoff;
 	int		 opt, cnt, optlen = 0;
 	u_char		 opts[TCP_MAXOLEN];
@@ -2046,7 +2046,7 @@ pf_normalize_mss(struct mbuf *m, int off, struct pf_pdesc *pd)
 		}
 		switch (opt) {
 		case TCPOPT_MAXSEG:
-			mss = (u_int16_t *)(optp + 2);
+			mss = (uint16_t *)(optp + 2);
 			if ((ntohs(*mss)) > pd->act.max_mss) {
 				pf_patch_16_unaligned(m,
 				    &th->th_sum,
@@ -2281,7 +2281,7 @@ pf_scrub_ip(struct mbuf **m0, struct pf_pdesc *pd)
 
 	/* Clear IP_DF if no-df was requested */
 	if (pd->act.flags & PFSTATE_NODF && h->ip_off & htons(IP_DF)) {
-		u_int16_t ip_off = h->ip_off;
+		uint16_t ip_off = h->ip_off;
 
 		h->ip_off &= htons(~IP_DF);
 		h->ip_sum = pf_cksum_fixup(h->ip_sum, ip_off, h->ip_off, 0);
@@ -2289,7 +2289,7 @@ pf_scrub_ip(struct mbuf **m0, struct pf_pdesc *pd)
 
 	/* Enforce a minimum ttl, may cause endless packet loops */
 	if (pd->act.min_ttl && h->ip_ttl < pd->act.min_ttl) {
-		u_int16_t ip_ttl = h->ip_ttl;
+		uint16_t ip_ttl = h->ip_ttl;
 
 		h->ip_ttl = pd->act.min_ttl;
 		h->ip_sum = pf_cksum_fixup(h->ip_sum, ip_ttl, h->ip_ttl, 0);
@@ -2297,11 +2297,11 @@ pf_scrub_ip(struct mbuf **m0, struct pf_pdesc *pd)
 
 	/* Enforce tos */
 	if (pd->act.flags & PFSTATE_SETTOS) {
-		u_int16_t	ov, nv;
+		uint16_t	ov, nv;
 
-		ov = *(u_int16_t *)h;
+		ov = *(uint16_t *)h;
 		h->ip_tos = pd->act.set_tos | (h->ip_tos & IPTOS_ECN_MASK);
-		nv = *(u_int16_t *)h;
+		nv = *(uint16_t *)h;
 
 		h->ip_sum = pf_cksum_fixup(h->ip_sum, ov, nv, 0);
 	}

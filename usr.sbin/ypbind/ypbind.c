@@ -226,7 +226,7 @@ rejecting.", *argp);
 	res.ypbind_status = YPBIND_SUCC_VAL;
 	res.ypbind_resp_u.ypbind_error = 0; /* Success */
 	memcpy(&res.ypbind_resp_u.ypbind_bindinfo.ypbind_binding_addr,
-	    &ypdb->dom_server_addr.sin_addr.s_addr, sizeof(u_int32_t));
+	    &ypdb->dom_server_addr.sin_addr.s_addr, sizeof(uint32_t));
 	memcpy(&res.ypbind_resp_u.ypbind_bindinfo.ypbind_binding_port,
 	    &ypdb->dom_server_addr.sin_port, sizeof(u_short));
 	/*printf("domain %s at %s/%d\n", ypdb->dom_domain,
@@ -277,7 +277,7 @@ rejecting.", argp->ypsetdom_domain);
 	bindsin.sin_family = AF_INET;
 	memcpy(&bindsin.sin_addr.s_addr,
 	    &argp->ypsetdom_binding.ypbind_binding_addr,
-	    sizeof(u_int32_t));
+	    sizeof(uint32_t));
 	memcpy(&bindsin.sin_port,
 	    &argp->ypsetdom_binding.ypbind_binding_port,
 	    sizeof(u_short));
@@ -958,7 +958,7 @@ rpc_received(char *dom, struct sockaddr_in *raddrp, int force)
 	bzero(&ybr, sizeof ybr);
 	ybr.ypbind_status = YPBIND_SUCC_VAL;
 	memcpy(&ybr.ypbind_resp_u.ypbind_bindinfo.ypbind_binding_addr,
-	    &raddrp->sin_addr.s_addr, sizeof(u_int32_t));
+	    &raddrp->sin_addr.s_addr, sizeof(uint32_t));
 	memcpy(&ybr.ypbind_resp_u.ypbind_bindinfo.ypbind_binding_port,
 	    &raddrp->sin_port, sizeof(u_short));
 

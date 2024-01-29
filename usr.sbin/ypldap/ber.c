@@ -386,9 +386,9 @@ ber_get_eoc(struct ber_element *elm)
 }
 
 size_t
-ber_oid2ber(struct ber_oid *o, u_int8_t *buf, size_t len)
+ber_oid2ber(struct ber_oid *o, uint8_t *buf, size_t len)
 {
-	u_int32_t	 v;
+	uint32_t	 v;
 	u_int		 i, j = 0, k;
 
 	if (o->bo_n < BER_MIN_OID_LEN || o->bo_n > BER_MAX_OID_LEN ||
@@ -438,7 +438,7 @@ struct ber_element *
 ber_add_oid(struct ber_element *prev, struct ber_oid *o)
 {
 	struct ber_element	*elm;
-	u_int8_t		*buf;
+	uint8_t		*buf;
 	size_t			 len;
 
 	if ((elm = ber_get_element(BER_TYPE_OBJECT)) == NULL)
@@ -493,7 +493,7 @@ ber_add_oidstring(struct ber_element *prev, const char *oidstr)
 int
 ber_get_oid(struct ber_element *elm, struct ber_oid *o)
 {
-	u_int8_t	*buf;
+	uint8_t	*buf;
 	size_t		 len, i = 0, j = 0;
 
 	if (elm->be_encoding != BER_TYPE_OBJECT)
@@ -1205,7 +1205,7 @@ void
 ber_set_readbuf(struct ber *b, void *buf, size_t len)
 {
 	b->br_rbuf = b->br_rptr = buf;
-	b->br_rend = (u_int8_t *)buf + len;
+	b->br_rend = (uint8_t *)buf + len;
 }
 
 ssize_t

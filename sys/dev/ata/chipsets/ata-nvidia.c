@@ -284,7 +284,7 @@ ata_nvidia_status(device_t dev)
     struct ata_channel *ch = device_get_softc(dev);
     int offset = ctlr->chip->cfg1 & NV4 ? 0x0440 : 0x0010;
     int shift = ch->unit << (ctlr->chip->cfg1 & NVQ ? 4 : 2);
-    u_int32_t istatus;
+    uint32_t istatus;
 
     /* get interrupt status */
     if (ctlr->chip->cfg1 & NVQ)

@@ -132,7 +132,7 @@ struct XXX {
 	hook_p  	debughook;
 	u_int   	packets_in;	/* packets in from downstream */
 	u_int   	packets_out;	/* packets out towards downstream */
-	u_int32_t	flags;
+	uint32_t	flags;
 };
 typedef struct XXX *xxx_p;
 
@@ -281,11 +281,11 @@ ng_xxx_rcvmsg(node_p node, item_p item, hook_p lasthook)
 			break;
 		    }
 		case NGM_XXX_SET_FLAG:
-			if (msg->header.arglen != sizeof(u_int32_t)) {
+			if (msg->header.arglen != sizeof(uint32_t)) {
 				error = EINVAL;
 				break;
 			}
-			xxxp->flags = *((u_int32_t *) msg->data);
+			xxxp->flags = *((uint32_t *) msg->data);
 			break;
 		default:
 			error = EINVAL;		/* unknown command */

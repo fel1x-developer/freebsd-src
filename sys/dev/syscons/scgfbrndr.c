@@ -165,7 +165,7 @@ gfb_draw(scr_stat *scp, int from, int count, int flip)
 
 		/* Display new text rows... */
 		vidd_puts(adp, from,
-		    (u_int16_t *)sc_vtb_pointer(&scp->vtb, from), count);
+		    (uint16_t *)sc_vtb_pointer(&scp->vtb, from), count);
 	}
 
 	/*
@@ -187,7 +187,7 @@ gfb_draw(scr_stat *scp, int from, int count, int flip)
 			}
 		else {
 			vidd_puts(adp, from,
-			    (u_int16_t *)sc_vtb_pointer(&scp->vtb, from),
+			    (uint16_t *)sc_vtb_pointer(&scp->vtb, from),
 			    count);
 		}
 	}

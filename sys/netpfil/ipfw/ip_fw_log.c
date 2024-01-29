@@ -74,7 +74,7 @@
  * L3HDR maps an ipv4 pointer into a layer3 header pointer of type T
  * Other macros just cast void * into the appropriate type
  */
-#define	L3HDR(T, ip)	((T *)((u_int32_t *)(ip) + (ip)->ip_hl))
+#define	L3HDR(T, ip)	((T *)((uint32_t *)(ip) + (ip)->ip_hl))
 #define	TCP(p)		((struct tcphdr *)(p))
 #define	SCTP(p)		((struct sctphdr *)(p))
 #define	UDP(p)		((struct udphdr *)(p))

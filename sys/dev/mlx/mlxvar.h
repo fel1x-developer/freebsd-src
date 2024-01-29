@@ -63,7 +63,7 @@
 struct mlx_sysdrive 
 {
     /* from MLX_CMD_ENQSYSDRIVE */
-    u_int32_t		ms_size;
+    uint32_t		ms_size;
     int			ms_state;
     int			ms_raidlevel;
 
@@ -84,11 +84,11 @@ struct mlx_command
     TAILQ_ENTRY(mlx_command)	mc_link;	/* list linkage */
 
     struct mlx_softc		*mc_sc;		/* controller that owns us */
-    u_int8_t			mc_slot;	/* command slot we occupy */
-    u_int16_t			mc_status;	/* command completion status */
+    uint8_t			mc_slot;	/* command slot we occupy */
+    uint16_t			mc_status;	/* command completion status */
     time_t			mc_timeout;	/* when this command expires */
-    u_int8_t			mc_mailbox[16];	/* command mailbox */
-    u_int32_t			mc_sgphys;	/* physical address of s/g array in controller space */
+    uint8_t			mc_mailbox[16];	/* command mailbox */
+    uint32_t			mc_sgphys;	/* physical address of s/g array in controller space */
     int				mc_nsgent;	/* number of entries in s/g map */
     int				mc_flags;
 #define MLX_CMD_DATAIN		(1<<0)
@@ -98,7 +98,7 @@ struct mlx_command
     void			*mc_data;	/* data buffer */
     size_t			mc_length;
     bus_dmamap_t		mc_dmamap;	/* DMA map for data */
-    u_int32_t			mc_dataphys;	/* data buffer base address controller space */
+    uint32_t			mc_dataphys;	/* data buffer base address controller space */
 
     void			(* mc_complete)(struct mlx_command *mc);	/* completion handler */
     void			*mc_private;	/* submitter-private data or wait channel */
@@ -123,7 +123,7 @@ struct mlx_softc
 
     /* scatter/gather lists and their controller-visible mappings */
     struct mlx_sgentry	*mlx_sgtable;	/* s/g lists */
-    u_int32_t		mlx_sgbusaddr;	/* s/g table base address in bus space */
+    uint32_t		mlx_sgbusaddr;	/* s/g table base address in bus space */
     bus_dma_tag_t	mlx_sg_dmat;	/* s/g buffer DMA tag */
     bus_dmamap_t	mlx_sg_dmamap;	/* map for s/g buffers */
     
@@ -155,7 +155,7 @@ struct mlx_softc
     struct sx		mlx_config_lock;
     struct callout	mlx_timeout;	/* periodic status monitor */
     time_t		mlx_lastpoll;	/* last time_second we polled for status */
-    u_int16_t		mlx_lastevent;	/* sequence number of the last event we recorded */
+    uint16_t		mlx_lastevent;	/* sequence number of the last event we recorded */
     int			mlx_currevent;	/* sequence number last time we looked */
     int			mlx_background;	/* if != 0 rebuild or check is in progress */
 #define MLX_BACKGROUND_CHECK		1	/* we started a check */
@@ -175,7 +175,7 @@ struct mlx_softc
 #define MLX_IFTYPE_4	4
 #define MLX_IFTYPE_5	5
     int			(* mlx_tryqueue)(struct mlx_softc *sc, struct mlx_command *mc);
-    int			(* mlx_findcomplete)(struct mlx_softc *sc, u_int8_t *slot, u_int16_t *status);
+    int			(* mlx_findcomplete)(struct mlx_softc *sc, uint8_t *slot, uint16_t *status);
     void		(* mlx_intaction)(struct mlx_softc *sc, int action);
     int			(* mlx_fw_handshake)(struct mlx_softc *sc, int *error, int *param1, int *param2, int first);
 #define MLX_INTACTION_DISABLE		0

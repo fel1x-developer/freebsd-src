@@ -44,7 +44,7 @@ int fpu_execute(struct trapframe *, struct fpemu *, union instr *);
 
 /* fpu_explode.c */
 int fpu_itof(struct fpn *, u_int);
-int fpu_xtof(struct fpn *, u_int64_t);
+int fpu_xtof(struct fpn *, uint64_t);
 int fpu_stof(struct fpn *, u_int);
 int fpu_dtof(struct fpn *, u_int, u_int);
 

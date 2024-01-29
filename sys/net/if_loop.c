@@ -140,7 +140,7 @@ lo_clone_create(struct if_clone *ifc, char *name, size_t len,
 	    IFCAP_HWCSUM | IFCAP_HWCSUM_IPV6 | IFCAP_LINKSTATE;
 	ifp->if_hwassist = LO_CSUM_FEATURES | LO_CSUM_FEATURES6;
 	if_attach(ifp);
-	bpfattach(ifp, DLT_NULL, sizeof(u_int32_t));
+	bpfattach(ifp, DLT_NULL, sizeof(uint32_t));
 	if (V_loif == NULL)
 		V_loif = ifp;
 	*ifpp = ifp;
@@ -208,7 +208,7 @@ static int
 looutput(struct ifnet *ifp, struct mbuf *m, const struct sockaddr *dst,
     struct route *ro)
 {
-	u_int32_t af;
+	uint32_t af;
 #ifdef MAC
 	int error;
 #endif
@@ -317,7 +317,7 @@ if_simloop(struct ifnet *ifp, struct mbuf *m, int af, int hlen)
 		if (bpf_peers_present(V_loif->if_bpf)) {
 			if ((m->m_flags & M_MCAST) == 0 || V_loif == ifp) {
 				/* XXX beware sizeof(af) != 4 */
-				u_int32_t af1 = af;
+				uint32_t af1 = af;
 
 				/*
 				 * We need to prepend the address family.

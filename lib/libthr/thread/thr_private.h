@@ -531,8 +531,8 @@ struct pthread {
 	 * Magic value to help recognize a valid thread structure
 	 * from an invalid one:
 	 */
-#define	THR_MAGIC		((u_int32_t) 0xd09ba115)
-	u_int32_t		magic;
+#define	THR_MAGIC		((uint32_t) 0xd09ba115)
+	uint32_t		magic;
 
 	/* Enable event reporting */
 	int			report_events;

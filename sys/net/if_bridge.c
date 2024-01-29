@@ -3397,7 +3397,7 @@ bridge_pfil(struct mbuf **mp, struct ifnet *bifp, struct ifnet *ifp, int dir)
 	struct ether_header *eh1, eh2;
 	struct ip *ip;
 	struct llc llc1;
-	u_int16_t ether_type;
+	uint16_t ether_type;
 	pfil_return_t rv;
 
 	snap = 0;

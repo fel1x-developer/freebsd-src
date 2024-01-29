@@ -59,12 +59,12 @@ struct ng_mesg {
 	struct	ng_msghdr {
 		u_char		version;		/*  == NGM_VERSION */
 		u_char		spare;			/* pad to 4 bytes */
-		u_int16_t	spare2;	
-		u_int32_t	arglen;			/* length of data */
-		u_int32_t	cmd;			/* command identifier */
-		u_int32_t	flags;			/* message status */
-		u_int32_t	token;			/* match with reply */
-		u_int32_t	typecookie;		/* node's type cookie */
+		uint16_t	spare2;	
+		uint32_t	arglen;			/* length of data */
+		uint32_t	cmd;			/* command identifier */
+		uint32_t	flags;			/* message status */
+		uint32_t	token;			/* match with reply */
+		uint32_t	typecookie;		/* node's type cookie */
 		u_char		cmdstr[NG_CMDSTRSIZ];	/* cmd string + \0 */
 	} header;
 	char	data[];			/* placeholder for actual data */
@@ -226,7 +226,7 @@ struct nodeinfo {
 	char		name[NG_NODESIZ];	/* node name (if any) */
         char    	type[NG_TYPESIZ];	/* peer type */
 	ng_ID_t		id;			/* unique identifier */
-	u_int32_t	hooks;			/* number of active hooks */
+	uint32_t	hooks;			/* number of active hooks */
 };
 
 /* Keep this in sync with the above structure definition */
@@ -267,7 +267,7 @@ struct hooklist {
 
 /* Structure used for NGM_LISTNAMES/NGM_LISTNODES */
 struct namelist {
-	u_int32_t	numnames;
+	uint32_t	numnames;
 	struct nodeinfo	nodeinfo[];
 };
 
@@ -281,7 +281,7 @@ struct namelist {
 /* Structure used for NGM_LISTTYPES */
 struct typeinfo {
 	char		type_name[NG_TYPESIZ];	/* name of type */
-	u_int32_t	numnodes;		/* number alive */
+	uint32_t	numnodes;		/* number alive */
 };
 
 /* Keep this in sync with the above structure definition */
@@ -292,7 +292,7 @@ struct typeinfo {
 }
 
 struct typelist {
-	u_int32_t	numtypes;
+	uint32_t	numtypes;
 	struct typeinfo	typeinfo[];
 };
 
@@ -304,10 +304,10 @@ struct typelist {
 }
 
 struct ngm_bandwidth {
-	u_int64_t	nominal_in;
-	u_int64_t	seen_in;
-	u_int64_t	nominal_out;
-	u_int64_t	seen_out;
+	uint64_t	nominal_in;
+	uint64_t	seen_in;
+	uint64_t	nominal_out;
+	uint64_t	seen_out;
 };
 
 /* Keep this in sync with the above structure definition */

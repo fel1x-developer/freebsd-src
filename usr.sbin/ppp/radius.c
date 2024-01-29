@@ -255,7 +255,7 @@ radius_Process(struct radius *r, int got)
   struct ncpaddr gw;
   const void *data;
   const char *stype;
-  u_int32_t ipaddr, vendor;
+  uint32_t ipaddr, vendor;
   struct in_addr ip;
 #ifndef NOINET6
   uint8_t ipv6addr[INET6_ADDRSTRLEN];

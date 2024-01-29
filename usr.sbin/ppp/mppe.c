@@ -382,7 +382,7 @@ static const char *
 MPPEDispOpts(struct fsm_opt *o)
 {
   static char buf[70];
-  u_int32_t val;
+  uint32_t val;
   char ch;
   int len, n;
 
@@ -469,10 +469,10 @@ MPPERequired(struct fsm *fp)
   return fp->link->ccp.cfg.mppe.required;
 }
 
-static u_int32_t
+static uint32_t
 MPPE_ConfigVal(struct bundle *bundle __unused, const struct ccp_config *cfg)
 {
-  u_int32_t val;
+  uint32_t val;
 
   val = cfg->mppe.state == MPPE_STATELESS ? MPPE_OPT_STATELESS : 0;
 #ifndef NORADIUS
@@ -512,7 +512,7 @@ static void
 MPPEInitOptsOutput(struct bundle *bundle, struct fsm_opt *o,
                    const struct ccp_config *cfg)
 {
-  u_int32_t mval;
+  uint32_t mval;
 
   o->hdr.len = 6;
 
@@ -536,7 +536,7 @@ static int
 MPPESetOptsOutput(struct bundle *bundle, struct fsm_opt *o,
                   const struct ccp_config *cfg)
 {
-  u_int32_t mval, peer;
+  uint32_t mval, peer;
 
   ua_ntohl(o->data, &peer);
 
@@ -575,7 +575,7 @@ static int
 MPPESetOptsInput(struct bundle *bundle, struct fsm_opt *o,
                  const struct ccp_config *cfg)
 {
-  u_int32_t mval, peer;
+  uint32_t mval, peer;
   int res = MODE_ACK;
 
   ua_ntohl(o->data, &peer);
@@ -645,7 +645,7 @@ static struct mppe_state *
 MPPE_InitState(struct fsm_opt *o)
 {
   struct mppe_state *mp;
-  u_int32_t val;
+  uint32_t val;
 
   if ((mp = calloc(1, sizeof *mp)) != NULL) {
     ua_ntohl(o->data, &val);

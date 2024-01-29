@@ -45,19 +45,19 @@
  * TDMA information element.
  */
 struct ieee80211_tdma_param {
-	u_int8_t	tdma_id;	/* IEEE80211_ELEMID_VENDOR */
-	u_int8_t	tdma_len;
-	u_int8_t	tdma_oui[3];	/* TDMA_OUI */
-	u_int8_t	tdma_type;	/* TDMA_OUI_TYPE */
-	u_int8_t	tdma_subtype;	/* TDMA_SUBTYPE_PARAM */
-	u_int8_t	tdma_version;	/* spec revision */
-	u_int8_t	tdma_slot;	/* station slot # [0..7] */
-	u_int8_t	tdma_slotcnt;	/* bss slot count [1..8] */
-	u_int16_t	tdma_slotlen;	/* bss slot len (100us) */
-	u_int8_t	tdma_bintval;	/* beacon interval (superframes) */
-	u_int8_t	tdma_inuse[1];	/* slot occupancy map */
-	u_int8_t	tdma_pad[2];
-	u_int8_t	tdma_tstamp[8];	/* timestamp from last beacon */
+	uint8_t	tdma_id;	/* IEEE80211_ELEMID_VENDOR */
+	uint8_t	tdma_len;
+	uint8_t	tdma_oui[3];	/* TDMA_OUI */
+	uint8_t	tdma_type;	/* TDMA_OUI_TYPE */
+	uint8_t	tdma_subtype;	/* TDMA_SUBTYPE_PARAM */
+	uint8_t	tdma_version;	/* spec revision */
+	uint8_t	tdma_slot;	/* station slot # [0..7] */
+	uint8_t	tdma_slotcnt;	/* bss slot count [1..8] */
+	uint16_t	tdma_slotlen;	/* bss slot len (100us) */
+	uint8_t	tdma_bintval;	/* beacon interval (superframes) */
+	uint8_t	tdma_inuse[1];	/* slot occupancy map */
+	uint8_t	tdma_pad[2];
+	uint8_t	tdma_tstamp[8];	/* timestamp from last beacon */
 } __packed;
 
 #ifdef _KERNEL

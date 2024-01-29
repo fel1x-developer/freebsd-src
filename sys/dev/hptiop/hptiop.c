@@ -75,13 +75,13 @@ static const char driver_name[] = "hptiop";
 static const char driver_version[] = "v1.9";
 
 static int hptiop_send_sync_msg(struct hpt_iop_hba *hba,
-				u_int32_t msg, u_int32_t millisec);
+				uint32_t msg, uint32_t millisec);
 static void hptiop_request_callback_itl(struct hpt_iop_hba *hba,
-							u_int32_t req);
-static void hptiop_request_callback_mv(struct hpt_iop_hba *hba, u_int64_t req);
+							uint32_t req);
+static void hptiop_request_callback_mv(struct hpt_iop_hba *hba, uint64_t req);
 static void hptiop_request_callback_mvfrey(struct hpt_iop_hba *hba,
-							u_int32_t req);
-static void hptiop_os_message_callback(struct hpt_iop_hba *hba, u_int32_t msg);
+							uint32_t req);
+static void hptiop_os_message_callback(struct hpt_iop_hba *hba, uint32_t msg);
 static int  hptiop_do_ioctl_itl(struct hpt_iop_hba *hba,
 				struct hpt_iop_ioctl_param *pParams);
 static int  hptiop_do_ioctl_mv(struct hpt_iop_hba *hba,
@@ -110,7 +110,7 @@ static int hptiop_internal_memfree_itl(struct hpt_iop_hba *hba);
 static int hptiop_internal_memfree_mv(struct hpt_iop_hba *hba);
 static int hptiop_internal_memfree_mvfrey(struct hpt_iop_hba *hba);
 static int  hptiop_post_ioctl_command_itl(struct hpt_iop_hba *hba,
-			u_int32_t req32, struct hpt_iop_ioctl_param *pParams);
+			uint32_t req32, struct hpt_iop_ioctl_param *pParams);
 static int  hptiop_post_ioctl_command_mv(struct hpt_iop_hba *hba,
 				struct hpt_iop_request_ioctl_command *req,
 				struct hpt_iop_ioctl_param *pParams);
@@ -126,9 +126,9 @@ static void hptiop_post_req_mv(struct hpt_iop_hba *hba,
 static void hptiop_post_req_mvfrey(struct hpt_iop_hba *hba,
 				struct hpt_iop_srb *srb,
 				bus_dma_segment_t *segs, int nsegs);
-static void hptiop_post_msg_itl(struct hpt_iop_hba *hba, u_int32_t msg);
-static void hptiop_post_msg_mv(struct hpt_iop_hba *hba, u_int32_t msg);
-static void hptiop_post_msg_mvfrey(struct hpt_iop_hba *hba, u_int32_t msg);
+static void hptiop_post_msg_itl(struct hpt_iop_hba *hba, uint32_t msg);
+static void hptiop_post_msg_mv(struct hpt_iop_hba *hba, uint32_t msg);
+static void hptiop_post_msg_mvfrey(struct hpt_iop_hba *hba, uint32_t msg);
 static void hptiop_enable_intr_itl(struct hpt_iop_hba *hba);
 static void hptiop_enable_intr_mv(struct hpt_iop_hba *hba);
 static void hptiop_enable_intr_mvfrey(struct hpt_iop_hba *hba);
@@ -143,7 +143,7 @@ static int  hptiop_detach(device_t dev);
 static int  hptiop_shutdown(device_t dev);
 static void hptiop_action(struct cam_sim *sim, union ccb *ccb);
 static void hptiop_poll(struct cam_sim *sim);
-static void hptiop_async(void *callback_arg, u_int32_t code,
+static void hptiop_async(void *callback_arg, uint32_t code,
 					struct cam_path *path, void *arg);
 static void hptiop_pci_intr(void *arg);
 static void hptiop_release_resource(struct hpt_iop_hba *hba);
@@ -199,7 +199,7 @@ static int hptiop_close(ioctl_dev_t dev, int flags,
 					int devtype, ioctl_thread_t proc)
 {
 	struct hpt_iop_hba *hba = hba_from_dev(dev);
-	hba->flag &= ~(u_int32_t)HPT_IOCTL_FLAG_OPEN;
+	hba->flag &= ~(uint32_t)HPT_IOCTL_FLAG_OPEN;
 	return 0;
 }
 
@@ -221,17 +221,17 @@ static int hptiop_ioctl(ioctl_dev_t dev, u_long cmd, caddr_t data,
 	return ret;
 }
 
-static u_int64_t hptiop_mv_outbound_read(struct hpt_iop_hba *hba)
+static uint64_t hptiop_mv_outbound_read(struct hpt_iop_hba *hba)
 {
-	u_int64_t p;
-	u_int32_t outbound_tail = BUS_SPACE_RD4_MV2(outbound_tail);
-	u_int32_t outbound_head = BUS_SPACE_RD4_MV2(outbound_head);
+	uint64_t p;
+	uint32_t outbound_tail = BUS_SPACE_RD4_MV2(outbound_tail);
+	uint32_t outbound_head = BUS_SPACE_RD4_MV2(outbound_head);
 
 	if (outbound_tail != outbound_head) {
 		bus_space_read_region_4(hba->bar2t, hba->bar2h,
 			offsetof(struct hpt_iopmu_mv,
 				outbound_q[outbound_tail]),
-			(u_int32_t *)&p, 2);
+			(uint32_t *)&p, 2);
 
 		outbound_tail++;
 
@@ -244,28 +244,28 @@ static u_int64_t hptiop_mv_outbound_read(struct hpt_iop_hba *hba)
 		return 0;
 }
 
-static void hptiop_mv_inbound_write(u_int64_t p, struct hpt_iop_hba *hba)
+static void hptiop_mv_inbound_write(uint64_t p, struct hpt_iop_hba *hba)
 {
-	u_int32_t inbound_head = BUS_SPACE_RD4_MV2(inbound_head);
-	u_int32_t head = inbound_head + 1;
+	uint32_t inbound_head = BUS_SPACE_RD4_MV2(inbound_head);
+	uint32_t head = inbound_head + 1;
 
 	if (head == MVIOP_QUEUE_LEN)
 		head = 0;
 
 	bus_space_write_region_4(hba->bar2t, hba->bar2h,
 			offsetof(struct hpt_iopmu_mv, inbound_q[inbound_head]),
-			(u_int32_t *)&p, 2);
+			(uint32_t *)&p, 2);
 	BUS_SPACE_WRT4_MV2(inbound_head, head);
 	BUS_SPACE_WRT4_MV0(inbound_doorbell, MVIOP_MU_INBOUND_INT_POSTQUEUE);
 }
 
-static void hptiop_post_msg_itl(struct hpt_iop_hba *hba, u_int32_t msg)
+static void hptiop_post_msg_itl(struct hpt_iop_hba *hba, uint32_t msg)
 {
 	BUS_SPACE_WRT4_ITL(inbound_msgaddr0, msg);
 	BUS_SPACE_RD4_ITL(outbound_intstatus);
 }
 
-static void hptiop_post_msg_mv(struct hpt_iop_hba *hba, u_int32_t msg)
+static void hptiop_post_msg_mv(struct hpt_iop_hba *hba, uint32_t msg)
 {
 
 	BUS_SPACE_WRT4_MV2(inbound_msg, msg);
@@ -274,15 +274,15 @@ static void hptiop_post_msg_mv(struct hpt_iop_hba *hba, u_int32_t msg)
 	BUS_SPACE_RD4_MV0(outbound_intmask);
 }
 
-static void hptiop_post_msg_mvfrey(struct hpt_iop_hba *hba, u_int32_t msg)
+static void hptiop_post_msg_mvfrey(struct hpt_iop_hba *hba, uint32_t msg)
 {
 	BUS_SPACE_WRT4_MVFREY2(f0_to_cpu_msg_a, msg);
 	BUS_SPACE_RD4_MVFREY2(f0_to_cpu_msg_a);
 }
 
-static int hptiop_wait_ready_itl(struct hpt_iop_hba * hba, u_int32_t millisec)
+static int hptiop_wait_ready_itl(struct hpt_iop_hba * hba, uint32_t millisec)
 {
-	u_int32_t req=0;
+	uint32_t req=0;
 	int i;
 
 	for (i = 0; i < millisec; i++) {
@@ -301,7 +301,7 @@ static int hptiop_wait_ready_itl(struct hpt_iop_hba * hba, u_int32_t millisec)
 	return -1;
 }
 
-static int hptiop_wait_ready_mv(struct hpt_iop_hba * hba, u_int32_t millisec)
+static int hptiop_wait_ready_mv(struct hpt_iop_hba * hba, uint32_t millisec)
 {
 	if (hptiop_send_sync_msg(hba, IOPMU_INBOUND_MSG0_NOP, millisec))
 		return -1;
@@ -310,7 +310,7 @@ static int hptiop_wait_ready_mv(struct hpt_iop_hba * hba, u_int32_t millisec)
 }
 
 static int hptiop_wait_ready_mvfrey(struct hpt_iop_hba * hba,
-							u_int32_t millisec)
+							uint32_t millisec)
 {
 	if (hptiop_send_sync_msg(hba, IOPMU_INBOUND_MSG0_NOP, millisec))
 		return -1;
@@ -319,19 +319,19 @@ static int hptiop_wait_ready_mvfrey(struct hpt_iop_hba * hba,
 }
 
 static void hptiop_request_callback_itl(struct hpt_iop_hba * hba,
-							u_int32_t index)
+							uint32_t index)
 {
 	struct hpt_iop_srb *srb;
 	struct hpt_iop_request_scsi_command *req=NULL;
 	union ccb *ccb;
-	u_int8_t *cdb;
-	u_int32_t result, temp, dxfer;
-	u_int64_t temp64;
+	uint8_t *cdb;
+	uint32_t result, temp, dxfer;
+	uint64_t temp64;
 
 	if (index & IOPMU_QUEUE_MASK_HOST_BITS) { /*host req*/
 		if (hba->firmware_version > 0x01020000 ||
 			hba->interface_version > 0x01020000) {
-			srb = hba->srb[index & ~(u_int32_t)
+			srb = hba->srb[index & ~(uint32_t)
 				(IOPMU_QUEUE_ADDR_HOST_BIT
 				| IOPMU_QUEUE_REQUEST_RESULT_BIT)];
 			req = (struct hpt_iop_request_scsi_command *)srb;
@@ -341,7 +341,7 @@ static void hptiop_request_callback_itl(struct hpt_iop_hba * hba,
 				result = req->header.result;
 		} else {
 			srb = hba->srb[index &
-				~(u_int32_t)IOPMU_QUEUE_ADDR_HOST_BIT];
+				~(uint32_t)IOPMU_QUEUE_ADDR_HOST_BIT];
 			req = (struct hpt_iop_request_scsi_command *)srb;
 			result = req->header.result;
 		}
@@ -360,7 +360,7 @@ static void hptiop_request_callback_itl(struct hpt_iop_hba * hba,
 		temp64 = 0;
 		bus_space_write_region_4(hba->bar0t, hba->bar0h, index +
 			offsetof(struct hpt_iop_request_header, context),
-			(u_int32_t *)&temp64, 2);
+			(uint32_t *)&temp64, 2);
 		wakeup((void *)((unsigned long)hba->u.itl.mu + index));
 		break;
 	}
@@ -368,7 +368,7 @@ static void hptiop_request_callback_itl(struct hpt_iop_hba * hba,
 	case IOP_REQUEST_TYPE_SCSI_COMMAND:
 		bus_space_read_region_4(hba->bar0t, hba->bar0h, index +
 			offsetof(struct hpt_iop_request_header, context),
-			(u_int32_t *)&temp64, 2);
+			(uint32_t *)&temp64, 2);
 		srb = (struct hpt_iop_srb *)(unsigned long)temp64;
 		dxfer = bus_space_read_4(hba->bar0t, hba->bar0h, 
 				index + offsetof(struct hpt_iop_request_scsi_command,
@@ -429,7 +429,7 @@ srb_complete:
 			if (srb->srb_flag & HPT_SRB_FLAG_HIGH_MEM_ACESS) {/*iop*/
 				bus_space_read_region_1(hba->bar0t, hba->bar0h,
 					index + offsetof(struct hpt_iop_request_scsi_command,
-					sg_list), (u_int8_t *)&ccb->csio.sense_data, 
+					sg_list), (uint8_t *)&ccb->csio.sense_data, 
 					MIN(dxfer, sizeof(ccb->csio.sense_data)));
 			} else {
 				memcpy(&ccb->csio.sense_data, &req->sg_list, 
@@ -457,7 +457,7 @@ scsi_done:
 
 static void hptiop_drain_outbound_queue_itl(struct hpt_iop_hba *hba)
 {
-	u_int32_t req, temp;
+	uint32_t req, temp;
 
 	while ((req = BUS_SPACE_RD4_ITL(outbound_queue)) !=IOPMU_QUEUE_EMPTY) {
 		if (req & IOPMU_QUEUE_MASK_HOST_BITS)
@@ -468,12 +468,12 @@ static void hptiop_drain_outbound_queue_itl(struct hpt_iop_hba *hba)
 					offsetof(struct hpt_iop_request_header,
 						flags));
 			if (temp & IOP_REQUEST_FLAG_SYNC_REQUEST) {
-				u_int64_t temp64;
+				uint64_t temp64;
 				bus_space_read_region_4(hba->bar0t,
 					hba->bar0h,req +
 					offsetof(struct hpt_iop_request_header,
 						context),
-					(u_int32_t *)&temp64, 2);
+					(uint32_t *)&temp64, 2);
 				if (temp64) {
 					hptiop_request_callback_itl(hba, req);
 				} else {
@@ -482,7 +482,7 @@ static void hptiop_drain_outbound_queue_itl(struct hpt_iop_hba *hba)
 						hba->bar0h,req +
 						offsetof(struct hpt_iop_request_header,
 							context),
-						(u_int32_t *)&temp64, 2);
+						(uint32_t *)&temp64, 2);
 				}
 			} else
 				hptiop_request_callback_itl(hba, req);
@@ -492,13 +492,13 @@ static void hptiop_drain_outbound_queue_itl(struct hpt_iop_hba *hba)
 
 static int hptiop_intr_itl(struct hpt_iop_hba * hba)
 {
-	u_int32_t status;
+	uint32_t status;
 	int ret = 0;
 
 	status = BUS_SPACE_RD4_ITL(outbound_intstatus);
 
 	if (status & IOPMU_OUTBOUND_INT_MSG0) {
-		u_int32_t msg = BUS_SPACE_RD4_ITL(outbound_msgaddr0);
+		uint32_t msg = BUS_SPACE_RD4_ITL(outbound_msgaddr0);
 		KdPrint(("hptiop: received outbound msg %x\n", msg));
 		BUS_SPACE_WRT4_ITL(outbound_intstatus, IOPMU_OUTBOUND_INT_MSG0);
 		hptiop_os_message_callback(hba, msg);
@@ -514,15 +514,15 @@ static int hptiop_intr_itl(struct hpt_iop_hba * hba)
 }
 
 static void hptiop_request_callback_mv(struct hpt_iop_hba * hba,
-							u_int64_t _tag)
+							uint64_t _tag)
 {
-	u_int32_t context = (u_int32_t)_tag;
+	uint32_t context = (uint32_t)_tag;
 
 	if (context & MVIOP_CMD_TYPE_SCSI) {
 		struct hpt_iop_srb *srb;
 		struct hpt_iop_request_scsi_command *req;
 		union ccb *ccb;
-		u_int8_t *cdb;
+		uint8_t *cdb;
 
 		srb = hba->srb[context >> MVIOP_REQUEST_NUMBER_START_BIT];
 		req = (struct hpt_iop_request_scsi_command *)srb;
@@ -610,14 +610,14 @@ scsi_done:
 }
 
 static void hptiop_request_callback_mvfrey(struct hpt_iop_hba * hba,
-				u_int32_t _tag)
+				uint32_t _tag)
 {
-	u_int32_t req_type = _tag & 0xf;
+	uint32_t req_type = _tag & 0xf;
 
 	struct hpt_iop_srb *srb;
 	struct hpt_iop_request_scsi_command *req;
 	union ccb *ccb;
-	u_int8_t *cdb;
+	uint8_t *cdb;
 
 	switch (req_type) {
 	case IOP_REQUEST_TYPE_GET_CONFIG:
@@ -716,7 +716,7 @@ scsi_done:
 
 static void hptiop_drain_outbound_queue_mv(struct hpt_iop_hba * hba)
 {
-	u_int64_t req;
+	uint64_t req;
 
 	while ((req = hptiop_mv_outbound_read(hba))) {
 		if (req & MVIOP_MU_QUEUE_ADDR_HOST_BIT) {
@@ -729,7 +729,7 @@ static void hptiop_drain_outbound_queue_mv(struct hpt_iop_hba * hba)
 
 static int hptiop_intr_mv(struct hpt_iop_hba * hba)
 {
-	u_int32_t status;
+	uint32_t status;
 	int ret = 0;
 
 	status = BUS_SPACE_RD4_MV0(outbound_doorbell);
@@ -738,7 +738,7 @@ static int hptiop_intr_mv(struct hpt_iop_hba * hba)
 		BUS_SPACE_WRT4_MV0(outbound_doorbell, ~status);
 
 	if (status & MVIOP_MU_OUTBOUND_INT_MSG) {
-		u_int32_t msg = BUS_SPACE_RD4_MV2(outbound_msg);
+		uint32_t msg = BUS_SPACE_RD4_MV2(outbound_msg);
 		KdPrint(("hptiop: received outbound msg %x\n", msg));
 		hptiop_os_message_callback(hba, msg);
 		ret = 1;
@@ -754,7 +754,7 @@ static int hptiop_intr_mv(struct hpt_iop_hba * hba)
 
 static int hptiop_intr_mvfrey(struct hpt_iop_hba * hba)
 {
-	u_int32_t status, _tag, cptr;
+	uint32_t status, _tag, cptr;
 	int ret = 0;
 
 	if (hba->initialized) {
@@ -765,7 +765,7 @@ static int hptiop_intr_mvfrey(struct hpt_iop_hba * hba)
 	if (status) {
 		BUS_SPACE_WRT4_MVFREY2(f0_doorbell, status);
 		if (status & CPU_TO_F0_DRBL_MSG_A_BIT) {
-			u_int32_t msg = BUS_SPACE_RD4_MVFREY2(cpu_to_f0_msg_a);
+			uint32_t msg = BUS_SPACE_RD4_MVFREY2(cpu_to_f0_msg_a);
 			hptiop_os_message_callback(hba, msg);
 		}
 		ret = 1;
@@ -797,10 +797,10 @@ static int hptiop_intr_mvfrey(struct hpt_iop_hba * hba)
 }
 
 static int hptiop_send_sync_request_itl(struct hpt_iop_hba * hba,
-					u_int32_t req32, u_int32_t millisec)
+					uint32_t req32, uint32_t millisec)
 {
-	u_int32_t i;
-	u_int64_t temp64;
+	uint32_t i;
+	uint64_t temp64;
 
 	BUS_SPACE_WRT4_ITL(inbound_queue, req32);
 	BUS_SPACE_RD4_ITL(outbound_intstatus);
@@ -809,7 +809,7 @@ static int hptiop_send_sync_request_itl(struct hpt_iop_hba * hba,
 		hptiop_intr_itl(hba);
 		bus_space_read_region_4(hba->bar0t, hba->bar0h, req32 +
 			offsetof(struct hpt_iop_request_header, context),
-			(u_int32_t *)&temp64, 2);
+			(uint32_t *)&temp64, 2);
 		if (temp64)
 			return 0;
 		DELAY(1000);
@@ -819,14 +819,14 @@ static int hptiop_send_sync_request_itl(struct hpt_iop_hba * hba,
 }
 
 static int hptiop_send_sync_request_mv(struct hpt_iop_hba *hba,
-					void *req, u_int32_t millisec)
+					void *req, uint32_t millisec)
 {
-	u_int32_t i;
-	u_int64_t phy_addr;
+	uint32_t i;
+	uint64_t phy_addr;
 	hba->config_done = 0;
 
 	phy_addr = hba->ctlcfgcmd_phy |
-			(u_int64_t)MVIOP_MU_QUEUE_ADDR_HOST_BIT;
+			(uint64_t)MVIOP_MU_QUEUE_ADDR_HOST_BIT;
 	((struct hpt_iop_request_get_config *)req)->header.flags |=
 		IOP_REQUEST_FLAG_SYNC_REQUEST |
 		IOP_REQUEST_FLAG_OUTPUT_CONTEXT;
@@ -843,10 +843,10 @@ static int hptiop_send_sync_request_mv(struct hpt_iop_hba *hba,
 }
 
 static int hptiop_send_sync_request_mvfrey(struct hpt_iop_hba *hba,
-					void *req, u_int32_t millisec)
+					void *req, uint32_t millisec)
 {
-	u_int32_t i, index;
-	u_int64_t phy_addr;
+	uint32_t i, index;
+	uint64_t phy_addr;
 	struct hpt_iop_request_header *reqhdr =
 										(struct hpt_iop_request_header *)req;
 	
@@ -885,9 +885,9 @@ static int hptiop_send_sync_request_mvfrey(struct hpt_iop_hba *hba,
 }
 
 static int hptiop_send_sync_msg(struct hpt_iop_hba *hba,
-					u_int32_t msg, u_int32_t millisec)
+					uint32_t msg, uint32_t millisec)
 {
-	u_int32_t i;
+	uint32_t i;
 
 	hba->msg_done = 0;
 	hba->ops->post_msg(hba, msg);
@@ -905,7 +905,7 @@ static int hptiop_send_sync_msg(struct hpt_iop_hba *hba,
 static int hptiop_get_config_itl(struct hpt_iop_hba * hba,
 				struct hpt_iop_request_get_config * config)
 {
-	u_int32_t req32;
+	uint32_t req32;
 
 	config->header.size = sizeof(struct hpt_iop_request_get_config);
 	config->header.type = IOP_REQUEST_TYPE_GET_CONFIG;
@@ -918,7 +918,7 @@ static int hptiop_get_config_itl(struct hpt_iop_hba * hba,
 		return -1;
 
 	bus_space_write_region_4(hba->bar0t, hba->bar0h,
-			req32, (u_int32_t *)config,
+			req32, (uint32_t *)config,
 			sizeof(struct hpt_iop_request_header) >> 2);
 
 	if (hptiop_send_sync_request_itl(hba, req32, 20000)) {
@@ -927,7 +927,7 @@ static int hptiop_get_config_itl(struct hpt_iop_hba * hba,
 	}
 
 	bus_space_read_region_4(hba->bar0t, hba->bar0h,
-			req32, (u_int32_t *)config,
+			req32, (uint32_t *)config,
 			sizeof(struct hpt_iop_request_get_config) >> 2);
 
 	BUS_SPACE_WRT4_ITL(outbound_queue, req32);
@@ -992,7 +992,7 @@ static int hptiop_get_config_mvfrey(struct hpt_iop_hba * hba,
 static int hptiop_set_config_itl(struct hpt_iop_hba *hba,
 				struct hpt_iop_request_set_config *config)
 {
-	u_int32_t req32;
+	uint32_t req32;
 
 	req32 = BUS_SPACE_RD4_ITL(inbound_queue);
 
@@ -1006,7 +1006,7 @@ static int hptiop_set_config_itl(struct hpt_iop_hba *hba,
 	config->header.context = 0;
 
 	bus_space_write_region_4(hba->bar0t, hba->bar0h, req32, 
-		(u_int32_t *)config, 
+		(uint32_t *)config, 
 		sizeof(struct hpt_iop_request_set_config) >> 2);
 
 	if (hptiop_send_sync_request_itl(hba, req32, 20000)) {
@@ -1027,8 +1027,8 @@ static int hptiop_set_config_mv(struct hpt_iop_hba *hba,
 	if (!(req = hba->ctlcfg_ptr))
 		return -1;
 
-	memcpy((u_int8_t *)req + sizeof(struct hpt_iop_request_header),
-		(u_int8_t *)config + sizeof(struct hpt_iop_request_header),
+	memcpy((uint8_t *)req + sizeof(struct hpt_iop_request_header),
+		(uint8_t *)config + sizeof(struct hpt_iop_request_header),
 		sizeof(struct hpt_iop_request_set_config) -
 			sizeof(struct hpt_iop_request_header));
 
@@ -1054,8 +1054,8 @@ static int hptiop_set_config_mvfrey(struct hpt_iop_hba *hba,
 	if (!(req = hba->ctlcfg_ptr))
 		return -1;
 
-	memcpy((u_int8_t *)req + sizeof(struct hpt_iop_request_header),
-		(u_int8_t *)config + sizeof(struct hpt_iop_request_header),
+	memcpy((uint8_t *)req + sizeof(struct hpt_iop_request_header),
+		(uint8_t *)config + sizeof(struct hpt_iop_request_header),
 		sizeof(struct hpt_iop_request_set_config) -
 			sizeof(struct hpt_iop_request_header));
 
@@ -1072,10 +1072,10 @@ static int hptiop_set_config_mvfrey(struct hpt_iop_hba *hba,
 }
 
 static int hptiop_post_ioctl_command_itl(struct hpt_iop_hba *hba,
-				u_int32_t req32,
+				uint32_t req32,
 				struct hpt_iop_ioctl_param *pParams)
 {
-	u_int64_t temp64;
+	uint64_t temp64;
 	struct hpt_iop_request_ioctl_command req;
 
 	if ((((pParams->nInBufferSize + 3) & ~3) + pParams->nOutBufferSize) >
@@ -1090,13 +1090,13 @@ static int hptiop_post_ioctl_command_itl(struct hpt_iop_hba *hba,
 	req.header.type = IOP_REQUEST_TYPE_IOCTL_COMMAND;
 	req.header.flags = IOP_REQUEST_FLAG_SYNC_REQUEST;
 	req.header.result = IOP_RESULT_PENDING;
-	req.header.context = req32 + (u_int64_t)(unsigned long)hba->u.itl.mu;
+	req.header.context = req32 + (uint64_t)(unsigned long)hba->u.itl.mu;
 	req.ioctl_code = HPT_CTL_CODE_BSD_TO_IOP(pParams->dwIoControlCode);
 	req.inbuf_size = pParams->nInBufferSize;
 	req.outbuf_size = pParams->nOutBufferSize;
 	req.bytes_returned = 0;
 
-	bus_space_write_region_4(hba->bar0t, hba->bar0h, req32, (u_int32_t *)&req, 
+	bus_space_write_region_4(hba->bar0t, hba->bar0h, req32, (uint32_t *)&req, 
 		offsetof(struct hpt_iop_request_ioctl_command, buf)>>2);
 	
 	hptiop_lock_adapter(hba);
@@ -1106,7 +1106,7 @@ static int hptiop_post_ioctl_command_itl(struct hpt_iop_hba *hba,
 
 	bus_space_read_region_4(hba->bar0t, hba->bar0h, req32 +
 		offsetof(struct hpt_iop_request_ioctl_command, header.context),
-		(u_int32_t *)&temp64, 2);
+		(uint32_t *)&temp64, 2);
 	while (temp64) {
 		if (hptiop_sleep(hba, (void *)((unsigned long)hba->u.itl.mu + req32),
 				PPAUSE, "hptctl", HPT_OSM_TIMEOUT)==0)
@@ -1115,21 +1115,21 @@ static int hptiop_post_ioctl_command_itl(struct hpt_iop_hba *hba,
 		bus_space_read_region_4(hba->bar0t, hba->bar0h,req32 +
 			offsetof(struct hpt_iop_request_ioctl_command,
 				header.context),
-			(u_int32_t *)&temp64, 2);
+			(uint32_t *)&temp64, 2);
 	}
 
 	hptiop_unlock_adapter(hba);
 	return 0;
 }
 
-static int hptiop_bus_space_copyin(struct hpt_iop_hba *hba, u_int32_t bus,
+static int hptiop_bus_space_copyin(struct hpt_iop_hba *hba, uint32_t bus,
 									void *user, int size)
 {
 	unsigned char byte;
 	int i;
 
 	for (i=0; i<size; i++) {
-		if (copyin((u_int8_t *)user + i, &byte, 1))
+		if (copyin((uint8_t *)user + i, &byte, 1))
 			return -1;
 		bus_space_write_1(hba->bar0t, hba->bar0h, bus + i, byte);
 	}
@@ -1137,7 +1137,7 @@ static int hptiop_bus_space_copyin(struct hpt_iop_hba *hba, u_int32_t bus,
 	return 0;
 }
 
-static int hptiop_bus_space_copyout(struct hpt_iop_hba *hba, u_int32_t bus,
+static int hptiop_bus_space_copyout(struct hpt_iop_hba *hba, uint32_t bus,
 									void *user, int size)
 {
 	unsigned char byte;
@@ -1145,7 +1145,7 @@ static int hptiop_bus_space_copyout(struct hpt_iop_hba *hba, u_int32_t bus,
 
 	for (i=0; i<size; i++) {
 		byte = bus_space_read_1(hba->bar0t, hba->bar0h, bus + i);
-		if (copyout(&byte, (u_int8_t *)user + i, 1))
+		if (copyout(&byte, (uint8_t *)user + i, 1))
 			return -1;
 	}
 
@@ -1155,8 +1155,8 @@ static int hptiop_bus_space_copyout(struct hpt_iop_hba *hba, u_int32_t bus,
 static int hptiop_do_ioctl_itl(struct hpt_iop_hba *hba,
 				struct hpt_iop_ioctl_param * pParams)
 {
-	u_int32_t req32;
-	u_int32_t result;
+	uint32_t req32;
+	uint32_t result;
 
 	if ((pParams->Magic != HPT_IOCTL_MAGIC) &&
 		(pParams->Magic != HPT_IOCTL_MAGIC32))
@@ -1209,7 +1209,7 @@ static int hptiop_post_ioctl_command_mv(struct hpt_iop_hba *hba,
 				struct hpt_iop_request_ioctl_command *req,
 				struct hpt_iop_ioctl_param *pParams)
 {
-	u_int64_t req_phy;
+	uint64_t req_phy;
 	int size = 0;
 
 	if ((((pParams->nInBufferSize + 3) & ~3) + pParams->nOutBufferSize) >
@@ -1224,7 +1224,7 @@ static int hptiop_post_ioctl_command_mv(struct hpt_iop_hba *hba,
 	req->outbuf_size = pParams->nOutBufferSize;
 	req->header.size = offsetof(struct hpt_iop_request_ioctl_command, buf)
 					+ pParams->nInBufferSize;
-	req->header.context = (u_int64_t)MVIOP_CMD_TYPE_IOCTL;
+	req->header.context = (uint64_t)MVIOP_CMD_TYPE_IOCTL;
 	req->header.type = IOP_REQUEST_TYPE_IOCTL_COMMAND;
 	req->header.result = IOP_RESULT_PENDING;
 	req->header.flags = IOP_REQUEST_FLAG_OUTPUT_CONTEXT;
@@ -1274,7 +1274,7 @@ static int hptiop_do_ioctl_mv(struct hpt_iop_hba *hba,
 		if (pParams->lpBytesReturned)
 			if (copyout(&req->bytes_returned,
 				(void*)pParams->lpBytesReturned,
-				sizeof(u_int32_t)))
+				sizeof(uint32_t)))
 				goto invalid;
 		hptiop_unlock_adapter(hba);
 		return 0;
@@ -1289,8 +1289,8 @@ static int hptiop_post_ioctl_command_mvfrey(struct hpt_iop_hba *hba,
 				struct hpt_iop_request_ioctl_command *req,
 				struct hpt_iop_ioctl_param *pParams)
 {
-	u_int64_t phy_addr;
-	u_int32_t index;
+	uint64_t phy_addr;
+	uint32_t index;
 
 	phy_addr = hba->ctlcfgcmd_phy;
 
@@ -1371,7 +1371,7 @@ static int hptiop_do_ioctl_mvfrey(struct hpt_iop_hba *hba,
 		if (pParams->lpBytesReturned)
 			if (copyout(&req->bytes_returned,
 				(void*)pParams->lpBytesReturned,
-				sizeof(u_int32_t)))
+				sizeof(uint32_t)))
 				goto invalid;
 		hptiop_unlock_adapter(hba);
 		return 0;
@@ -1600,7 +1600,7 @@ static int hptiop_internal_memalloc_mv(struct hpt_iop_hba *hba)
 
 static int hptiop_internal_memalloc_mvfrey(struct hpt_iop_hba *hba)
 {
-	u_int32_t list_count = BUS_SPACE_RD4_MVFREY2(inbound_conf_ctl);
+	uint32_t list_count = BUS_SPACE_RD4_MVFREY2(inbound_conf_ctl);
 
 	list_count >>= 16;
 
@@ -1685,7 +1685,7 @@ static int hptiop_internal_memfree_mvfrey(struct hpt_iop_hba *hba)
 
 static int hptiop_reset_comm_mvfrey(struct hpt_iop_hba *hba)
 {
-	u_int32_t i = 100;
+	uint32_t i = 100;
 
 	if (hptiop_send_sync_msg(hba, IOPMU_INBOUND_MSG0_RESET_COMM, 3000))
 		return -1;
@@ -1797,7 +1797,7 @@ MODULE_DEPEND(hptiop, cam, 1, 1, 1);
 static int hptiop_probe(device_t dev)
 {
 	struct hpt_iop_hba *hba;
-	u_int32_t id;
+	uint32_t id;
 	static char buf[256];
 	int sas = 0;
 	struct hptiop_adapter_ops *ops;
@@ -1872,7 +1872,7 @@ static int hptiop_attach(device_t dev)
 	int rid = 0;
 	struct cam_devq *devq;
 	struct ccb_setasync ccb;
-	u_int32_t unit = device_get_unit(dev);
+	uint32_t unit = device_get_unit(dev);
 
 	device_printf(dev, "%d RocketRAID 3xxx/4xxx controller driver %s\n",
 			unit, driver_version);
@@ -2187,7 +2187,7 @@ static void hptiop_poll(struct cam_sim *sim)
 	hba->ops->iop_intr(hba);
 }
 
-static void hptiop_async(void * callback_arg, u_int32_t code,
+static void hptiop_async(void * callback_arg, uint32_t code,
 					struct cam_path * path, void * arg)
 {
 }
@@ -2200,7 +2200,7 @@ static void hptiop_enable_intr_itl(struct hpt_iop_hba *hba)
 
 static void hptiop_enable_intr_mv(struct hpt_iop_hba *hba)
 {
-	u_int32_t int_mask;
+	uint32_t int_mask;
 
 	int_mask = BUS_SPACE_RD4_MV0(outbound_intmask);
 			
@@ -2223,7 +2223,7 @@ static void hptiop_enable_intr_mvfrey(struct hpt_iop_hba *hba)
 
 static void hptiop_disable_intr_itl(struct hpt_iop_hba *hba)
 {
-	u_int32_t int_mask;
+	uint32_t int_mask;
 
 	int_mask = BUS_SPACE_RD4_ITL(outbound_intmask);
 
@@ -2234,7 +2234,7 @@ static void hptiop_disable_intr_itl(struct hpt_iop_hba *hba)
 
 static void hptiop_disable_intr_mv(struct hpt_iop_hba *hba)
 {
-	u_int32_t int_mask;
+	uint32_t int_mask;
 	int_mask = BUS_SPACE_RD4_MV0(outbound_intmask);
 	
 	int_mask &= ~(MVIOP_MU_OUTBOUND_INT_MSG
@@ -2385,7 +2385,7 @@ static void hptiop_post_req_itl(struct hpt_iop_hba *hba,
 {
 	int idx;
 	union ccb *ccb = srb->ccb;
-	u_int8_t *cdb;
+	uint8_t *cdb;
 
 	if (ccb->ccb_h.flags & CAM_CDB_POINTER)
 		cdb = ccb->csio.cdb_io.cdb_ptr;
@@ -2393,10 +2393,10 @@ static void hptiop_post_req_itl(struct hpt_iop_hba *hba,
 		cdb = ccb->csio.cdb_io.cdb_bytes;
 
 	KdPrint(("ccb=%p %x-%x-%x\n",
-		ccb, *(u_int32_t *)cdb, *((u_int32_t *)cdb+1), *((u_int32_t *)cdb+2)));
+		ccb, *(uint32_t *)cdb, *((uint32_t *)cdb+1), *((uint32_t *)cdb+2)));
 
 	if (srb->srb_flag & HPT_SRB_FLAG_HIGH_MEM_ACESS) {
-		u_int32_t iop_req32;
+		uint32_t iop_req32;
 		struct hpt_iop_request_scsi_command req;
 
 		iop_req32 = BUS_SPACE_RD4_ITL(inbound_queue);
@@ -2413,7 +2413,7 @@ static void hptiop_post_req_itl(struct hpt_iop_hba *hba,
 		if (ccb->csio.dxfer_len && nsegs > 0) {
 			struct hpt_iopsg *psg = req.sg_list;
 			for (idx = 0; idx < nsegs; idx++, psg++) {
-				psg->pci_address = (u_int64_t)segs[idx].ds_addr;
+				psg->pci_address = (uint64_t)segs[idx].ds_addr;
 				psg->size = segs[idx].ds_len;
 				psg->eot = 0;
 			}
@@ -2428,14 +2428,14 @@ static void hptiop_post_req_itl(struct hpt_iop_hba *hba,
 		req.header.type = IOP_REQUEST_TYPE_SCSI_COMMAND;
 		req.header.flags = 0;
 		req.header.result = IOP_RESULT_PENDING;
-		req.header.context = (u_int64_t)(unsigned long)srb;
+		req.header.context = (uint64_t)(unsigned long)srb;
 		req.dataxfer_length = ccb->csio.dxfer_len;
 		req.channel =  0;
 		req.target =  ccb->ccb_h.target_id;
 		req.lun =  ccb->ccb_h.target_lun;
 
 		bus_space_write_region_1(hba->bar0t, hba->bar0h, iop_req32,
-			(u_int8_t *)&req, req.header.size);
+			(uint8_t *)&req, req.header.size);
 
 		if ((ccb->ccb_h.flags & CAM_DIR_MASK) == CAM_DIR_IN) {
 			bus_dmamap_sync(hba->io_dmat,
@@ -2454,7 +2454,7 @@ static void hptiop_post_req_itl(struct hpt_iop_hba *hba,
 			struct hpt_iopsg *psg = req->sg_list;
 			for (idx = 0; idx < nsegs; idx++, psg++) {
 				psg->pci_address = 
-					(u_int64_t)segs[idx].ds_addr;
+					(uint64_t)segs[idx].ds_addr;
 				psg->size = segs[idx].ds_len;
 				psg->eot = 0;
 			}
@@ -2472,7 +2472,7 @@ static void hptiop_post_req_itl(struct hpt_iop_hba *hba,
 		req->header.size =
 			offsetof(struct hpt_iop_request_scsi_command, sg_list)
 			+ nsegs*sizeof(struct hpt_iopsg);
-		req->header.context = (u_int64_t)srb->index |
+		req->header.context = (uint64_t)srb->index |
 						IOPMU_QUEUE_ADDR_HOST_BIT;
 		req->header.flags = IOP_REQUEST_FLAG_OUTPUT_CONTEXT;
 
@@ -2486,7 +2486,7 @@ static void hptiop_post_req_itl(struct hpt_iop_hba *hba,
 
 		if (hba->firmware_version > 0x01020000
 			|| hba->interface_version > 0x01020000) {
-			u_int32_t size_bits;
+			uint32_t size_bits;
 
 			if (req->header.size < 256)
 				size_bits = IOPMU_QUEUE_REQUEST_SIZE_BIT;
@@ -2497,9 +2497,9 @@ static void hptiop_post_req_itl(struct hpt_iop_hba *hba,
 						| IOPMU_QUEUE_ADDR_HOST_BIT;
 
 			BUS_SPACE_WRT4_ITL(inbound_queue,
-				(u_int32_t)srb->phy_addr | size_bits);
+				(uint32_t)srb->phy_addr | size_bits);
 		} else
-			BUS_SPACE_WRT4_ITL(inbound_queue, (u_int32_t)srb->phy_addr
+			BUS_SPACE_WRT4_ITL(inbound_queue, (uint32_t)srb->phy_addr
 				|IOPMU_QUEUE_ADDR_HOST_BIT);
 	}
 }
@@ -2510,9 +2510,9 @@ static void hptiop_post_req_mv(struct hpt_iop_hba *hba,
 {
 	int idx, size;
 	union ccb *ccb = srb->ccb;
-	u_int8_t *cdb;
+	uint8_t *cdb;
 	struct hpt_iop_request_scsi_command *req;
-	u_int64_t req_phy;
+	uint64_t req_phy;
 
     	req = (struct hpt_iop_request_scsi_command *)srb;
 	req_phy = srb->phy_addr;
@@ -2520,7 +2520,7 @@ static void hptiop_post_req_mv(struct hpt_iop_hba *hba,
 	if (ccb->csio.dxfer_len && nsegs > 0) {
 		struct hpt_iopsg *psg = req->sg_list;
 		for (idx = 0; idx < nsegs; idx++, psg++) {
-			psg->pci_address = (u_int64_t)segs[idx].ds_addr;
+			psg->pci_address = (uint64_t)segs[idx].ds_addr;
 			psg->size = segs[idx].ds_len;
 			psg->eot = 0;
 		}
@@ -2548,7 +2548,7 @@ static void hptiop_post_req_mv(struct hpt_iop_hba *hba,
 	else if ((ccb->ccb_h.flags & CAM_DIR_MASK) == CAM_DIR_OUT)
 		bus_dmamap_sync(hba->io_dmat,
 			srb->dma_map, BUS_DMASYNC_PREWRITE);
-	req->header.context = (u_int64_t)srb->index
+	req->header.context = (uint64_t)srb->index
 					<< MVIOP_REQUEST_NUMBER_START_BIT
 					| MVIOP_CMD_TYPE_SCSI;
 	req->header.flags = IOP_REQUEST_FLAG_OUTPUT_CONTEXT;
@@ -2564,9 +2564,9 @@ static void hptiop_post_req_mvfrey(struct hpt_iop_hba *hba,
 {
 	int idx, index;
 	union ccb *ccb = srb->ccb;
-	u_int8_t *cdb;
+	uint8_t *cdb;
 	struct hpt_iop_request_scsi_command *req;
-	u_int64_t req_phy;
+	uint64_t req_phy;
 
 	req = (struct hpt_iop_request_scsi_command *)srb;
 	req_phy = srb->phy_addr;
@@ -2574,7 +2574,7 @@ static void hptiop_post_req_mvfrey(struct hpt_iop_hba *hba,
 	if (ccb->csio.dxfer_len && nsegs > 0) {
 		struct hpt_iopsg *psg = req->sg_list;
 		for (idx = 0; idx < nsegs; idx++, psg++) {
-			psg->pci_address = (u_int64_t)segs[idx].ds_addr | 1;
+			psg->pci_address = (uint64_t)segs[idx].ds_addr | 1;
 			psg->size = segs[idx].ds_len;
 			psg->eot = 0;
 		}
@@ -2656,9 +2656,9 @@ static void hptiop_mv_map_ctlcfg(void *arg, bus_dma_segment_t *segs,
 				int nsegs, int error)
 {
 	struct hpt_iop_hba *hba = (struct hpt_iop_hba *)arg;
-	hba->ctlcfgcmd_phy = ((u_int64_t)segs->ds_addr + 0x1F) 
-				& ~(u_int64_t)0x1F;
-	hba->ctlcfg_ptr = (u_int8_t *)(((unsigned long)hba->ctlcfg_ptr + 0x1F)
+	hba->ctlcfgcmd_phy = ((uint64_t)segs->ds_addr + 0x1F) 
+				& ~(uint64_t)0x1F;
+	hba->ctlcfg_ptr = (uint8_t *)(((unsigned long)hba->ctlcfg_ptr + 0x1F)
 				& ~0x1F);
 }
 
@@ -2667,12 +2667,12 @@ static void hptiop_mvfrey_map_ctlcfg(void *arg, bus_dma_segment_t *segs,
 {
 	struct hpt_iop_hba *hba = (struct hpt_iop_hba *)arg;
 	char *p;
-	u_int64_t phy;
-	u_int32_t list_count = hba->u.mvfrey.list_count;
+	uint64_t phy;
+	uint32_t list_count = hba->u.mvfrey.list_count;
 
-	phy = ((u_int64_t)segs->ds_addr + 0x1F) 
-				& ~(u_int64_t)0x1F;
-	p = (u_int8_t *)(((unsigned long)hba->ctlcfg_ptr + 0x1F)
+	phy = ((uint64_t)segs->ds_addr + 0x1F) 
+				& ~(uint64_t)0x1F;
+	p = (uint8_t *)(((unsigned long)hba->ctlcfg_ptr + 0x1F)
 				& ~0x1F);
 	
 	hba->ctlcfgcmd_phy = phy;
@@ -2693,7 +2693,7 @@ static void hptiop_mvfrey_map_ctlcfg(void *arg, bus_dma_segment_t *segs,
 	p += list_count * sizeof(struct mvfrey_outlist_entry);
 	phy += list_count * sizeof(struct mvfrey_outlist_entry);
 
-	hba->u.mvfrey.outlist_cptr = (u_int32_t *)p;
+	hba->u.mvfrey.outlist_cptr = (uint32_t *)p;
 	hba->u.mvfrey.outlist_cptr_phy = phy;
 }
 
@@ -2729,7 +2729,7 @@ static void hptiop_map_srb(void *arg, bus_dma_segment_t *segs,
 			tmp_srb->hba = hba;
 			tmp_srb->index = i;
 			if (hba->ctlcfg_ptr == 0) {/*itl iop*/
-				tmp_srb->phy_addr = (u_int64_t)(u_int32_t)
+				tmp_srb->phy_addr = (uint64_t)(uint32_t)
 							(phy_addr >> 5);
 				if (phy_addr & IOPMU_MAX_MEM_SUPPORT_MASK_32G)
 					tmp_srb->srb_flag =
@@ -2750,7 +2750,7 @@ static void hptiop_map_srb(void *arg, bus_dma_segment_t *segs,
 	}
 }
 
-static void hptiop_os_message_callback(struct hpt_iop_hba * hba, u_int32_t msg)
+static void hptiop_os_message_callback(struct hpt_iop_hba * hba, uint32_t msg)
 {
 	hba->msg_done = 1;
 }

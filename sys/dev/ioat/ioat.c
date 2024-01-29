@@ -160,7 +160,7 @@ MTX_SYSINIT(ioat_list_mtx, &ioat_list_mtx, "ioat list mtx", MTX_DEF);
 
 static struct _pcsid
 {
-	u_int32_t   type;
+	uint32_t   type;
 	const char  *desc;
 } pci_ids[] = {
 	{ 0x34308086, "TBG IOAT Ch0" },
@@ -273,7 +273,7 @@ static int
 ioat_probe(device_t device)
 {
 	struct _pcsid *ep;
-	u_int32_t type;
+	uint32_t type;
 
 	type = pci_get_devid(device);
 	for (ep = pci_ids; ep < &pci_ids[nitems(pci_ids)]; ep++) {
@@ -754,7 +754,7 @@ ioat_setup_intr(struct ioat_softc *ioat)
 static boolean_t
 ioat_model_resets_msix(struct ioat_softc *ioat)
 {
-	u_int32_t pciid;
+	uint32_t pciid;
 
 	pciid = pci_get_devid(ioat->device);
 	switch (pciid) {

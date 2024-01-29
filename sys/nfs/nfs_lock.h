@@ -73,7 +73,7 @@ typedef struct __lock_msg {
 	int			lm_nfsv3;		/* If NFS version 3. */
 	size_t			lm_fh_len;		/* The file handle length. */
 	struct xucred		lm_cred;		/* user cred for lock req */
-	u_int8_t		lm_fh[NFSX_V3FHMAX];/* The file handle. */
+	uint8_t		lm_fh[NFSX_V3FHMAX];/* The file handle. */
 } LOCKD_MSG;
 
 #define LOCKD_ANS_VERSION	1

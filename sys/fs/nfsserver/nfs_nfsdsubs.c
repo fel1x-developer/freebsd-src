@@ -41,7 +41,7 @@
  */
 #include <fs/nfs/nfsport.h>
 
-extern u_int32_t newnfs_true, newnfs_false;
+extern uint32_t newnfs_true, newnfs_false;
 extern int nfs_pubfhset;
 extern int nfsrv_clienthashsize;
 extern int nfsrv_lockhashsize;
@@ -67,7 +67,7 @@ static nfstype newnfsv2_type[9] = { NFNON, NFREG, NFDIR, NFBLK, NFCHR, NFLNK,
     NFNON, NFCHR, NFNON };
 extern nfstype nfsv34_type[9];
 
-static u_int32_t nfsrv_isannfserr(u_int32_t);
+static uint32_t nfsrv_isannfserr(uint32_t);
 
 SYSCTL_DECL(_vfs_nfsd);
 
@@ -1377,13 +1377,13 @@ void
 nfsrv_wcc(struct nfsrv_descript *nd, int before_ret,
     struct nfsvattr *before_nvap, int after_ret, struct nfsvattr *after_nvap)
 {
-	u_int32_t *tl;
+	uint32_t *tl;
 
 	if (before_ret) {
-		NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+		NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 		*tl = newnfs_false;
 	} else {
-		NFSM_BUILD(tl, u_int32_t *, 7 * NFSX_UNSIGNED);
+		NFSM_BUILD(tl, uint32_t *, 7 * NFSX_UNSIGNED);
 		*tl++ = newnfs_true;
 		txdr_hyper(before_nvap->na_size, tl);
 		tl += 2;
@@ -1398,9 +1398,9 @@ void
 nfsrv_postopattr(struct nfsrv_descript *nd, int after_ret,
     struct nfsvattr *after_nvap)
 {
-	u_int32_t *tl;
+	uint32_t *tl;
 
-	NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+	NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 	if (after_ret)
 		*tl = newnfs_false;
 	else {
@@ -1475,11 +1475,11 @@ nfsrv_fillattr(struct nfsrv_descript *nd, struct nfsvattr *nvap)
 int
 nfsrv_mtofh(struct nfsrv_descript *nd, struct nfsrvfh *fhp)
 {
-	u_int32_t *tl;
+	uint32_t *tl;
 	int error = 0, len, copylen;
 
 	if (nd->nd_flag & (ND_NFSV3 | ND_NFSV4)) {
-		NFSM_DISSECT(tl, u_int32_t *, NFSX_UNSIGNED);
+		NFSM_DISSECT(tl, uint32_t *, NFSX_UNSIGNED);
 		len = fxdr_unsigned(int, *tl);
 		if (len == 0 && nfs_pubfhset && (nd->nd_flag & ND_NFSV3) &&
 		    nd->nd_procnum == NFSPROC_LOOKUP) {
@@ -1519,7 +1519,7 @@ nfsrv_mtofh(struct nfsrv_descript *nd, struct nfsrvfh *fhp)
 		len = NFSX_V2FH;
 		copylen = NFSRV_MAXFH;
 	}
-	NFSM_DISSECT(tl, u_int32_t *, len);
+	NFSM_DISSECT(tl, uint32_t *, len);
 	if ((nd->nd_flag & ND_NFSV2) && nfs_pubfhset &&
 	    nd->nd_procnum == NFSPROC_LOOKUP &&
 	    !NFSBCMP((caddr_t)tl, nfs_v2pubfh, NFSX_V2FH)) {
@@ -1583,8 +1583,8 @@ nfsd_errmap(struct nfsrv_descript *nd)
  * Check to see if the error is a valid NFS one. If not, replace it with
  * NFSERR_IO.
  */
-static u_int32_t
-nfsrv_isannfserr(u_int32_t errval)
+static uint32_t
+nfsrv_isannfserr(uint32_t errval)
 {
 
 	if (errval == NFSERR_OK)
@@ -1766,7 +1766,7 @@ int
 nfsrv_putreferralattr(struct nfsrv_descript *nd, nfsattrbit_t *retbitp,
     struct nfsreferral *refp, int getattr, int *reterrp)
 {
-	u_int32_t *tl, *retnump;
+	uint32_t *tl, *retnump;
 	u_char *cp, *cp2;
 	int prefixnum, retnum = 0, i, len, bitpos, rderrbit = 0, nonrefbit = 0;
 	int fslocationsbit = 0;
@@ -1805,7 +1805,7 @@ nfsrv_putreferralattr(struct nfsrv_descript *nd, nfsattrbit_t *retbitp,
 	 * and get the field for the number of attributes returned.
 	 */
 	prefixnum = nfsrv_putattrbit(nd, &tmpbits);
-	NFSM_BUILD(retnump, u_int32_t *, NFSX_UNSIGNED);
+	NFSM_BUILD(retnump, uint32_t *, NFSX_UNSIGNED);
 	prefixnum += NFSX_UNSIGNED;
 
 	/*
@@ -1815,12 +1815,12 @@ nfsrv_putreferralattr(struct nfsrv_descript *nd, nfsattrbit_t *retbitp,
 	    if (NFSISSET_ATTRBIT(&tmpbits, bitpos)) {
 		switch (bitpos) {
 		case NFSATTRBIT_TYPE:
-			NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+			NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 			*tl = txdr_unsigned(NFDIR);
 			retnum += NFSX_UNSIGNED;
 			break;
 		case NFSATTRBIT_FSID:
-			NFSM_BUILD(tl, u_int32_t *, NFSX_V4FSID);
+			NFSM_BUILD(tl, uint32_t *, NFSX_V4FSID);
 			*tl++ = 0;
 			*tl++ = txdr_unsigned(NFSV4ROOT_FSID0);
 			*tl++ = 0;
@@ -1828,7 +1828,7 @@ nfsrv_putreferralattr(struct nfsrv_descript *nd, nfsattrbit_t *retbitp,
 			retnum += NFSX_V4FSID;
 			break;
 		case NFSATTRBIT_RDATTRERROR:
-			NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+			NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 			if (nonrefbit)
 				*tl = txdr_unsigned(NFSERR_MOVED);
 			else
@@ -1837,12 +1837,12 @@ nfsrv_putreferralattr(struct nfsrv_descript *nd, nfsattrbit_t *retbitp,
 			break;
 		case NFSATTRBIT_FSLOCATIONS:
 			retnum += nfsm_strtom(nd, "/", 1);
-			NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+			NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 			*tl = txdr_unsigned(refp->nfr_srvcnt);
 			retnum += NFSX_UNSIGNED;
 			cp = refp->nfr_srvlist;
 			for (i = 0; i < refp->nfr_srvcnt; i++) {
-				NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+				NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 				*tl = txdr_unsigned(1);
 				retnum += NFSX_UNSIGNED;
 				cp2 = STRCHR(cp, ':');
@@ -1864,7 +1864,7 @@ nfsrv_putreferralattr(struct nfsrv_descript *nd, nfsattrbit_t *retbitp,
 			}
 			break;
 		case NFSATTRBIT_MOUNTEDONFILEID:
-			NFSM_BUILD(tl, u_int32_t *, NFSX_HYPER);
+			NFSM_BUILD(tl, uint32_t *, NFSX_HYPER);
 			txdr_hyper(refp->nfr_dfileno, tl);
 			retnum += NFSX_HYPER;
 			break;
@@ -1889,7 +1889,7 @@ nfsrv_parsename(struct nfsrv_descript *nd, char *bufp, u_long *hashp,
 	int i;
 	int rem, len, error = 0, pubtype = 0, outlen = 0, percent = 0;
 	char digit;
-	u_int32_t *tl;
+	uint32_t *tl;
 	u_long hash = 0;
 
 	if (hashp != NULL)
@@ -1910,7 +1910,7 @@ nfsrv_parsename(struct nfsrv_descript *nd, char *bufp, u_long *hashp,
 	    /*
 	     * First, get the name length.
 	     */
-	    NFSM_DISSECT(tl, u_int32_t *, NFSX_UNSIGNED);
+	    NFSM_DISSECT(tl, uint32_t *, NFSX_UNSIGNED);
 	    len = fxdr_unsigned(int, *tl);
 	    if (len > NFS_MAXNAMLEN) {
 		nd->nd_repstat = NFSERR_NAMETOL;
@@ -2066,7 +2066,7 @@ nfsrv_parsename(struct nfsrv_descript *nd, char *bufp, u_long *hashp,
 		    goto nfsmout;
 		}
 		if (enable_checkutf8 == 1 &&
-		    nfsrv_checkutf8((u_int8_t *)bufp, outlen)) {
+		    nfsrv_checkutf8((uint8_t *)bufp, outlen)) {
 		    nd->nd_repstat = NFSERR_INVAL;
 		    error = 0;
 		    goto nfsmout;
@@ -2171,7 +2171,7 @@ checktls:
  */
 void
 nfsd_getminorvers(struct nfsrv_descript *nd, u_char *tag, u_char **tagstrp,
-    int *taglenp, u_int32_t *minversp)
+    int *taglenp, uint32_t *minversp)
 {
 	uint32_t *tl;
 	int error = 0, taglen = -1;
@@ -2191,7 +2191,7 @@ nfsd_getminorvers(struct nfsrv_descript *nd, u_char *tag, u_char **tagstrp,
 	if (error != 0)
 		goto nfsmout;
 	NFSM_DISSECT(tl, uint32_t *, NFSX_UNSIGNED);
-	*minversp = fxdr_unsigned(u_int32_t, *tl);
+	*minversp = fxdr_unsigned(uint32_t, *tl);
 	*tagstrp = tagstr;
 	if (*minversp == NFSV41_MINORVERSION)
 		nd->nd_flag |= ND_NFSV41;

@@ -100,7 +100,7 @@ pow(double x, double y)
 	double y1,t1,t2,r,s,t,u,v,w;
 	int32_t i,j,k,yisint,n;
 	int32_t hx,hy,ix,iy;
-	u_int32_t lx,ly;
+	uint32_t lx,ly;
 
 	EXTRACT_WORDS(hx,lx,x);
 	EXTRACT_WORDS(hy,ly,y);
@@ -129,7 +129,7 @@ pow(double x, double y)
 		k = (iy>>20)-0x3ff;	   /* exponent */
 		if(k>20) {
 		    j = ly>>(52-k);
-		    if(((u_int32_t)j<<(52-k))==ly) yisint = 2-(j&1);
+		    if(((uint32_t)j<<(52-k))==ly) yisint = 2-(j&1);
 		} else if(ly==0) {
 		    j = iy>>(20-k);
 		    if((j<<(20-k))==iy) yisint = 2-(j&1);
@@ -177,7 +177,7 @@ pow(double x, double y)
 	n = (hx>>31)+1;
        but ANSI C says a right shift of a signed negative quantity is
        implementation defined.  */
-	n = ((u_int32_t)hx>>31)-1;
+	n = ((uint32_t)hx>>31)-1;
 
     /* (x<0)**(non-int) is NaN */
 	if((n|yisint)==0) return (x-x)/(x-x);

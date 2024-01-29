@@ -76,10 +76,10 @@ DRIVER_MODULE(mlx, pci, mlx_pci_driver, 0, 0);
 
 struct mlx_ident
 {
-    u_int16_t	vendor;
-    u_int16_t	device;
-    u_int16_t	subvendor;
-    u_int16_t	subdevice;
+    uint16_t	vendor;
+    uint16_t	device;
+    uint16_t	subvendor;
+    uint16_t	subdevice;
     int		iftype;
     char	*desc;
 } mlx_identifiers[] = {

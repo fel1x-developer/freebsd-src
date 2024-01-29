@@ -383,7 +383,7 @@ ptbl_hold(pmap_t pmap, pte_t *ptbl)
  * Return 1 if ptbl pages were freed, otherwise return 0.
  */
 static int
-pte_remove(pmap_t pmap, vm_offset_t va, u_int8_t flags)
+pte_remove(pmap_t pmap, vm_offset_t va, uint8_t flags)
 {
 	vm_page_t	m;
 	pte_t          *pte;

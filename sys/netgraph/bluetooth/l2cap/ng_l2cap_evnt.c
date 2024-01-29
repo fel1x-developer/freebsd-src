@@ -59,27 +59,27 @@
 
 static int ng_l2cap_process_signal_cmd (ng_l2cap_con_p);
 static int ng_l2cap_process_lesignal_cmd (ng_l2cap_con_p);
-static int ng_l2cap_process_cmd_rej    (ng_l2cap_con_p, u_int8_t);
-static int ng_l2cap_process_cmd_urq    (ng_l2cap_con_p, u_int8_t);
-static int ng_l2cap_process_cmd_urs    (ng_l2cap_con_p, u_int8_t);
-static int ng_l2cap_process_con_req    (ng_l2cap_con_p, u_int8_t);
-static int ng_l2cap_process_con_rsp    (ng_l2cap_con_p, u_int8_t);
-static int ng_l2cap_process_cfg_req    (ng_l2cap_con_p, u_int8_t);
-static int ng_l2cap_process_cfg_rsp    (ng_l2cap_con_p, u_int8_t);
-static int ng_l2cap_process_discon_req (ng_l2cap_con_p, u_int8_t);
-static int ng_l2cap_process_discon_rsp (ng_l2cap_con_p, u_int8_t);
-static int ng_l2cap_process_echo_req   (ng_l2cap_con_p, u_int8_t);
-static int ng_l2cap_process_echo_rsp   (ng_l2cap_con_p, u_int8_t);
-static int ng_l2cap_process_info_req   (ng_l2cap_con_p, u_int8_t);
-static int ng_l2cap_process_info_rsp   (ng_l2cap_con_p, u_int8_t);
+static int ng_l2cap_process_cmd_rej    (ng_l2cap_con_p, uint8_t);
+static int ng_l2cap_process_cmd_urq    (ng_l2cap_con_p, uint8_t);
+static int ng_l2cap_process_cmd_urs    (ng_l2cap_con_p, uint8_t);
+static int ng_l2cap_process_con_req    (ng_l2cap_con_p, uint8_t);
+static int ng_l2cap_process_con_rsp    (ng_l2cap_con_p, uint8_t);
+static int ng_l2cap_process_cfg_req    (ng_l2cap_con_p, uint8_t);
+static int ng_l2cap_process_cfg_rsp    (ng_l2cap_con_p, uint8_t);
+static int ng_l2cap_process_discon_req (ng_l2cap_con_p, uint8_t);
+static int ng_l2cap_process_discon_rsp (ng_l2cap_con_p, uint8_t);
+static int ng_l2cap_process_echo_req   (ng_l2cap_con_p, uint8_t);
+static int ng_l2cap_process_echo_rsp   (ng_l2cap_con_p, uint8_t);
+static int ng_l2cap_process_info_req   (ng_l2cap_con_p, uint8_t);
+static int ng_l2cap_process_info_rsp   (ng_l2cap_con_p, uint8_t);
 static int send_l2cap_reject
-	(ng_l2cap_con_p, u_int8_t, u_int16_t, u_int16_t, u_int16_t, u_int16_t);
+	(ng_l2cap_con_p, uint8_t, uint16_t, uint16_t, uint16_t, uint16_t);
 static int send_l2cap_con_rej
-	(ng_l2cap_con_p, u_int8_t, u_int16_t, u_int16_t, u_int16_t);
+	(ng_l2cap_con_p, uint8_t, uint16_t, uint16_t, uint16_t);
 static int send_l2cap_cfg_rsp
-	(ng_l2cap_con_p, u_int8_t, u_int16_t, u_int16_t, struct mbuf *);
+	(ng_l2cap_con_p, uint8_t, uint16_t, uint16_t, struct mbuf *);
 static int send_l2cap_param_urs
-       (ng_l2cap_con_p , u_int8_t , u_int16_t);
+       (ng_l2cap_con_p , uint8_t , uint16_t);
 
 static int get_next_l2cap_opt
 	(struct mbuf *, int *, ng_l2cap_cfg_opt_p, ng_l2cap_cfg_opt_val_p);
@@ -379,7 +379,7 @@ static int ng_l2cap_process_cmd_urs(ng_l2cap_con_p con, uint8_t ident)
  */
 
 static int
-ng_l2cap_process_cmd_rej(ng_l2cap_con_p con, u_int8_t ident)
+ng_l2cap_process_cmd_rej(ng_l2cap_con_p con, uint8_t ident)
 {
 	ng_l2cap_p		 l2cap = con->l2cap;
 	ng_l2cap_cmd_rej_cp	*cp = NULL;
@@ -453,14 +453,14 @@ ng_l2cap_process_cmd_rej(ng_l2cap_con_p con, u_int8_t ident)
  */
 
 static int
-ng_l2cap_process_con_req(ng_l2cap_con_p con, u_int8_t ident)
+ng_l2cap_process_con_req(ng_l2cap_con_p con, uint8_t ident)
 {
 	ng_l2cap_p		 l2cap = con->l2cap;
 	struct mbuf		*m = con->rx_pkt;
 	ng_l2cap_con_req_cp	*cp = NULL;
 	ng_l2cap_chan_p		 ch = NULL;
 	int			 error = 0;
-	u_int16_t		 dcid, psm;
+	uint16_t		 dcid, psm;
 	int idtype;
 
 	/* Get command parameters */
@@ -517,13 +517,13 @@ ng_l2cap_process_con_req(ng_l2cap_con_p con, u_int8_t ident)
  */
 
 static int
-ng_l2cap_process_con_rsp(ng_l2cap_con_p con, u_int8_t ident)
+ng_l2cap_process_con_rsp(ng_l2cap_con_p con, uint8_t ident)
 {
 	ng_l2cap_p		 l2cap = con->l2cap;
 	struct mbuf		*m = con->rx_pkt;
 	ng_l2cap_con_rsp_cp	*cp = NULL;
 	ng_l2cap_cmd_p		 cmd = NULL;
-	u_int16_t		 scid, dcid, result, status;
+	uint16_t		 scid, dcid, result, status;
 	int			 error = 0;
 
 	/* Get command parameters */
@@ -640,13 +640,13 @@ reject:
  */
 
 static int
-ng_l2cap_process_cfg_req(ng_l2cap_con_p con, u_int8_t ident)
+ng_l2cap_process_cfg_req(ng_l2cap_con_p con, uint8_t ident)
 {
 	ng_l2cap_p		 l2cap = con->l2cap;
 	struct mbuf		*m = con->rx_pkt;
 	ng_l2cap_cfg_req_cp	*cp = NULL;
 	ng_l2cap_chan_p		 ch = NULL;
-	u_int16_t		 dcid, respond, result;
+	uint16_t		 dcid, respond, result;
 	ng_l2cap_cfg_opt_t	 hdr;
 	ng_l2cap_cfg_opt_val_t	 val;
 	int			 off, error = 0;
@@ -773,13 +773,13 @@ reject:
  */
 
 static int
-ng_l2cap_process_cfg_rsp(ng_l2cap_con_p con, u_int8_t ident)
+ng_l2cap_process_cfg_rsp(ng_l2cap_con_p con, uint8_t ident)
 {
 	ng_l2cap_p		 l2cap = con->l2cap;
 	struct mbuf		*m = con->rx_pkt;
 	ng_l2cap_cfg_rsp_cp	*cp = NULL;
 	ng_l2cap_cmd_p		 cmd = NULL;
-	u_int16_t		 scid, cflag, result;
+	uint16_t		 scid, cflag, result;
 	ng_l2cap_cfg_opt_t	 hdr;
 	ng_l2cap_cfg_opt_val_t	 val;
 	int			 off, error = 0;
@@ -927,13 +927,13 @@ reject:
  */
 
 static int
-ng_l2cap_process_discon_req(ng_l2cap_con_p con, u_int8_t ident)
+ng_l2cap_process_discon_req(ng_l2cap_con_p con, uint8_t ident)
 {
 	ng_l2cap_p		 l2cap = con->l2cap;
 	ng_l2cap_discon_req_cp	*cp = NULL;
 	ng_l2cap_chan_p		 ch = NULL;
 	ng_l2cap_cmd_p		 cmd = NULL;
-	u_int16_t		 scid, dcid;
+	uint16_t		 scid, dcid;
 
 	/* Get command parameters */
 	NG_L2CAP_M_PULLUP(con->rx_pkt, sizeof(*cp));
@@ -1018,12 +1018,12 @@ reject:
  */
 
 static int
-ng_l2cap_process_discon_rsp(ng_l2cap_con_p con, u_int8_t ident)
+ng_l2cap_process_discon_rsp(ng_l2cap_con_p con, uint8_t ident)
 {
 	ng_l2cap_p		 l2cap = con->l2cap;
 	ng_l2cap_discon_rsp_cp	*cp = NULL;
 	ng_l2cap_cmd_p		 cmd = NULL;
-	u_int16_t		 scid, dcid;
+	uint16_t		 scid, dcid;
 	int			 error = 0;
 
 	/* Get command parameters */
@@ -1087,7 +1087,7 @@ out:
  */
 
 static int
-ng_l2cap_process_echo_req(ng_l2cap_con_p con, u_int8_t ident)
+ng_l2cap_process_echo_req(ng_l2cap_con_p con, uint8_t ident)
 {
 	ng_l2cap_p		 l2cap = con->l2cap;
 	ng_l2cap_cmd_hdr_t	*hdr = NULL;
@@ -1128,7 +1128,7 @@ ng_l2cap_process_echo_req(ng_l2cap_con_p con, u_int8_t ident)
  */
 
 static int
-ng_l2cap_process_echo_rsp(ng_l2cap_con_p con, u_int8_t ident)
+ng_l2cap_process_echo_rsp(ng_l2cap_con_p con, uint8_t ident)
 {
 	ng_l2cap_p	l2cap = con->l2cap;
 	ng_l2cap_cmd_p	cmd = NULL;
@@ -1166,11 +1166,11 @@ ng_l2cap_process_echo_rsp(ng_l2cap_con_p con, u_int8_t ident)
  */
 
 static int
-ng_l2cap_process_info_req(ng_l2cap_con_p con, u_int8_t ident)
+ng_l2cap_process_info_req(ng_l2cap_con_p con, uint8_t ident)
 {
 	ng_l2cap_p	l2cap = con->l2cap;
 	ng_l2cap_cmd_p	cmd = NULL;
-	u_int16_t	type;
+	uint16_t	type;
 
 	/* Get command parameters */
 	NG_L2CAP_M_PULLUP(con->rx_pkt, sizeof(ng_l2cap_info_req_cp));
@@ -1214,7 +1214,7 @@ ng_l2cap_process_info_req(ng_l2cap_con_p con, u_int8_t ident)
  */
 
 static int
-ng_l2cap_process_info_rsp(ng_l2cap_con_p con, u_int8_t ident)
+ng_l2cap_process_info_rsp(ng_l2cap_con_p con, uint8_t ident)
 {
 	ng_l2cap_p		 l2cap = con->l2cap;
 	ng_l2cap_info_rsp_cp	*cp = NULL;
@@ -1254,9 +1254,9 @@ ng_l2cap_process_info_rsp(ng_l2cap_con_p con, u_int8_t ident)
 	if (cp->result == NG_L2CAP_SUCCESS) {
 		switch (cp->type) {
 		case NG_L2CAP_CONNLESS_MTU:
-	    		if (con->rx_pkt->m_pkthdr.len == sizeof(u_int16_t))
-				*mtod(con->rx_pkt, u_int16_t *) = 
-					le16toh(*mtod(con->rx_pkt,u_int16_t *));
+	    		if (con->rx_pkt->m_pkthdr.len == sizeof(uint16_t))
+				*mtod(con->rx_pkt, uint16_t *) = 
+					le16toh(*mtod(con->rx_pkt,uint16_t *));
 			else {
 				cp->result = NG_L2CAP_UNKNOWN; /* XXX */
 
@@ -1290,8 +1290,8 @@ ng_l2cap_process_info_rsp(ng_l2cap_con_p con, u_int8_t ident)
  */
 
 static int
-send_l2cap_reject(ng_l2cap_con_p con, u_int8_t ident, u_int16_t reason,
-		u_int16_t mtu, u_int16_t scid, u_int16_t dcid)
+send_l2cap_reject(ng_l2cap_con_p con, uint8_t ident, uint16_t reason,
+		uint16_t mtu, uint16_t scid, uint16_t dcid)
 {
 	ng_l2cap_cmd_p	cmd = NULL;
 
@@ -1318,8 +1318,8 @@ send_l2cap_reject(ng_l2cap_con_p con, u_int8_t ident, u_int16_t reason,
  */
 
 static int
-send_l2cap_con_rej(ng_l2cap_con_p con, u_int8_t ident, u_int16_t scid,
-		u_int16_t dcid, u_int16_t result)
+send_l2cap_con_rej(ng_l2cap_con_p con, uint8_t ident, uint16_t scid,
+		uint16_t dcid, uint16_t result)
 {
 	ng_l2cap_cmd_p	cmd = NULL;
 
@@ -1346,8 +1346,8 @@ send_l2cap_con_rej(ng_l2cap_con_p con, u_int8_t ident, u_int16_t scid,
  */
 
 static int 
-send_l2cap_cfg_rsp(ng_l2cap_con_p con, u_int8_t ident, u_int16_t scid,
-		u_int16_t result, struct mbuf *opt)
+send_l2cap_cfg_rsp(ng_l2cap_con_p con, uint8_t ident, uint16_t scid,
+		uint16_t result, struct mbuf *opt)
 {
 	ng_l2cap_cmd_p	cmd = NULL;
 
@@ -1373,8 +1373,8 @@ send_l2cap_cfg_rsp(ng_l2cap_con_p con, u_int8_t ident, u_int16_t scid,
 } /* send_l2cap_cfg_rsp */
 
 static int 
-send_l2cap_param_urs(ng_l2cap_con_p con, u_int8_t ident,
-		     u_int16_t result)
+send_l2cap_param_urs(ng_l2cap_con_p con, uint8_t ident,
+		     uint16_t result)
 {
 	ng_l2cap_cmd_p	cmd = NULL;
 

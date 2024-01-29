@@ -881,10 +881,10 @@ void fw_init(struct firewire_comm *fc)
 struct fw_bind *
 fw_bindlookup(struct firewire_comm *fc, uint16_t dest_hi, uint32_t dest_lo)
 {
-	u_int64_t addr;
+	uint64_t addr;
 	struct fw_bind *tfw, *r = NULL;
 
-	addr = ((u_int64_t)dest_hi << 32) | dest_lo;
+	addr = ((uint64_t)dest_hi << 32) | dest_lo;
 	FW_GLOCK(fc);
 	STAILQ_FOREACH(tfw, &fc->binds, fclist)
 		if (BIND_CMP(addr, tfw) == 0) {

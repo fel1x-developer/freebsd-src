@@ -258,9 +258,9 @@ struct pfi_kif {
 		RB_ENTRY(pfi_kif)	 pfik_tree;
 		LIST_ENTRY(pfi_kif)	 pfik_list;
 	};
-	u_int64_t			 pfik_packets[2][2][2];
-	u_int64_t			 pfik_bytes[2][2][2];
-	u_int32_t			 pfik_tzero;
+	uint64_t			 pfik_packets[2][2][2];
+	uint64_t			 pfik_bytes[2][2][2];
+	uint32_t			 pfik_tzero;
 	u_int				 pfik_flags;
 	struct ifnet			*pfik_ifp;
 	struct ifg_group		*pfik_group;
@@ -292,9 +292,9 @@ struct pf_addr {
 	union {
 		struct in_addr		v4;
 		struct in6_addr		v6;
-		u_int8_t		addr8[16];
-		u_int16_t		addr16[8];
-		u_int32_t		addr32[4];
+		uint8_t		addr8[16];
+		uint16_t		addr16[8];
+		uint32_t		addr32[4];
 	};		    /* 128-bit address */
 };
 
@@ -319,30 +319,30 @@ struct pf_addr_wrap {
 		int			 dyncnt;
 		int			 tblcnt;
 	}			 p;
-	u_int8_t		 type;		/* PF_ADDR_* */
-	u_int8_t		 iflags;	/* PFI_AFLAG_* */
+	uint8_t		 type;		/* PF_ADDR_* */
+	uint8_t		 iflags;	/* PFI_AFLAG_* */
 };
 
 union pf_rule_ptr {
 	struct pf_rule		*ptr;
-	u_int32_t		 nr;
+	uint32_t		 nr;
 };
 
 struct pf_rule_uid {
 	uid_t		 uid[2];
-	u_int8_t	 op;
+	uint8_t	 op;
 };
 
 struct pf_rule_gid {
 	uid_t		 gid[2];
-	u_int8_t	 op;
+	uint8_t	 op;
 };
 
 struct pf_rule_addr {
 	struct pf_addr_wrap	 addr;
-	u_int16_t		 port[2];
-	u_int8_t		 neg;
-	u_int8_t		 port_op;
+	uint16_t		 port[2];
+	uint8_t		 neg;
+	uint8_t		 port_op;
 };
 
 struct pf_pooladdr {
@@ -356,16 +356,16 @@ TAILQ_HEAD(pf_palist, pf_pooladdr);
 
 struct pf_poolhashkey {
 	union {
-		u_int8_t		key8[16];
-		u_int16_t		key16[8];
-		u_int32_t		key32[4];
+		uint8_t		key8[16];
+		uint16_t		key16[8];
+		uint32_t		key32[4];
 	};		    /* 128-bit hash key */
 };
 
 struct pf_mape_portset {
-	u_int8_t		offset;
-	u_int8_t		psidlen;
-	u_int16_t		psid;
+	uint8_t		offset;
+	uint8_t		psidlen;
+	uint16_t		psid;
 };
 
 struct pf_pool {
@@ -374,12 +374,12 @@ struct pf_pool {
 	struct pf_poolhashkey	 key;
 	struct pf_addr		 counter;
 	int			 tblidx;
-	u_int16_t		 proxy_port[2];
-	u_int8_t		 opts;
+	uint16_t		 proxy_port[2];
+	uint8_t		 opts;
 };
 
 /* A packed Operating System description for fingerprinting */
-typedef u_int32_t pf_osfp_t;
+typedef uint32_t pf_osfp_t;
 #define PF_OSFP_ANY	((pf_osfp_t)0)
 #define PF_OSFP_UNKNOWN	((pf_osfp_t)-1)
 #define PF_OSFP_NOMATCH	((pf_osfp_t)-2)
@@ -424,14 +424,14 @@ struct pf_osfp_entry {
 } while(0)
 
 /* the fingerprint of an OSes TCP SYN packet */
-typedef u_int64_t	pf_tcpopts_t;
+typedef uint64_t	pf_tcpopts_t;
 struct pf_os_fingerprint {
 	SLIST_HEAD(pf_osfp_enlist, pf_osfp_entry) fp_oses; /* list of matches */
 	pf_tcpopts_t		fp_tcpopts;	/* packed TCP options */
-	u_int16_t		fp_wsize;	/* TCP window size */
-	u_int16_t		fp_psize;	/* ip->ip_len */
-	u_int16_t		fp_mss;		/* TCP MSS */
-	u_int16_t		fp_flags;
+	uint16_t		fp_wsize;	/* TCP window size */
+	uint16_t		fp_psize;	/* ip->ip_len */
+	uint16_t		fp_mss;		/* TCP MSS */
+	uint16_t		fp_flags;
 #define PF_OSFP_WSIZE_MOD	0x0001		/* Window modulus */
 #define PF_OSFP_WSIZE_DC	0x0002		/* Window don't care */
 #define PF_OSFP_WSIZE_MSS	0x0004		/* Window multiple of MSS */
@@ -447,9 +447,9 @@ struct pf_os_fingerprint {
 #define PF_OSFP_DF		0x1000		/* IPv4 don't fragment bit */
 #define PF_OSFP_TS0		0x2000		/* Zero timestamp */
 #define PF_OSFP_INET6		0x4000		/* IPv6 */
-	u_int8_t		fp_optcnt;	/* TCP option count */
-	u_int8_t		fp_wscale;	/* TCP window scaling */
-	u_int8_t		fp_ttl;		/* IPv4 TTL */
+	uint8_t		fp_optcnt;	/* TCP option count */
+	uint8_t		fp_wscale;	/* TCP window scaling */
+	uint8_t		fp_ttl;		/* IPv4 TTL */
 #define PF_OSFP_MAXTTL_OFFSET	40
 /* TCP options packing */
 #define PF_OSFP_TCPOPT_NOP	0x0		/* TCP NOP option */
@@ -468,13 +468,13 @@ struct pf_os_fingerprint {
 struct pf_osfp_ioctl {
 	struct pf_osfp_entry	fp_os;
 	pf_tcpopts_t		fp_tcpopts;	/* packed TCP options */
-	u_int16_t		fp_wsize;	/* TCP window size */
-	u_int16_t		fp_psize;	/* ip->ip_len */
-	u_int16_t		fp_mss;		/* TCP MSS */
-	u_int16_t		fp_flags;
-	u_int8_t		fp_optcnt;	/* TCP option count */
-	u_int8_t		fp_wscale;	/* TCP window scaling */
-	u_int8_t		fp_ttl;		/* IPv4 TTL */
+	uint16_t		fp_wsize;	/* TCP window size */
+	uint16_t		fp_psize;	/* ip->ip_len */
+	uint16_t		fp_mss;		/* TCP MSS */
+	uint16_t		fp_flags;
+	uint8_t		fp_optcnt;	/* TCP option count */
+	uint8_t		fp_wscale;	/* TCP window scaling */
+	uint8_t		fp_ttl;		/* IPv4 TTL */
 
 	int			fp_getnum;	/* DIOCOSFPGET number */
 };
@@ -509,9 +509,9 @@ struct pf_rule {
 	TAILQ_ENTRY(pf_rule)	 entries;
 	struct pf_pool		 rpool;
 
-	u_int64_t		 evaluations;
-	u_int64_t		 packets[2];
-	u_int64_t		 bytes[2];
+	uint64_t		 evaluations;
+	uint64_t		 packets[2];
+	uint64_t		 bytes[2];
 
 	struct pfi_kif		*kif;
 	struct pf_anchor	*anchor;
@@ -520,20 +520,20 @@ struct pf_rule {
 	pf_osfp_t		 os_fingerprint;
 
 	int			 rtableid;
-	u_int32_t		 timeout[PFTM_OLD_MAX];
-	u_int32_t		 max_states;
-	u_int32_t		 max_src_nodes;
-	u_int32_t		 max_src_states;
-	u_int32_t		 max_src_conn;
+	uint32_t		 timeout[PFTM_OLD_MAX];
+	uint32_t		 max_states;
+	uint32_t		 max_src_nodes;
+	uint32_t		 max_src_states;
+	uint32_t		 max_src_conn;
 	struct {
-		u_int32_t		limit;
-		u_int32_t		seconds;
+		uint32_t		limit;
+		uint32_t		seconds;
 	}			 max_src_conn_rate;
-	u_int32_t		 qid;
-	u_int32_t		 pqid;
-	u_int32_t		 rt_listid;
-	u_int32_t		 nr;
-	u_int32_t		 prob;
+	uint32_t		 qid;
+	uint32_t		 pqid;
+	uint32_t		 rt_listid;
+	uint32_t		 nr;
+	uint32_t		 prob;
 	uid_t			 cuid;
 	pid_t			 cpid;
 
@@ -541,56 +541,56 @@ struct pf_rule {
 	counter_u64_t		 states_tot;
 	counter_u64_t		 src_nodes;
 
-	u_int16_t		 return_icmp;
-	u_int16_t		 return_icmp6;
-	u_int16_t		 max_mss;
-	u_int16_t		 tag;
-	u_int16_t		 match_tag;
-	u_int16_t		 scrub_flags;
+	uint16_t		 return_icmp;
+	uint16_t		 return_icmp6;
+	uint16_t		 max_mss;
+	uint16_t		 tag;
+	uint16_t		 match_tag;
+	uint16_t		 scrub_flags;
 
 	struct pf_rule_uid	 uid;
 	struct pf_rule_gid	 gid;
 
-	u_int32_t		 rule_flag;
-	u_int8_t		 action;
-	u_int8_t		 direction;
-	u_int8_t		 log;
-	u_int8_t		 logif;
-	u_int8_t		 quick;
-	u_int8_t		 ifnot;
-	u_int8_t		 match_tag_not;
-	u_int8_t		 natpass;
+	uint32_t		 rule_flag;
+	uint8_t		 action;
+	uint8_t		 direction;
+	uint8_t		 log;
+	uint8_t		 logif;
+	uint8_t		 quick;
+	uint8_t		 ifnot;
+	uint8_t		 match_tag_not;
+	uint8_t		 natpass;
 
 #define PF_STATE_NORMAL		0x1
 #define PF_STATE_MODULATE	0x2
 #define PF_STATE_SYNPROXY	0x3
-	u_int8_t		 keep_state;
+	uint8_t		 keep_state;
 	sa_family_t		 af;
-	u_int8_t		 proto;
-	u_int8_t		 type;
-	u_int8_t		 code;
-	u_int8_t		 flags;
-	u_int8_t		 flagset;
-	u_int8_t		 min_ttl;
-	u_int8_t		 allow_opts;
-	u_int8_t		 rt;
-	u_int8_t		 return_ttl;
-	u_int8_t		 tos;
-	u_int8_t		 set_tos;
-	u_int8_t		 anchor_relative;
-	u_int8_t		 anchor_wildcard;
+	uint8_t		 proto;
+	uint8_t		 type;
+	uint8_t		 code;
+	uint8_t		 flags;
+	uint8_t		 flagset;
+	uint8_t		 min_ttl;
+	uint8_t		 allow_opts;
+	uint8_t		 rt;
+	uint8_t		 return_ttl;
+	uint8_t		 tos;
+	uint8_t		 set_tos;
+	uint8_t		 anchor_relative;
+	uint8_t		 anchor_wildcard;
 
 #define PF_FLUSH		0x01
 #define PF_FLUSH_GLOBAL		0x02
-	u_int8_t		 flush;
+	uint8_t		 flush;
 #define PF_PRIO_ZERO		0xff		/* match "prio 0" packets */
 #define PF_PRIO_MAX		7
-	u_int8_t		 prio;
-	u_int8_t		 set_prio[2];
+	uint8_t		 prio;
+	uint8_t		 set_prio[2];
 
 	struct {
 		struct pf_addr		addr;
-		u_int16_t		port;
+		uint16_t		port;
 	}			divert;
 
 	uint64_t		 u_states_cur;
@@ -649,12 +649,12 @@ struct pf_rule {
 
 
 struct pf_threshold {
-	u_int32_t	limit;
+	uint32_t	limit;
 #define	PF_THRESHOLD_MULT	1000
 #define PF_THRESHOLD_MAX	0xffffffff / PF_THRESHOLD_MULT
-	u_int32_t	seconds;
-	u_int32_t	count;
-	u_int32_t	last;
+	uint32_t	seconds;
+	uint32_t	count;
+	uint32_t	last;
 };
 
 struct pf_src_node {
@@ -663,15 +663,15 @@ struct pf_src_node {
 	struct pf_addr	 raddr;
 	union pf_rule_ptr rule;
 	struct pfi_kif	*kif;
-	u_int64_t	 bytes[2];
-	u_int64_t	 packets[2];
-	u_int32_t	 states;
-	u_int32_t	 conn;
+	uint64_t	 bytes[2];
+	uint64_t	 packets[2];
+	uint32_t	 states;
+	uint32_t	 conn;
 	struct pf_threshold	conn_rate;
-	u_int32_t	 creation;
-	u_int32_t	 expire;
+	uint32_t	 creation;
+	uint32_t	 expire;
 	sa_family_t	 af;
-	u_int8_t	 ruletype;
+	uint8_t	 ruletype;
 };
 
 #define PFSNODE_HIWAT		10000	/* default source node table size */
@@ -686,13 +686,13 @@ struct pf_ruleset {
 		struct {
 			struct pf_rulequeue	*ptr;
 			struct pf_rule		**ptr_array;
-			u_int32_t		 rcount;
-			u_int32_t		 ticket;
+			uint32_t		 rcount;
+			uint32_t		 ticket;
 			int			 open;
 		}			 active, inactive;
 	}			 rules[PF_RULESET_MAX];
 	struct pf_anchor	*anchor;
-	u_int32_t		 tticket;
+	uint32_t		 tticket;
 	int			 tables;
 	int			 topen;
 };
@@ -713,6 +713,6 @@ struct pf_anchor {
 RB_PROTOTYPE(pf_anchor_global, pf_anchor, entry_global, pf_anchor_compare);
 RB_PROTOTYPE(pf_anchor_node, pf_anchor, entry_node, pf_anchor_compare);
 
-int	 pf_get_ruleset_number(u_int8_t);
+int	 pf_get_ruleset_number(uint8_t);
 
 #endif	/* _NET_PF_H_ */

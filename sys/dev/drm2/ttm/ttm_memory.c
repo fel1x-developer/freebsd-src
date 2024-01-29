@@ -246,7 +246,7 @@ static int ttm_mem_init_dma32_zone(struct ttm_mem_global *glob,
 
 int ttm_mem_global_init(struct ttm_mem_global *glob)
 {
-	u_int64_t mem;
+	uint64_t mem;
 	int ret;
 	int i;
 	struct ttm_mem_zone *zone;

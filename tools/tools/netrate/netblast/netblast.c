@@ -67,7 +67,7 @@ blast_loop(int s, long duration, u_char *packet, u_int packet_len)
 {
 	struct timespec starttime, tmptime;
 	struct itimerval it;
-	u_int32_t counter;
+	uint32_t counter;
 	int send_errors, send_calls;
 
 	if (signal(SIGALRM, signal_handler) == SIG_ERR) {

@@ -388,7 +388,7 @@ suj_checkblkavail(ufs2_daddr_t blkno, long frags)
 	ufs2_daddr_t j, k, baseblk;
 	long cg;
 
-	if ((u_int64_t)blkno > sblock.fs_size)
+	if ((uint64_t)blkno > sblock.fs_size)
 		return (0);
 	cg = dtog(&sblock, blkno);
 	cgbp = cglookup(cg);

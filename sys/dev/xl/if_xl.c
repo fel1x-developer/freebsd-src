@@ -335,7 +335,7 @@ MODULE_PNP_INFO("U16:vendor;U16:device;D:#", pci, xl, xl_devs,
 static void
 xl_dma_map_addr(void *arg, bus_dma_segment_t *segs, int nseg, int error)
 {
-	u_int32_t *paddr;
+	uint32_t *paddr;
 
 	paddr = arg;
 	*paddr = segs->ds_addr;
@@ -549,7 +549,7 @@ static int
 xl_read_eeprom(struct xl_softc *sc, caddr_t dest, int off, int cnt, int swap)
 {
 	int			err = 0, i;
-	u_int16_t		word = 0, *ptr;
+	uint16_t		word = 0, *ptr;
 
 #define EEPROM_5BIT_OFFSET(A) ((((A) << 2) & 0x7F00) | ((A) & 0x003F))
 #define EEPROM_8BIT_OFFSET(A) ((A) & 0x003F)
@@ -577,7 +577,7 @@ xl_read_eeprom(struct xl_softc *sc, caddr_t dest, int off, int cnt, int swap)
 		if (err)
 			break;
 		word = CSR_READ_2(sc, XL_W0_EE_DATA);
-		ptr = (u_int16_t *)(dest + (i * 2));
+		ptr = (uint16_t *)(dest + (i * 2));
 		if (swap)
 			*ptr = ntohs(word);
 		else
@@ -615,7 +615,7 @@ static void
 xl_rxfilter_90x(struct xl_softc *sc)
 {
 	if_t			ifp;
-	u_int8_t		rxfilt;
+	uint8_t		rxfilt;
 
 	XL_LOCK_ASSERT(sc);
 
@@ -675,7 +675,7 @@ xl_rxfilter_90xB(struct xl_softc *sc)
 {
 	if_t			ifp;
 	int			i;
-	u_int8_t		rxfilt;
+	uint8_t		rxfilt;
 
 	XL_LOCK_ASSERT(sc);
 
@@ -716,7 +716,7 @@ xl_rxfilter_90xB(struct xl_softc *sc)
 static void
 xl_setcfg(struct xl_softc *sc)
 {
-	u_int32_t		icfg;
+	uint32_t		icfg;
 
 	/*XL_LOCK_ASSERT(sc);*/
 
@@ -736,8 +736,8 @@ xl_setcfg(struct xl_softc *sc)
 static void
 xl_setmode(struct xl_softc *sc, int media)
 {
-	u_int32_t		icfg;
-	u_int16_t		mediastat;
+	uint32_t		icfg;
+	uint16_t		mediastat;
 	char			*pmsg = "", *dmsg = "";
 
 	XL_LOCK_ASSERT(sc);
@@ -964,7 +964,7 @@ xl_mediacheck(struct xl_softc *sc)
 static void
 xl_choose_xcvr(struct xl_softc *sc, int verbose)
 {
-	u_int16_t		devid;
+	uint16_t		devid;
 
 	/*
 	 * Read the device ID from the EEPROM.
@@ -1060,7 +1060,7 @@ static int
 xl_attach(device_t dev)
 {
 	u_char			eaddr[ETHER_ADDR_LEN];
-	u_int16_t		sinfo2, xcvr[2];
+	uint16_t		sinfo2, xcvr[2];
 	struct xl_softc		*sc;
 	if_t			ifp;
 	int			media, pmcap;
@@ -1710,7 +1710,7 @@ xl_list_rx_init(struct xl_softc *sc)
 	struct xl_chain_data	*cd;
 	struct xl_list_data	*ld;
 	int			error, i, next;
-	u_int32_t		nextptr;
+	uint32_t		nextptr;
 
 	XL_LOCK_ASSERT(sc);
 
@@ -1825,7 +1825,7 @@ xl_rxeof(struct xl_softc *sc)
 	struct xl_chain_onefrag	*cur_rx;
 	int			total_len;
 	int			rx_npkts = 0;
-	u_int32_t		rxstat;
+	uint32_t		rxstat;
 
 	XL_LOCK_ASSERT(sc);
 again:
@@ -2077,7 +2077,7 @@ xl_txeof_90xB(struct xl_softc *sc)
 static void
 xl_txeoc(struct xl_softc *sc)
 {
-	u_int8_t		txstat;
+	uint8_t		txstat;
 
 	XL_LOCK_ASSERT(sc);
 
@@ -2144,7 +2144,7 @@ xl_intr(void *arg)
 {
 	struct xl_softc		*sc = arg;
 	if_t			ifp = sc->xl_ifp;
-	u_int16_t		status;
+	uint16_t		status;
 
 	XL_LOCK(sc);
 
@@ -2241,7 +2241,7 @@ xl_poll_locked(if_t ifp, enum poll_cmd cmd, int count)
 	}
 
 	if (cmd == POLL_AND_CHECK_STATUS) {
-		u_int16_t status;
+		uint16_t status;
 
 		status = CSR_READ_2(sc, XL_STATUS);
 		if (status & XL_INTRS && status != 0xFFFF) {
@@ -2291,14 +2291,14 @@ xl_stats_update(struct xl_softc *sc)
 {
 	if_t			ifp = sc->xl_ifp;
 	struct xl_stats		xl_stats;
-	u_int8_t		*p;
+	uint8_t		*p;
 	int			i;
 
 	XL_LOCK_ASSERT(sc);
 
 	bzero((char *)&xl_stats, sizeof(struct xl_stats));
 
-	p = (u_int8_t *)&xl_stats;
+	p = (uint8_t *)&xl_stats;
 
 	/* Read all the stats registers. */
 	XL_SEL_WIN(6);
@@ -2334,7 +2334,7 @@ xl_encap(struct xl_softc *sc, struct xl_chain *c, struct mbuf **m_head)
 	struct mbuf		*m_new;
 	if_t			ifp = sc->xl_ifp;
 	int			error, i, nseg, total_len;
-	u_int32_t		status;
+	uint32_t		status;
 
 	XL_LOCK_ASSERT(sc);
 
@@ -2818,7 +2818,7 @@ xl_init_locked(struct xl_softc *sc)
 	if (sc->xl_type == XL_TYPE_905B)
 		CSR_WRITE_2(sc, XL_W3_MAXPKTSIZE, XL_PACKET_SIZE);
 	else {
-		u_int8_t macctl;
+		uint8_t macctl;
 		macctl = CSR_READ_1(sc, XL_W3_MAC_CTRL);
 		macctl |= XL_MACCTRL_ALLOW_LARGE_PACK;
 		CSR_WRITE_1(sc, XL_W3_MAC_CTRL, macctl);
@@ -2920,8 +2920,8 @@ static void
 xl_ifmedia_sts(if_t ifp, struct ifmediareq *ifmr)
 {
 	struct xl_softc		*sc = if_getsoftc(ifp);
-	u_int32_t		icfg;
-	u_int16_t		status = 0;
+	uint32_t		icfg;
+	uint16_t		status = 0;
 	struct mii_data		*mii = NULL;
 
 	XL_LOCK(sc);
@@ -3091,7 +3091,7 @@ static int
 xl_watchdog(struct xl_softc *sc)
 {
 	if_t			ifp = sc->xl_ifp;
-	u_int16_t		status = 0;
+	uint16_t		status = 0;
 	int			misintr;
 
 	XL_LOCK_ASSERT(sc);
@@ -3263,7 +3263,7 @@ static void
 xl_setwol(struct xl_softc *sc)
 {
 	if_t			ifp;
-	u_int16_t		cfg, pmstat;
+	uint16_t		cfg, pmstat;
 
 	if ((sc->xl_flags & XL_FLAG_WOL) == 0)
 		return;

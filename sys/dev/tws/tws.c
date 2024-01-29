@@ -55,19 +55,19 @@ extern int tws_init_ctlr(struct tws_softc *sc);
 extern boolean tws_ctlr_ready(struct tws_softc *sc);
 extern void tws_turn_off_interrupts(struct tws_softc *sc);
 extern void tws_q_insert_tail(struct tws_softc *sc, struct tws_request *req,
-                                u_int8_t q_type );
+                                uint8_t q_type );
 extern struct tws_request *tws_q_remove_request(struct tws_softc *sc,
-                                   struct tws_request *req, u_int8_t q_type );
+                                   struct tws_request *req, uint8_t q_type );
 extern struct tws_request *tws_q_remove_head(struct tws_softc *sc, 
-                                                       u_int8_t q_type );
-extern boolean tws_get_response(struct tws_softc *sc, u_int16_t *req_id);
+                                                       uint8_t q_type );
+extern boolean tws_get_response(struct tws_softc *sc, uint16_t *req_id);
 extern boolean tws_ctlr_reset(struct tws_softc *sc);
 extern void tws_intr(void *arg);
 extern int tws_use_32bit_sgls;
 
-struct tws_request *tws_get_request(struct tws_softc *sc, u_int16_t type);
-int tws_init_connect(struct tws_softc *sc, u_int16_t mc);
-void tws_send_event(struct tws_softc *sc, u_int8_t event);
+struct tws_request *tws_get_request(struct tws_softc *sc, uint16_t type);
+int tws_init_connect(struct tws_softc *sc, uint16_t mc);
+void tws_send_event(struct tws_softc *sc, uint8_t event);
 uint8_t tws_get_state(struct tws_softc *sc);
 void tws_release_request(struct tws_request *req);
 
@@ -82,7 +82,7 @@ static int tws_init(struct tws_softc *sc);
 static void tws_dmamap_cmds_load_cbfn(void *arg, bus_dma_segment_t *segs,
                            int nseg, int error);
 
-static int tws_init_reqs(struct tws_softc *sc, u_int32_t dma_mem_size);
+static int tws_init_reqs(struct tws_softc *sc, uint32_t dma_mem_size);
 static int tws_init_aen_q(struct tws_softc *sc);
 static int tws_init_trace_q(struct tws_softc *sc);
 static int tws_setup_irq(struct tws_softc *sc);
@@ -156,7 +156,7 @@ tws_write(struct cdev *dev, struct uio *uio, int ioflag)
 static int
 tws_probe(device_t dev)
 {
-    static u_int8_t first_ctlr = 1;
+    static uint8_t first_ctlr = 1;
 
     if ((pci_get_vendor(dev) == TWS_VENDOR_ID) &&
         (pci_get_device(dev) == TWS_DEVICE_ID)) {
@@ -178,7 +178,7 @@ static int
 tws_attach(device_t dev)
 {
     struct tws_softc *sc = device_get_softc(dev);
-    u_int32_t bar;
+    uint32_t bar;
     int error=0,i;
 
     /* no tracing yet */
@@ -231,7 +231,7 @@ tws_attach(device_t dev)
      * pull mode during witch this needs to change
      */ 
 #ifndef TWS_PULL_MODE_ENABLE
-    sc->mfa_base = (u_int64_t)pci_read_config(dev, TWS_PCI_BAR2, 4);
+    sc->mfa_base = (uint64_t)pci_read_config(dev, TWS_PCI_BAR2, 4);
     sc->mfa_base = sc->mfa_base & ~TWS_BIT2;
     TWS_TRACE_DEBUG(sc, "bar2 ", sc->mfa_base, 0);
 #endif
@@ -347,7 +347,7 @@ tws_detach(device_t dev)
 {
     struct tws_softc *sc = device_get_softc(dev);
     int i;
-    u_int32_t reg __tws_debug;
+    uint32_t reg __tws_debug;
 
     TWS_TRACE_DEBUG(sc, "entry", 0, 0);
 
@@ -505,9 +505,9 @@ static int
 tws_init(struct tws_softc *sc)
 {
 
-    u_int32_t max_sg_elements;
-    u_int32_t dma_mem_size;
-    u_int32_t reg;
+    uint32_t max_sg_elements;
+    uint32_t dma_mem_size;
+    uint32_t reg;
 
     sc->seq_id = 0;
     if ( tws_queue_depth > TWS_MAX_REQS )
@@ -659,7 +659,7 @@ tws_init_trace_q(struct tws_softc *sc)
 }
 
 static int
-tws_init_reqs(struct tws_softc *sc, u_int32_t dma_mem_size)
+tws_init_reqs(struct tws_softc *sc, uint32_t dma_mem_size)
 {
 
     struct tws_command_packet *cmd_buf;
@@ -710,7 +710,7 @@ tws_dmamap_cmds_load_cbfn(void *arg, bus_dma_segment_t *segs,
 }
 
 void
-tws_send_event(struct tws_softc *sc, u_int8_t event)
+tws_send_event(struct tws_softc *sc, uint8_t event)
 {
     mtx_assert(&sc->gen_lock, MA_OWNED);
     TWS_TRACE_DEBUG(sc, "received event ", 0, event);
@@ -766,7 +766,7 @@ uint8_t
 tws_get_state(struct tws_softc *sc)
 {
   
-    return((u_int8_t)sc->tws_state);
+    return((uint8_t)sc->tws_state);
 
 }
 
@@ -814,7 +814,7 @@ tws_resume(device_t dev)
 }
 
 struct tws_request *
-tws_get_request(struct tws_softc *sc, u_int16_t type)
+tws_get_request(struct tws_softc *sc, uint16_t type)
 {
     struct mtx *my_mutex = ((type == TWS_REQ_TYPE_SCSI_IO) ? &sc->q_lock : &sc->gen_lock);
     struct tws_request *r = NULL;

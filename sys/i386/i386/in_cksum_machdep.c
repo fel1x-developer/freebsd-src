@@ -135,7 +135,7 @@ skip_start:
 				"addl %1, %0\n"
 				"adcl $0, %0"
 				: "+r" (sum)
-				: "g" (((const u_int32_t *)w)[0])
+				: "g" (((const uint32_t *)w)[0])
 			);
 			w += 2;
 			mlen -= 4;
@@ -146,8 +146,8 @@ skip_start:
 				"adcl %2, %0\n"
 				"adcl $0, %0"
 				: "+r" (sum)
-				: "g" (((const u_int32_t *)w)[0]),
-				  "g" (((const u_int32_t *)w)[1])
+				: "g" (((const uint32_t *)w)[0]),
+				  "g" (((const uint32_t *)w)[1])
 			);
 			w += 4;
 			mlen -= 8;
@@ -190,15 +190,15 @@ skip_start:
 				"adcl %9, %0\n"
 				"adcl $0, %0"
 				: "+r" (sum)
-				: "g" (((const u_int32_t *)w)[4]),
-				  "g" (((const u_int32_t *)w)[0]),
-				  "g" (((const u_int32_t *)w)[1]),
-				  "g" (((const u_int32_t *)w)[2]),
-				  "g" (((const u_int32_t *)w)[3]),
-				  "g" (((const u_int32_t *)w)[8]),
-				  "g" (((const u_int32_t *)w)[5]),
-				  "g" (((const u_int32_t *)w)[6]),
-				  "g" (((const u_int32_t *)w)[7])
+				: "g" (((const uint32_t *)w)[4]),
+				  "g" (((const uint32_t *)w)[0]),
+				  "g" (((const uint32_t *)w)[1]),
+				  "g" (((const uint32_t *)w)[2]),
+				  "g" (((const uint32_t *)w)[3]),
+				  "g" (((const uint32_t *)w)[8]),
+				  "g" (((const uint32_t *)w)[5]),
+				  "g" (((const uint32_t *)w)[6]),
+				  "g" (((const uint32_t *)w)[7])
 				: "eax"
 			);
 			w += 16;
@@ -216,14 +216,14 @@ skip_start:
 				"adcl %8, %0\n"
 				"adcl $0, %0"
 				: "+r" (sum)
-				: "g" (((const u_int32_t *)w)[4]),
-				  "g" (((const u_int32_t *)w)[0]),
-				  "g" (((const u_int32_t *)w)[1]),
-				  "g" (((const u_int32_t *)w)[2]),
-				  "g" (((const u_int32_t *)w)[3]),
-				  "g" (((const u_int32_t *)w)[5]),
-				  "g" (((const u_int32_t *)w)[6]),
-				  "g" (((const u_int32_t *)w)[7])
+				: "g" (((const uint32_t *)w)[4]),
+				  "g" (((const uint32_t *)w)[0]),
+				  "g" (((const uint32_t *)w)[1]),
+				  "g" (((const uint32_t *)w)[2]),
+				  "g" (((const uint32_t *)w)[3]),
+				  "g" (((const uint32_t *)w)[5]),
+				  "g" (((const uint32_t *)w)[6]),
+				  "g" (((const uint32_t *)w)[7])
 			);
 			w += 16;
 			mlen -= 32;
@@ -236,10 +236,10 @@ skip_start:
 				"adcl %4, %0\n"
 				"adcl $0, %0"
 				: "+r" (sum)
-				: "g" (((const u_int32_t *)w)[0]),
-				  "g" (((const u_int32_t *)w)[1]),
-				  "g" (((const u_int32_t *)w)[2]),
-				  "g" (((const u_int32_t *)w)[3])
+				: "g" (((const uint32_t *)w)[0]),
+				  "g" (((const uint32_t *)w)[1]),
+				  "g" (((const uint32_t *)w)[2]),
+				  "g" (((const uint32_t *)w)[3])
 			);
 			w += 8;
 			mlen -= 16;
@@ -250,8 +250,8 @@ skip_start:
 				"adcl %2, %0\n"
 				"adcl $0, %0"
 				: "+r" (sum)
-				: "g" (((const u_int32_t *)w)[0]),
-				  "g" (((const u_int32_t *)w)[1])
+				: "g" (((const uint32_t *)w)[0]),
+				  "g" (((const uint32_t *)w)[1])
 			);
 			w += 4;
 			mlen -= 8;

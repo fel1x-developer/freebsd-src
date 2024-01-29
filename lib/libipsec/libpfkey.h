@@ -43,19 +43,19 @@ int ipsec_get_keylen(u_int, u_int, struct sadb_alg *);
 u_int pfkey_set_softrate(u_int, u_int);
 u_int pfkey_get_softrate(u_int);
 int pfkey_send_getspi(int, u_int, u_int, struct sockaddr *, struct sockaddr *,
-	u_int32_t, u_int32_t, u_int32_t, u_int32_t);
+	uint32_t, uint32_t, uint32_t, uint32_t);
 int pfkey_send_update(int, u_int, u_int, struct sockaddr *, struct sockaddr *,
-	u_int32_t, u_int32_t, u_int, caddr_t, u_int, u_int, u_int, u_int,
-	u_int, u_int32_t, u_int64_t, u_int64_t, u_int64_t, u_int32_t);
+	uint32_t, uint32_t, u_int, caddr_t, u_int, u_int, u_int, u_int,
+	u_int, uint32_t, uint64_t, uint64_t, uint64_t, uint32_t);
 int pfkey_send_add(int, u_int, u_int, struct sockaddr *, struct sockaddr *,
-	u_int32_t, u_int32_t, u_int, caddr_t, u_int, u_int, u_int, u_int,
-	u_int, u_int32_t, u_int64_t, u_int64_t, u_int64_t, u_int32_t);
+	uint32_t, uint32_t, u_int, caddr_t, u_int, u_int, u_int, u_int,
+	u_int, uint32_t, uint64_t, uint64_t, uint64_t, uint32_t);
 int pfkey_send_delete(int, u_int, u_int, struct sockaddr *, struct sockaddr *,
-	u_int32_t);
+	uint32_t);
 int pfkey_send_delete_all(int, u_int, u_int, struct sockaddr *,
 	struct sockaddr *);
 int pfkey_send_get(int, u_int, u_int, struct sockaddr *, struct sockaddr *,
-	u_int32_t);
+	uint32_t);
 int pfkey_send_register(int, u_int);
 int pfkey_recv_register(int);
 int pfkey_set_supported(struct sadb_msg *, int);
@@ -63,19 +63,19 @@ int pfkey_send_flush(int, u_int);
 int pfkey_send_dump(int, u_int);
 int pfkey_send_promisc_toggle(int, int);
 int pfkey_send_spdadd(int, struct sockaddr *, u_int, struct sockaddr *, u_int,
-	u_int, caddr_t, int, u_int32_t);
+	u_int, caddr_t, int, uint32_t);
 int pfkey_send_spdadd2(int, struct sockaddr *, u_int, struct sockaddr *, u_int,
-	u_int, u_int64_t, u_int64_t, caddr_t, int, u_int32_t);
+	u_int, uint64_t, uint64_t, caddr_t, int, uint32_t);
 int pfkey_send_spdupdate(int, struct sockaddr *, u_int, struct sockaddr *,
-	u_int, u_int, caddr_t, int, u_int32_t);
+	u_int, u_int, caddr_t, int, uint32_t);
 int pfkey_send_spdupdate2(int, struct sockaddr *, u_int, struct sockaddr *,
-	u_int, u_int, u_int64_t, u_int64_t, caddr_t, int, u_int32_t);
+	u_int, u_int, uint64_t, uint64_t, caddr_t, int, uint32_t);
 int pfkey_send_spddelete(int, struct sockaddr *, u_int, struct sockaddr *,
-	u_int, u_int, caddr_t, int, u_int32_t);
-int pfkey_send_spddelete2(int, u_int32_t);
-int pfkey_send_spdget(int, u_int32_t);
+	u_int, u_int, caddr_t, int, uint32_t);
+int pfkey_send_spddelete2(int, uint32_t);
+int pfkey_send_spdget(int, uint32_t);
 int pfkey_send_spdsetidx(int, struct sockaddr *, u_int, struct sockaddr *,
-	u_int, u_int, caddr_t, int, u_int32_t);
+	u_int, u_int, caddr_t, int, uint32_t);
 int pfkey_send_spdflush(int);
 int pfkey_send_spddump(int);
 

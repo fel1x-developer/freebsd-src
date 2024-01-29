@@ -54,10 +54,10 @@
 
 /* Set initial sequence numbers to not yet enabled node. */
 struct ng_l2tp_seq_config {
-	u_int16_t	ns;		/* sequence number to send next */
-	u_int16_t	nr;		/* sequence number to be recved next */
-	u_int16_t	rack;		/* last 'nr' received */
-	u_int16_t	xack;		/* last 'nr' sent */
+	uint16_t	ns;		/* sequence number to send next */
+	uint16_t	nr;		/* sequence number to be recved next */
+	uint16_t	rack;		/* last 'nr' received */
+	uint16_t	xack;		/* last 'nr' sent */
 };
 
 /* Keep this in sync with the above structure definition. */
@@ -71,11 +71,11 @@ struct ng_l2tp_seq_config {
 struct ng_l2tp_config {
 	u_char		enabled;	/* enables traffic flow */
 	u_char		match_id;	/* tunnel id must match 'tunnel_id' */
-	u_int16_t	tunnel_id;	/* local tunnel id */
-	u_int16_t	peer_id;	/* peer's tunnel id */
-	u_int16_t	peer_win;	/* peer's max recv window size */
-	u_int16_t	rexmit_max;	/* max retransmits before failure */
-	u_int16_t	rexmit_max_to;	/* max delay between retransmits */
+	uint16_t	tunnel_id;	/* local tunnel id */
+	uint16_t	peer_id;	/* peer's tunnel id */
+	uint16_t	peer_win;	/* peer's max recv window size */
+	uint16_t	rexmit_max;	/* max retransmits before failure */
+	uint16_t	rexmit_max_to;	/* max delay between retransmits */
 };
 
 /* Keep this in sync with the above structure definition */
@@ -92,8 +92,8 @@ struct ng_l2tp_config {
 
 /* Configuration for a session hook */
 struct ng_l2tp_sess_config {
-	u_int16_t	session_id;	/* local session id */
-	u_int16_t	peer_id;	/* peer's session id */
+	uint16_t	session_id;	/* local session id */
+	uint16_t	peer_id;	/* peer's session id */
 	u_char		control_dseq;	/* whether we control data sequencing */
 	u_char		enable_dseq;	/* whether to enable data sequencing */
 	u_char		include_length;	/* whether to include length field */
@@ -111,26 +111,26 @@ struct ng_l2tp_sess_config {
 
 /* Statistics struct */
 struct ng_l2tp_stats {
-	u_int32_t xmitPackets;		/* number of packets xmit */
-	u_int32_t xmitOctets;		/* number of octets xmit */
-	u_int32_t xmitZLBs;		/* ack-only packets transmitted */
-	u_int32_t xmitDrops;		/* xmits dropped due to full window */
-	u_int32_t xmitTooBig;		/* ctrl pkts dropped because too big */
-	u_int32_t xmitInvalid;		/* ctrl packets with no session ID */
-	u_int32_t xmitDataTooBig;	/* data pkts dropped because too big */
-	u_int32_t xmitRetransmits;	/* retransmitted packets */
-	u_int32_t recvPackets;		/* number of packets rec'd */
-	u_int32_t recvOctets;		/* number of octets rec'd */
-	u_int32_t recvRunts;		/* too short packets rec'd */
-	u_int32_t recvInvalid;		/* invalid packets rec'd */
-	u_int32_t recvWrongTunnel;	/* packets rec'd with wrong tunnel id */
-	u_int32_t recvUnknownSID;	/* pkts rec'd with unknown session id */
-	u_int32_t recvBadAcks;		/* ctrl pkts rec'd with invalid 'nr' */
-	u_int32_t recvOutOfOrder;	/* out of order ctrl pkts rec'd */
-	u_int32_t recvDuplicates;	/* duplicate ctrl pkts rec'd */
-	u_int32_t recvDataDrops;	/* dup/out of order data pkts rec'd */
-	u_int32_t recvZLBs;		/* ack-only packets rec'd */
-	u_int32_t memoryFailures;	/* times we couldn't allocate memory */
+	uint32_t xmitPackets;		/* number of packets xmit */
+	uint32_t xmitOctets;		/* number of octets xmit */
+	uint32_t xmitZLBs;		/* ack-only packets transmitted */
+	uint32_t xmitDrops;		/* xmits dropped due to full window */
+	uint32_t xmitTooBig;		/* ctrl pkts dropped because too big */
+	uint32_t xmitInvalid;		/* ctrl packets with no session ID */
+	uint32_t xmitDataTooBig;	/* data pkts dropped because too big */
+	uint32_t xmitRetransmits;	/* retransmitted packets */
+	uint32_t recvPackets;		/* number of packets rec'd */
+	uint32_t recvOctets;		/* number of octets rec'd */
+	uint32_t recvRunts;		/* too short packets rec'd */
+	uint32_t recvInvalid;		/* invalid packets rec'd */
+	uint32_t recvWrongTunnel;	/* packets rec'd with wrong tunnel id */
+	uint32_t recvUnknownSID;	/* pkts rec'd with unknown session id */
+	uint32_t recvBadAcks;		/* ctrl pkts rec'd with invalid 'nr' */
+	uint32_t recvOutOfOrder;	/* out of order ctrl pkts rec'd */
+	uint32_t recvDuplicates;	/* duplicate ctrl pkts rec'd */
+	uint32_t recvDataDrops;	/* dup/out of order data pkts rec'd */
+	uint32_t recvZLBs;		/* ack-only packets rec'd */
+	uint32_t memoryFailures;	/* times we couldn't allocate memory */
 };
 
 /* Keep this in sync with the above structure definition */
@@ -160,10 +160,10 @@ struct ng_l2tp_stats {
 
 /* Session statistics struct. */
 struct ng_l2tp_session_stats {
-	u_int64_t xmitPackets;		/* number of packets xmit */
-	u_int64_t xmitOctets;		/* number of octets xmit */
-	u_int64_t recvPackets;		/* number of packets received */
-	u_int64_t recvOctets;		/* number of octets received */
+	uint64_t xmitPackets;		/* number of packets xmit */
+	uint64_t xmitOctets;		/* number of octets xmit */
+	uint64_t recvPackets;		/* number of packets received */
+	uint64_t recvOctets;		/* number of octets received */
 };
 
 /* Keep this in sync with the above structure definition. */
@@ -180,7 +180,7 @@ enum {
 	NGM_L2TP_SET_CONFIG = 1,	/* supply a struct ng_l2tp_config */
 	NGM_L2TP_GET_CONFIG,		/* returns a struct ng_l2tp_config */
 	NGM_L2TP_SET_SESS_CONFIG,	/* supply struct ng_l2tp_sess_config */
-	NGM_L2TP_GET_SESS_CONFIG,	/* supply a session id (u_int16_t) */
+	NGM_L2TP_GET_SESS_CONFIG,	/* supply a session id (uint16_t) */
 	NGM_L2TP_GET_STATS,		/* returns struct ng_l2tp_stats */
 	NGM_L2TP_CLR_STATS,		/* clears stats */
 	NGM_L2TP_GETCLR_STATS,		/* returns & clears stats */

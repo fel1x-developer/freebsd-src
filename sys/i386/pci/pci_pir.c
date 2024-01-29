@@ -78,7 +78,7 @@ struct pci_dev_lookup {
 typedef void pir_entry_handler(struct PIR_entry *entry,
     struct PIR_intpin* intpin, void *arg);
 
-static void	pci_print_irqmask(u_int16_t irqs);
+static void	pci_print_irqmask(uint16_t irqs);
 static int	pci_pir_biosroute(int bus, int device, int func, int pin,
 		    int irq);
 static int	pci_pir_choose_irq(struct pci_link *pci_link, int irqmask);
@@ -147,7 +147,7 @@ pci_pir_open(void)
 	pt = (struct PIR_table *)(uintptr_t)BIOS_PADDRTOVADDR(sigaddr);
 	if (pt->pt_header.ph_length <= sizeof(struct PIR_header))
 		return;
-	for (cv = (u_int8_t *)pt, ck = 0, i = 0;
+	for (cv = (uint8_t *)pt, ck = 0, i = 0;
 	     i < (pt->pt_header.ph_length); i++)
 		ck += cv[i];
 	if (ck != 0)
@@ -590,7 +590,7 @@ pci_pir_choose_irq(struct pci_link *pci_link, int irqmask)
 }
 
 static void
-pci_print_irqmask(u_int16_t irqs)
+pci_print_irqmask(uint16_t irqs)
 {
 	int i, first;
 

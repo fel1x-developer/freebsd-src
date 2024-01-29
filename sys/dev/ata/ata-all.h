@@ -202,16 +202,16 @@
 #define ATA_MAX_28BIT_LBA               268435455UL
 
 /* structure used for composite atomic operations */
-#define MAX_COMPOSITES          32              /* u_int32_t bits */
+#define MAX_COMPOSITES          32              /* uint32_t bits */
 struct ata_composite {
     struct mtx          lock;                   /* control lock */
-    u_int32_t           rd_needed;              /* needed read subdisks */
-    u_int32_t           rd_done;                /* done read subdisks */
-    u_int32_t           wr_needed;              /* needed write subdisks */
-    u_int32_t           wr_depend;              /* write depends on subdisks */
-    u_int32_t           wr_done;                /* done write subdisks */
+    uint32_t           rd_needed;              /* needed read subdisks */
+    uint32_t           rd_done;                /* done read subdisks */
+    uint32_t           wr_needed;              /* needed write subdisks */
+    uint32_t           wr_depend;              /* write depends on subdisks */
+    uint32_t           wr_done;                /* done write subdisks */
     struct ata_request  *request[MAX_COMPOSITES];
-    u_int32_t           residual;               /* bytes still to transfer */
+    uint32_t           residual;               /* bytes still to transfer */
     caddr_t             data_1;     
     caddr_t             data_2;     
 };
@@ -223,21 +223,21 @@ struct ata_request {
     int				unit;		/* physical unit */
     union {
 	struct {
-	    u_int8_t            command;        /* command reg */
-	    u_int16_t           feature;        /* feature reg */
-	    u_int16_t           count;          /* count reg */
-	    u_int64_t           lba;            /* lba reg */
+	    uint8_t            command;        /* command reg */
+	    uint16_t           feature;        /* feature reg */
+	    uint16_t           count;          /* count reg */
+	    uint64_t           lba;            /* lba reg */
 	} ata;
 	struct {
-	    u_int8_t            ccb[16];        /* ATAPI command block */
+	    uint8_t            ccb[16];        /* ATAPI command block */
 	    struct atapi_sense  sense;          /* ATAPI request sense data */
-	    u_int8_t            saved_cmd;      /* ATAPI saved command */
+	    uint8_t            saved_cmd;      /* ATAPI saved command */
 	} atapi;
     } u;
-    u_int32_t                   bytecount;      /* bytes to transfer */
-    u_int32_t                   transfersize;   /* bytes pr transfer */
+    uint32_t                   bytecount;      /* bytes to transfer */
+    uint32_t                   transfersize;   /* bytes pr transfer */
     caddr_t                     data;           /* pointer to data buf */
-    u_int32_t                   tag;            /* HW tag of this request */
+    uint32_t                   tag;            /* HW tag of this request */
     int                         flags;
 #define         ATA_R_CONTROL           0x00000001
 #define         ATA_R_READ              0x00000002
@@ -264,9 +264,9 @@ struct ata_request {
 #define         ATA_R_DANGER2           0x40000000
 
     struct ata_dmaslot          *dma;           /* DMA slot of this request */
-    u_int8_t                    status;         /* ATA status */
-    u_int8_t                    error;          /* ATA error */
-    u_int32_t                   donecount;      /* bytes transferred */
+    uint8_t                    status;         /* ATA status */
+    uint8_t                    error;          /* ATA error */
+    uint32_t                   donecount;      /* bytes transferred */
     int                         result;         /* result error code */
     void                        (*callback)(struct ata_request *request);
     struct sema                 done;           /* request done sema */
@@ -304,7 +304,7 @@ struct ata_device {
 
     struct ata_params           param;          /* ata param structure */
     int                         mode;           /* current transfermode */
-    u_int32_t                   max_iosize;     /* max IO size */
+    uint32_t                   max_iosize;     /* max IO size */
     int				spindown;	/* idle spindown timeout */
     struct callout              spindown_timer;
     int                         spindown_state;
@@ -316,8 +316,8 @@ struct ata_device {
 
 /* structure for holding DMA Physical Region Descriptors (PRD) entries */
 struct ata_dma_prdentry {
-    u_int32_t addr;
-    u_int32_t count;
+    uint32_t addr;
+    uint32_t count;
 };  
 
 /* structure used by the setprd function */
@@ -328,7 +328,7 @@ struct ata_dmasetprd_args {
 };
 
 struct ata_dmaslot {
-    u_int8_t                    status;         /* DMA status */
+    uint8_t                    status;         /* DMA status */
     bus_dma_tag_t               sg_tag;         /* SG list DMA tag */
     bus_dmamap_t                sg_map;         /* SG list DMA map */
     void                        *sg;            /* DMA transfer table */
@@ -342,17 +342,17 @@ struct ata_dma {
     bus_dma_tag_t               dmatag;         /* parent DMA tag */
     bus_dma_tag_t               work_tag;       /* workspace DMA tag */
     bus_dmamap_t                work_map;       /* workspace DMA map */
-    u_int8_t                    *work;          /* workspace */
+    uint8_t                    *work;          /* workspace */
     bus_addr_t                  work_bus;       /* bus address of dmatab */
 
 #define ATA_DMA_SLOTS			1
     int				dma_slots;	/* DMA slots allocated */
     struct ata_dmaslot		slot[ATA_DMA_SLOTS];
-    u_int32_t                   alignment;      /* DMA SG list alignment */
-    u_int32_t                   boundary;       /* DMA SG list boundary */
-    u_int32_t                   segsize;        /* DMA SG list segment size */
-    u_int32_t                   max_iosize;     /* DMA data max IO size */
-    u_int64_t                   max_address;    /* highest DMA'able address */
+    uint32_t                   alignment;      /* DMA SG list alignment */
+    uint32_t                   boundary;       /* DMA SG list boundary */
+    uint32_t                   segsize;        /* DMA SG list segment size */
+    uint32_t                   max_iosize;     /* DMA data max IO size */
+    uint64_t                   max_address;    /* highest DMA'able address */
     int                         flags;
 #define ATA_DMA_ACTIVE                  0x01    /* DMA transfer in progress */
 
@@ -368,9 +368,9 @@ struct ata_dma {
 
 /* structure holding lowlevel functions */
 struct ata_lowlevel {
-    u_int32_t (*softreset)(device_t dev, int pmport);
-    int (*pm_read)(device_t dev, int port, int reg, u_int32_t *result);
-    int (*pm_write)(device_t dev, int port, int reg, u_int32_t value);
+    uint32_t (*softreset)(device_t dev, int pmport);
+    int (*pm_read)(device_t dev, int port, int reg, uint32_t *result);
+    int (*pm_write)(device_t dev, int port, int reg, uint32_t value);
     int (*status)(device_t dev);
     int (*begin_transaction)(struct ata_request *request);
     int (*end_transaction)(struct ata_request *request);
@@ -468,7 +468,7 @@ void ata_udelay(int interval);
 const char *ata_cmd2str(struct ata_request *request);
 const char *ata_mode2str(int mode);
 void ata_setmode(device_t dev);
-void ata_print_cable(device_t dev, u_int8_t *who);
+void ata_print_cable(device_t dev, uint8_t *who);
 int ata_atapi(device_t dev, int target);
 void ata_timeout(void *);
 
@@ -490,7 +490,7 @@ int ata_sata_scr_write(struct ata_channel *ch, int port, int reg, uint32_t val);
 int ata_sata_phy_reset(device_t dev, int port, int quick);
 int ata_sata_setmode(device_t dev, int target, int mode);
 int ata_sata_getrev(device_t dev, int target);
-int ata_request2fis_h2d(struct ata_request *request, u_int8_t *fis);
+int ata_request2fis_h2d(struct ata_request *request, uint8_t *fis);
 void ata_pm_identify(device_t dev);
 
 MALLOC_DECLARE(M_ATA);

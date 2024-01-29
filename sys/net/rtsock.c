@@ -2161,7 +2161,7 @@ rt_ieee80211msg(struct ifnet *ifp, int what, void *data, size_t data_len)
 			n->m_len = data_len;
 			m->m_next = n;
 		} else if (data_len > 0) {
-			bcopy(data, mtod(m, u_int8_t *) + m->m_len, data_len);
+			bcopy(data, mtod(m, uint8_t *) + m->m_len, data_len);
 			m->m_len += data_len;
 		}
 		if (m->m_flags & M_PKTHDR)

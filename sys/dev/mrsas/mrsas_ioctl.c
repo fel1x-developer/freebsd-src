@@ -49,8 +49,8 @@ struct mrsas_passthru_cmd {
 	bus_dma_tag_t ioctl_data_tag;
 	bus_dmamap_t ioctl_data_dmamap;
 
-	u_int32_t error_code;
-	u_int32_t sge_count;
+	uint32_t error_code;
+	uint32_t sge_count;
 	int complete;
 };
 
@@ -246,7 +246,7 @@ mrsas_passthru(struct mrsas_softc *sc, void *arg, u_long ioctlCmd)
 			goto out;
 		}
 		/* Save the physical address and length */
-		kern_sge32[i].phys_addr = (u_int32_t)ioctl_data_phys_addr[i];
+		kern_sge32[i].phys_addr = (uint32_t)ioctl_data_phys_addr[i];
 
 		if (ioctlCmd == MRSAS_IOC_FIRMWARE_PASS_THROUGH64) {
 			kern_sge32[i].length = user_ioc->sgl[i].iov_len;
@@ -362,7 +362,7 @@ mrsas_passthru(struct mrsas_softc *sc, void *arg, u_long ioctlCmd)
 	 * Return command status to user space
 	 */
 	memcpy(&user_ioc->frame.hdr.cmd_status, &cmd->frame->hdr.cmd_status,
-	    sizeof(u_int8_t));
+	    sizeof(uint8_t));
 
 out:
 	/*
@@ -570,7 +570,7 @@ mrsas_user_command(struct mrsas_softc *sc, struct mfi_ioc_passthru *ioc)
 	 * Return command status to user space
 	 */
 	memcpy(&ioc->ioc_frame.cmd_status, &cmd->frame->hdr.cmd_status,
-	    sizeof(u_int8_t));
+	    sizeof(uint8_t));
 
 out:
 	/*
@@ -611,7 +611,7 @@ int
 mrsas_alloc_mfi_cmds(struct mrsas_softc *sc)
 {
 	int i, j;
-	u_int32_t max_cmd;
+	uint32_t max_cmd;
 	struct mrsas_mfi_cmd *cmd;
 
 	max_cmd = MRSAS_MAX_MFI_CMDS;
@@ -729,7 +729,7 @@ mrsas_create_frame_pool(struct mrsas_softc *sc)
 void   *
 mrsas_alloc_frame(struct mrsas_softc *sc, struct mrsas_mfi_cmd *cmd)
 {
-	u_int32_t frame_size = MRSAS_MFI_FRAME_SIZE;
+	uint32_t frame_size = MRSAS_MFI_FRAME_SIZE;
 
 	if (bus_dmamem_alloc(sc->mficmd_frame_tag, (void **)&cmd->frame_mem,
 	    BUS_DMA_NOWAIT, &cmd->frame_dmamap)) {

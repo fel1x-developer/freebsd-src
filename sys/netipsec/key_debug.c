@@ -393,10 +393,10 @@ kdebug_sadb_lifetime(struct sadb_ext *ext)
 
 	printf("sadb_lifetime{ alloc=%u, bytes=%u\n",
 		lft->sadb_lifetime_allocations,
-		(u_int32_t)lft->sadb_lifetime_bytes);
+		(uint32_t)lft->sadb_lifetime_bytes);
 	printf("  addtime=%u, usetime=%u }\n",
-		(u_int32_t)lft->sadb_lifetime_addtime,
-		(u_int32_t)lft->sadb_lifetime_usetime);
+		(uint32_t)lft->sadb_lifetime_addtime,
+		(uint32_t)lft->sadb_lifetime_usetime);
 
 	return;
 }
@@ -411,7 +411,7 @@ kdebug_sadb_sa(struct sadb_ext *ext)
 		panic("%s: NULL pointer was passed.\n", __func__);
 
 	printf("sadb_sa{ spi=%u replay=%u state=%u\n",
-	    (u_int32_t)ntohl(sa->sadb_sa_spi), sa->sadb_sa_replay,
+	    (uint32_t)ntohl(sa->sadb_sa_spi), sa->sadb_sa_replay,
 	    sa->sadb_sa_state);
 	printf("  auth=%u encrypt=%u flags=0x%08x }\n",
 	    sa->sadb_sa_auth, sa->sadb_sa_encrypt, sa->sadb_sa_flags);

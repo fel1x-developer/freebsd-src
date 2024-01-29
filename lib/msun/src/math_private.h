@@ -55,14 +55,14 @@ typedef union
 {
   long double value;
   struct {
-    u_int32_t mswhi;
-    u_int32_t mswlo;
-    u_int32_t lswhi;
-    u_int32_t lswlo;
+    uint32_t mswhi;
+    uint32_t mswlo;
+    uint32_t lswhi;
+    uint32_t lswlo;
   } parts32;
   struct {
-    u_int64_t msw;
-    u_int64_t lsw;
+    uint64_t msw;
+    uint64_t lsw;
   } parts64;
 } ieee_quad_shape_type;
 
@@ -74,14 +74,14 @@ typedef union
 {
   long double value;
   struct {
-    u_int32_t lswlo;
-    u_int32_t lswhi;
-    u_int32_t mswlo;
-    u_int32_t mswhi;
+    uint32_t lswlo;
+    uint32_t lswhi;
+    uint32_t mswlo;
+    uint32_t mswhi;
   } parts32;
   struct {
-    u_int64_t lsw;
-    u_int64_t msw;
+    uint64_t lsw;
+    uint64_t msw;
   } parts64;
 } ieee_quad_shape_type;
 
@@ -94,12 +94,12 @@ typedef union
   double value;
   struct
   {
-    u_int32_t msw;
-    u_int32_t lsw;
+    uint32_t msw;
+    uint32_t lsw;
   } parts;
   struct
   {
-    u_int64_t w;
+    uint64_t w;
   } xparts;
 } ieee_double_shape_type;
 
@@ -112,12 +112,12 @@ typedef union
   double value;
   struct
   {
-    u_int32_t lsw;
-    u_int32_t msw;
+    uint32_t lsw;
+    uint32_t msw;
   } parts;
   struct
   {
-    u_int64_t w;
+    uint64_t w;
   } xparts;
 } ieee_double_shape_type;
 

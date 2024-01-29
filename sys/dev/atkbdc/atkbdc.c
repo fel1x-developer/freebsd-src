@@ -264,7 +264,7 @@ atkbdc_setup(atkbdc_softc_t *sc, bus_space_tag_t tag, bus_space_handle_t h0,
 	     bus_space_handle_t h1)
 {
 #if defined(__amd64__)
-	u_int64_t tscval[3], read_delay;
+	uint64_t tscval[3], read_delay;
 	register_t flags;
 #endif
 

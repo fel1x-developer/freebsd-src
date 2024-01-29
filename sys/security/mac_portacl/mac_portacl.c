@@ -113,7 +113,7 @@ static MALLOC_DEFINE(M_PORTACL, "portacl_rule", "Rules for mac_portacl");
 struct rule {
 	id_t			r_id;
 	int			r_idtype;
-	u_int16_t		r_port;
+	uint16_t		r_port;
 	int			r_protocol;
 
 	TAILQ_ENTRY(rule)	r_entries;
@@ -376,7 +376,7 @@ SYSCTL_PROC(_security_mac_portacl, OID_AUTO, rules,
     "Rules");
 
 static int
-rules_check(struct ucred *cred, int family, int type, u_int16_t port)
+rules_check(struct ucred *cred, int family, int type, uint16_t port)
 {
 	struct rule *rule;
 	int error;
@@ -437,7 +437,7 @@ socket_check_bind(struct ucred *cred, struct socket *so,
 	struct sockaddr_in *sin;
 	struct inpcb *inp;
 	int family, type;
-	u_int16_t port;
+	uint16_t port;
 
 	/* Only run if we are enabled. */
 	if (portacl_enabled == 0)

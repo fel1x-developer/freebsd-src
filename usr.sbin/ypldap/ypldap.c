@@ -639,8 +639,8 @@ imsg_event_add(struct imsgev *iev)
 }
 
 int
-imsg_compose_event(struct imsgev *iev, u_int16_t type, u_int32_t peerid,
-    pid_t pid, int fd, void *data, u_int16_t datalen)
+imsg_compose_event(struct imsgev *iev, uint16_t type, uint32_t peerid,
+    pid_t pid, int fd, void *data, uint16_t datalen)
 {
 	int	ret;
 

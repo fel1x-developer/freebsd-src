@@ -190,8 +190,8 @@ struct ath_tid {
 /* driver-specific node state */
 struct ath_node {
 	struct ieee80211_node an_node;	/* base class */
-	u_int8_t	an_mgmtrix;	/* min h/w rate index */
-	u_int8_t	an_mcastrix;	/* mcast h/w rate index */
+	uint8_t	an_mgmtrix;	/* min h/w rate index */
+	uint8_t	an_mcastrix;	/* mcast h/w rate index */
 	uint32_t	an_is_powersave;	/* node is sleeping */
 	uint32_t	an_stack_psq;		/* net80211 psq isn't empty */
 	uint32_t	an_tim_set;		/* TIM has been set */
@@ -266,7 +266,7 @@ struct ath_buf {
 		uint8_t bfs_pri;	/* packet AC priority */
 		uint8_t bfs_tx_queue;	/* destination hardware TX queue */
 
-		u_int32_t bfs_aggr:1,		/* part of aggregate? */
+		uint32_t bfs_aggr:1,		/* part of aggregate? */
 		    bfs_aggrburst:1,	/* part of aggregate burst? */
 		    bfs_isretried:1,	/* retried frame? */
 		    bfs_dobaw:1,	/* actually check against BAW? */
@@ -356,7 +356,7 @@ struct ath_txq {
 	u_int			axq_depth;	/* queue depth (stat only) */
 	u_int			axq_aggr_depth;	/* how many aggregates are queued */
 	u_int			axq_intrcnt;	/* interrupt count */
-	u_int32_t		*axq_link;	/* link ptr in last TX desc */
+	uint32_t		*axq_link;	/* link ptr in last TX desc */
 	TAILQ_HEAD(axq_q_s, ath_buf)	axq_q;		/* transmit queue */
 	struct mtx		axq_lock;	/* lock on q and link */
 
@@ -567,8 +567,8 @@ struct ath_softc {
 	int			sc_nvaps;	/* # vaps */
 	int			sc_nstavaps;	/* # station vaps */
 	int			sc_nmeshvaps;	/* # mbss vaps */
-	u_int8_t		sc_hwbssidmask[IEEE80211_ADDR_LEN];
-	u_int8_t		sc_nbssid0;	/* # vap's using base mac */
+	uint8_t		sc_hwbssidmask[IEEE80211_ADDR_LEN];
+	uint8_t		sc_nbssid0;	/* # vap's using base mac */
 	uint32_t		sc_bssidmask;	/* bssid mask */
 
 	struct ath_rx_methods	sc_rx;
@@ -653,7 +653,7 @@ struct ath_softc {
 	/*
 	 * Second set of flags.
 	 */
-	u_int32_t		sc_running  : 1,	/* initialized */
+	uint32_t		sc_running  : 1,	/* initialized */
 				sc_use_ent  : 1,
 				sc_rx_stbc  : 1,
 				sc_tx_stbc  : 1,
@@ -677,20 +677,20 @@ struct ath_softc {
 	const HAL_RATE_TABLE	*sc_currates;	/* current rate table */
 	enum ieee80211_phymode	sc_curmode;	/* current phy mode */
 	HAL_OPMODE		sc_opmode;	/* current operating mode */
-	u_int16_t		sc_curtxpow;	/* current tx power limit */
-	u_int16_t		sc_curaid;	/* current association id */
+	uint16_t		sc_curtxpow;	/* current tx power limit */
+	uint16_t		sc_curaid;	/* current association id */
 	struct ieee80211_channel *sc_curchan;	/* current installed channel */
-	u_int8_t		sc_curbssid[IEEE80211_ADDR_LEN];
-	u_int8_t		sc_rixmap[256];	/* IEEE to h/w rate table ix */
+	uint8_t		sc_curbssid[IEEE80211_ADDR_LEN];
+	uint8_t		sc_rixmap[256];	/* IEEE to h/w rate table ix */
 	struct {
-		u_int8_t	ieeerate;	/* IEEE rate */
-		u_int8_t	rxflags;	/* radiotap rx flags */
-		u_int8_t	txflags;	/* radiotap tx flags */
-		u_int16_t	ledon;		/* softled on time */
-		u_int16_t	ledoff;		/* softled off time */
+		uint8_t	ieeerate;	/* IEEE rate */
+		uint8_t	rxflags;	/* radiotap rx flags */
+		uint8_t	txflags;	/* radiotap tx flags */
+		uint16_t	ledon;		/* softled on time */
+		uint16_t	ledoff;		/* softled off time */
 	} sc_hwmap[32];				/* h/w rate ix mappings */
-	u_int8_t		sc_protrix;	/* protection rate index */
-	u_int8_t		sc_lastdatarix;	/* last data frame rate index */
+	uint8_t		sc_protrix;	/* protection rate index */
+	uint8_t		sc_lastdatarix;	/* last data frame rate index */
 	u_int			sc_mcastrate;	/* ieee rate for mcastrateix */
 	u_int			sc_fftxqmin;	/* min frames before staging */
 	u_int			sc_fftxqmax;	/* max frames before drop */
@@ -716,7 +716,7 @@ struct ath_softc {
 	uint32_t		sc_intr_cnt;	/* refcount on interrupt handling */
 
 	u_int			sc_keymax;	/* size of key cache */
-	u_int8_t		sc_keymap[ATH_KEYBYTES];/* key use bit map */
+	uint8_t		sc_keymap[ATH_KEYBYTES];/* key use bit map */
 
 	/*
 	 * Software based LED blinking
@@ -725,8 +725,8 @@ struct ath_softc {
 	u_int			sc_ledon;	/* pin setting for LED on */
 	u_int			sc_ledidle;	/* idle polling interval */
 	int			sc_ledevent;	/* time of last LED event */
-	u_int8_t		sc_txrix;	/* current tx rate for LED */
-	u_int16_t		sc_ledoff;	/* off time for current blink */
+	uint8_t		sc_txrix;	/* current tx rate for LED */
+	uint16_t		sc_ledoff;	/* off time for current blink */
 	struct callout		sc_ledtimer;	/* led off timer */
 
 	/*
@@ -740,11 +740,11 @@ struct ath_softc {
 
 	struct ath_descdma	sc_rxdma;	/* RX descriptors */
 	ath_bufhead		sc_rxbuf;	/* receive buffer */
-	u_int32_t		*sc_rxlink;	/* link ptr in last RX desc */
+	uint32_t		*sc_rxlink;	/* link ptr in last RX desc */
 	struct task		sc_rxtask;	/* rx int processing */
-	u_int8_t		sc_defant;	/* current default antenna */
-	u_int8_t		sc_rxotherant;	/* rx's on non-default antenna*/
-	u_int64_t		sc_lastrx;	/* tsf at last rx'd frame */
+	uint8_t		sc_defant;	/* current default antenna */
+	uint8_t		sc_rxotherant;	/* rx's on non-default antenna*/
+	uint64_t		sc_lastrx;	/* tsf at last rx'd frame */
 	struct ath_rx_status	*sc_lastrs;	/* h/w status of last rx */
 	struct ath_rx_radiotap_header sc_rx_th;
 	int			sc_rx_th_len;
@@ -779,7 +779,7 @@ struct ath_softc {
 	ath_bufhead		sc_bbuf;	/* beacon buffers */
 	u_int			sc_bhalq;	/* HAL q for outgoing beacons */
 	u_int			sc_bmisscount;	/* missed beacon transmits */
-	u_int32_t		sc_ant_tx[ATH_IOCTL_STATS_NUM_TX_ANTENNA];
+	uint32_t		sc_ant_tx[ATH_IOCTL_STATS_NUM_TX_ANTENNA];
 						/* recent tx frames/antenna */
 	struct ath_txq		*sc_cabq;	/* tx q for cab frames */
 	struct task		sc_bmisstask;	/* bmiss int processing */
@@ -806,11 +806,11 @@ struct ath_softc {
 	u_int			sc_tdmadbaprep;	/* TDMA DBA prep time */
 	u_int			sc_tdmaswbaprep;/* TDMA SWBA prep time */
 	u_int			sc_tdmaswba;	/* TDMA SWBA counter */
-	u_int32_t		sc_tdmabintval;	/* TDMA beacon interval (TU) */
-	u_int32_t		sc_tdmaguard;	/* TDMA guard time (usec) */
+	uint32_t		sc_tdmabintval;	/* TDMA beacon interval (TU) */
+	uint32_t		sc_tdmaguard;	/* TDMA guard time (usec) */
 	u_int			sc_tdmaslotlen;	/* TDMA slot length (usec) */
-	u_int32_t		sc_avgtsfdeltap;/* TDMA slot adjust (+) */
-	u_int32_t		sc_avgtsfdeltam;/* TDMA slot adjust (-) */
+	uint32_t		sc_avgtsfdeltap;/* TDMA slot adjust (+) */
+	uint32_t		sc_avgtsfdeltam;/* TDMA slot adjust (-) */
 	uint16_t		*sc_eepromdata;	/* Local eeprom data, if AR9100 */
 	uint32_t		sc_txchainmask;	/* hardware TX chainmask */
 	uint32_t		sc_rxchainmask;	/* hardware RX chainmask */
@@ -1044,7 +1044,7 @@ struct ath_softc {
 #define	ATH_TXSTATUS_LOCK_ASSERT(_sc) \
 	mtx_assert(&(_sc)->sc_txcomplock, MA_OWNED)
 
-int	ath_attach(u_int16_t, struct ath_softc *);
+int	ath_attach(uint16_t, struct ath_softc *);
 int	ath_detach(struct ath_softc *);
 void	ath_resume(struct ath_softc *);
 void	ath_suspend(struct ath_softc *);

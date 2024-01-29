@@ -1853,19 +1853,19 @@ ppc_io(device_t ppcdev, int iop, u_char *addr, int cnt, u_char byte)
 	    bus_write_multi_1(ppc->res_ioport, PPC_EPP_DATA, addr, cnt);
 		break;
 	case PPB_OUTSW_EPP:
-	    bus_write_multi_2(ppc->res_ioport, PPC_EPP_DATA, (u_int16_t *)addr, cnt);
+	    bus_write_multi_2(ppc->res_ioport, PPC_EPP_DATA, (uint16_t *)addr, cnt);
 		break;
 	case PPB_OUTSL_EPP:
-	    bus_write_multi_4(ppc->res_ioport, PPC_EPP_DATA, (u_int32_t *)addr, cnt);
+	    bus_write_multi_4(ppc->res_ioport, PPC_EPP_DATA, (uint32_t *)addr, cnt);
 		break;
 	case PPB_INSB_EPP:
 	    bus_read_multi_1(ppc->res_ioport, PPC_EPP_DATA, addr, cnt);
 		break;
 	case PPB_INSW_EPP:
-	    bus_read_multi_2(ppc->res_ioport, PPC_EPP_DATA, (u_int16_t *)addr, cnt);
+	    bus_read_multi_2(ppc->res_ioport, PPC_EPP_DATA, (uint16_t *)addr, cnt);
 		break;
 	case PPB_INSL_EPP:
-	    bus_read_multi_4(ppc->res_ioport, PPC_EPP_DATA, (u_int32_t *)addr, cnt);
+	    bus_read_multi_4(ppc->res_ioport, PPC_EPP_DATA, (uint32_t *)addr, cnt);
 		break;
 	case PPB_RDTR:
 		return (r_dtr(ppc));

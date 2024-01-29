@@ -88,7 +88,7 @@
  */
 #define SBP_BIND_HI 0x1
 #define SBP_DEV2ADDR(t, l) \
-	(((u_int64_t)SBP_BIND_HI << 32) \
+	(((uint64_t)SBP_BIND_HI << 32) \
 	| (((l) & 0xff) << 8) \
 	| (((t) & 0x3f) << 2))
 #define SBP_ADDR2TRG(a)	(((a) >> 2) & 0x3f)
@@ -1976,7 +1976,7 @@ END_DEBUG
 	SBP_UNLOCK(sbp);
 
 	/* We reserve 16 bit space (4 bytes X 64 targets X 256 luns) */
-	sbp->fwb.start = ((u_int64_t)SBP_BIND_HI << 32) | SBP_DEV2ADDR(0, 0);
+	sbp->fwb.start = ((uint64_t)SBP_BIND_HI << 32) | SBP_DEV2ADDR(0, 0);
 	sbp->fwb.end = sbp->fwb.start + 0xffff;
 	/* pre-allocate xfer */
 	STAILQ_INIT(&sbp->fwb.xferlist);

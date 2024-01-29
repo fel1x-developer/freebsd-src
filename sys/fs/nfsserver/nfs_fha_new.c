@@ -294,7 +294,7 @@ fha_extract_info(struct svc_req *req, struct fha_info *i)
 {
 	struct mbuf *md;
 	caddr_t dpos;
-	static u_int64_t random_fh = 0;
+	static uint64_t random_fh = 0;
 	int error;
 	int v3 = (req->rq_vers == 3);
 	rpcproc_t procnum;
@@ -356,7 +356,7 @@ out:
 }
 
 static struct fha_hash_entry *
-fha_hash_entry_new(u_int64_t fh)
+fha_hash_entry_new(uint64_t fh)
 {
 	struct fha_hash_entry *e;
 
@@ -394,7 +394,7 @@ fha_hash_entry_remove(struct fha_hash_entry *e)
 }
 
 static struct fha_hash_entry *
-fha_hash_entry_lookup(struct fha_params *softc, u_int64_t fh)
+fha_hash_entry_lookup(struct fha_params *softc, uint64_t fh)
 {
 	struct fha_hash_slot *fhs;
 	struct fha_hash_entry *fhe, *new_fhe;

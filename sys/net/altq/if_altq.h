@@ -92,7 +92,7 @@ struct altq_pktattr {
  * mbuf tag to carry a queue id (and hints for ECN).
  */
 struct altq_tag {
-	u_int32_t	qid;		/* queue id */
+	uint32_t	qid;		/* queue id */
 	/* hints for ecn */
 	int		af;		/* address family */
 	void		*hdr;		/* saved header position in mbuf */
@@ -113,7 +113,7 @@ struct tb_regulator {
 
 	int64_t		tbr_token;	/* (scaled) current token */
 	int64_t		tbr_filluptime;	/* (scaled) time to fill up bucket */
-	u_int64_t	tbr_last;	/* last time token was updated */
+	uint64_t	tbr_last;	/* last time token was updated */
 
 	int		tbr_lastop;	/* last dequeue operation type
 					   needed for poll-and-dequeue */

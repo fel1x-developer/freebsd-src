@@ -120,9 +120,9 @@ static int altq_enabled = 0;
 
 struct pfl_entry {
 	char		name[MAXPATHLEN + PF_RULE_LABEL_SIZE];
-	u_int64_t	evals;
-	u_int64_t	bytes[2];
-	u_int64_t	pkts[2];
+	uint64_t	evals;
+	uint64_t	bytes[2];
+	uint64_t	pkts[2];
 	u_int		index;
 	TAILQ_ENTRY(pfl_entry) link;
 };
@@ -984,7 +984,7 @@ pf_altqq(struct snmp_context __unused *ctx, struct snmp_value *val,
 			break;
 		case LEAF_pfAltqQueueBandwidth:
 			val->v.uint32 = (e->altq.bandwidth > UINT_MAX) ?
-			    UINT_MAX : (u_int32_t)e->altq.bandwidth;
+			    UINT_MAX : (uint32_t)e->altq.bandwidth;
 			break;
 		case LEAF_pfAltqQueuePriority:
 			val->v.integer = e->altq.priority;
@@ -1517,7 +1517,7 @@ pfl_scan_ruleset(const char *path)
 	struct pfctl_rule rule;
 	char anchor_call[MAXPATHLEN] = "";
 	struct pfl_entry *e;
-	u_int32_t nr, i;
+	uint32_t nr, i;
 
 	if (pfctl_get_rules_info(dev, &rules, PF_PASS, path)) {
 		syslog(LOG_ERR, "pfl_scan_ruleset: ioctl(DIOCGETRULES): %s",
@@ -1565,7 +1565,7 @@ pfl_walk_rulesets(const char *path)
 {
 	struct pfioc_ruleset prs;
 	char newpath[MAXPATHLEN];
-	u_int32_t nr, i;
+	uint32_t nr, i;
 
 	if (pfl_scan_ruleset(path))
 		goto err;

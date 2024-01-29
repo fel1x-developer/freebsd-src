@@ -64,79 +64,79 @@ struct tac_str {
 };
 
 struct tac_authen_start {
-	u_int8_t	action;
-	u_int8_t	priv_lvl;
-	u_int8_t	authen_type;
-	u_int8_t	service;
-	u_int8_t	user_len;
-	u_int8_t	port_len;
-	u_int8_t	rem_addr_len;
-	u_int8_t	data_len;
+	uint8_t	action;
+	uint8_t	priv_lvl;
+	uint8_t	authen_type;
+	uint8_t	service;
+	uint8_t	user_len;
+	uint8_t	port_len;
+	uint8_t	rem_addr_len;
+	uint8_t	data_len;
 	unsigned char	rest[1];
 };
 
 struct tac_authen_reply {
-	u_int8_t	status;
-	u_int8_t	flags;
-	u_int16_t	msg_len;
-	u_int16_t	data_len;
+	uint8_t	status;
+	uint8_t	flags;
+	uint16_t	msg_len;
+	uint16_t	data_len;
 	unsigned char	rest[1];
 };
 
 struct tac_authen_cont {
-	u_int16_t	user_msg_len;
-	u_int16_t	data_len;
-	u_int8_t	flags;
+	uint16_t	user_msg_len;
+	uint16_t	data_len;
+	uint8_t	flags;
 	unsigned char	rest[1];
 };
 
 struct tac_author_request {
-	u_int8_t	authen_meth;
-	u_int8_t	priv_lvl;
-	u_int8_t	authen_type;
-	u_int8_t	service;
-	u_int8_t	user_len;
-	u_int8_t	port_len;
-	u_int8_t	rem_addr_len;
-	u_int8_t	av_cnt;
+	uint8_t	authen_meth;
+	uint8_t	priv_lvl;
+	uint8_t	authen_type;
+	uint8_t	service;
+	uint8_t	user_len;
+	uint8_t	port_len;
+	uint8_t	rem_addr_len;
+	uint8_t	av_cnt;
 	unsigned char	rest[1];
 };
 
 struct tac_author_response {
-	u_int8_t	status;
-	u_int8_t	av_cnt;
-	u_int16_t	msg_len;
-	u_int16_t	data_len;
+	uint8_t	status;
+	uint8_t	av_cnt;
+	uint16_t	msg_len;
+	uint16_t	data_len;
 	unsigned char	rest[1];
 };
 
 struct tac_acct_start {
-	u_int8_t	action;
-	u_int8_t	authen_action;
-	u_int8_t	priv_lvl;
-	u_int8_t	authen_type;
-	u_int8_t	authen_service;
-	u_int8_t	user_len;
-	u_int8_t	port_len;
-	u_int8_t	rem_addr_len;
-	u_int8_t	av_cnt;
+	uint8_t	action;
+	uint8_t	authen_action;
+	uint8_t	priv_lvl;
+	uint8_t	authen_type;
+	uint8_t	authen_service;
+	uint8_t	user_len;
+	uint8_t	port_len;
+	uint8_t	rem_addr_len;
+	uint8_t	av_cnt;
 	unsigned char	rest[1];
 };
 
 struct tac_acct_reply {
-	u_int16_t	msg_len;
-	u_int16_t	data_len;
-	u_int8_t	status;
+	uint16_t	msg_len;
+	uint16_t	data_len;
+	uint8_t	status;
 	unsigned char	rest[1];
 };
 
 struct tac_msg {
-	u_int8_t	version;
-	u_int8_t	type;
-	u_int8_t	seq_no;
-	u_int8_t	flags;
-	u_int8_t	session_id[4];
-	u_int32_t	length;
+	uint8_t	version;
+	uint8_t	type;
+	uint8_t	seq_no;
+	uint8_t	flags;
+	uint8_t	session_id[4];
+	uint32_t	length;
 	union {
 		struct tac_authen_start authen_start;
 		struct tac_authen_reply authen_reply;

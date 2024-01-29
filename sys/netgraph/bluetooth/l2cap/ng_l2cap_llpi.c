@@ -347,7 +347,7 @@ out:
  */
 
 int
-ng_l2cap_lp_qos_req(ng_l2cap_p l2cap, u_int16_t con_handle,
+ng_l2cap_lp_qos_req(ng_l2cap_p l2cap, uint16_t con_handle,
 		ng_l2cap_flow_p flow)
 {
 	struct ng_mesg		*msg = NULL;
@@ -540,7 +540,7 @@ out:
  */
 
 int
-ng_l2cap_lp_send(ng_l2cap_con_p con, u_int16_t dcid, struct mbuf *m0)
+ng_l2cap_lp_send(ng_l2cap_con_p con, uint16_t dcid, struct mbuf *m0)
 {
 	ng_l2cap_p		 l2cap = con->l2cap;
 	ng_l2cap_hdr_t		*l2cap_hdr = NULL;
@@ -661,7 +661,7 @@ ng_l2cap_lp_receive(ng_l2cap_p l2cap, struct mbuf *m)
 	ng_hci_acldata_pkt_t	*acl_hdr = NULL;
 	ng_l2cap_hdr_t		*l2cap_hdr = NULL;
 	ng_l2cap_con_p		 con = NULL;
-	u_int16_t		 con_handle, length, pb;
+	uint16_t		 con_handle, length, pb;
 	int			 error = 0;
 
 	/* Check ACL data packet */

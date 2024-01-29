@@ -75,7 +75,7 @@ static struct mbuf *priq_pollq(struct priq_class *);
 static void priq_purgeq(struct priq_class *);
 
 static void get_class_stats(struct priq_classstats *, struct priq_class *);
-static struct priq_class *clh_to_clp(struct priq_if *, u_int32_t);
+static struct priq_class *clh_to_clp(struct priq_if *, uint32_t);
 
 int
 priq_pfattach(struct pf_altq *a)
@@ -621,7 +621,7 @@ get_class_stats(struct priq_classstats *sp, struct priq_class *cl)
 
 /* convert a class handle to the corresponding class pointer */
 static struct priq_class *
-clh_to_clp(struct priq_if *pif, u_int32_t chandle)
+clh_to_clp(struct priq_if *pif, uint32_t chandle)
 {
 	struct priq_class *cl;
 	int idx;

@@ -336,7 +336,7 @@ ng_vjc_rcvmsg(node_p node, item_p item, hook_p lasthook)
 		    {
 			const struct slcompress *const sl0 = &priv->slc;
 			struct slcompress *sl;
-			u_int16_t index;
+			uint16_t index;
 			int i;
 
 			/* Get response structure */
@@ -350,14 +350,14 @@ ng_vjc_rcvmsg(node_p node, item_p item, hook_p lasthook)
 			if (sl->last_cs != NULL) {
 				index = sl0->last_cs - sl0->tstate;
 				bzero(&sl->last_cs, sizeof(sl->last_cs));
-				*((u_int16_t *)&sl->last_cs) = index;
+				*((uint16_t *)&sl->last_cs) = index;
 			}
 			for (i = 0; i < MAX_STATES; i++) {
 				struct cstate *const cs = &sl->tstate[i];
 
 				index = sl0->tstate[i].cs_next - sl0->tstate;
 				bzero(&cs->cs_next, sizeof(cs->cs_next));
-				*((u_int16_t *)&cs->cs_next) = index;
+				*((uint16_t *)&cs->cs_next) = index;
 			}
 			break;
 		    }

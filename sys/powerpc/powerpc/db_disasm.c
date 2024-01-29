@@ -68,15 +68,15 @@ enum function_mask {
 
 struct opcode {
 	const char *name;
-	u_int32_t mask;
-	u_int32_t code;
+	uint32_t mask;
+	uint32_t code;
 	enum function_mask func;
 };
 
-typedef u_int32_t instr_t;
+typedef uint32_t instr_t;
 typedef void (op_class_func) (instr_t, vm_offset_t);
 
-u_int32_t extract_field(u_int32_t value, u_int32_t base, u_int32_t width);
+uint32_t extract_field(uint32_t value, uint32_t base, uint32_t width);
 void disasm_fields(const struct opcode *popcode, instr_t instr, vm_offset_t loc,
     char *disasm_str, size_t slen);
 void dis_ppc(const struct opcode *opcodeset, instr_t instr, vm_offset_t loc);
@@ -588,10 +588,10 @@ op_ill(instr_t instr, vm_offset_t loc)
 	db_printf("illegal instruction %x\n", instr);
 }
 
-u_int32_t
-extract_field(u_int32_t value, u_int32_t base, u_int32_t width)
+uint32_t
+extract_field(uint32_t value, uint32_t base, uint32_t width)
 {
-	u_int32_t mask = (1 << width) - 1;
+	uint32_t mask = (1 << width) - 1;
 	return ((value >> base) & mask);
 }
 

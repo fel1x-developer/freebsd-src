@@ -544,7 +544,7 @@ ppiioctl(struct cdev *dev, u_long cmd, caddr_t data, int flags, struct thread *t
 	device_t ppidev = ppi->ppi_device;
 	device_t ppbus = device_get_parent(ppidev);
 	int error = 0;
-	u_int8_t *val = (u_int8_t *)data;
+	uint8_t *val = (uint8_t *)data;
 
 	ppb_lock(ppbus);
 	switch (cmd) {

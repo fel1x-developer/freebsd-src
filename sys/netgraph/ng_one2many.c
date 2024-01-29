@@ -71,9 +71,9 @@ struct ng_one2many_private {
 	struct ng_one2many_config	conf;		/* node configuration */
 	struct ng_one2many_link		one;		/* "one" hook */
 	struct ng_one2many_link		many[NG_ONE2MANY_MAX_LINKS];
-	u_int16_t			nextMany;	/* next round-robin */
-	u_int16_t			numActiveMany;	/* # active "many" */
-	u_int16_t			activeMany[NG_ONE2MANY_MAX_LINKS];
+	uint16_t			nextMany;	/* next round-robin */
+	uint16_t			numActiveMany;	/* # active "many" */
+	uint16_t			activeMany[NG_ONE2MANY_MAX_LINKS];
 };
 typedef struct ng_one2many_private *priv_p;
 

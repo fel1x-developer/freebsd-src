@@ -63,7 +63,7 @@ smbfs_getino(struct smbnode *dnp, const char *name, int nmlen)
 {
 #ifdef USE_MD5_HASH
 	MD5_CTX md5;
-	u_int32_t state[4];
+	uint32_t state[4];
 	long ino;
 	int i;
 
@@ -74,7 +74,7 @@ smbfs_getino(struct smbnode *dnp, const char *name, int nmlen)
 		ino += state[i];
 	return dnp->n_ino + ino;
 #endif
-	u_int32_t ino;
+	uint32_t ino;
 
 	ino = dnp->n_ino + smbfs_hash(name, nmlen);
 	if (ino <= 2)
@@ -83,7 +83,7 @@ smbfs_getino(struct smbnode *dnp, const char *name, int nmlen)
 }
 
 static int
-smbfs_smb_lockandx(struct smbnode *np, int op, u_int32_t pid, off_t start, off_t end,
+smbfs_smb_lockandx(struct smbnode *np, int op, uint32_t pid, off_t start, off_t end,
 	struct smb_cred *scred)
 {
 	struct smb_share *ssp = np->n_mount->sm_share;
@@ -182,8 +182,8 @@ smbfs_query_info_alloc(struct smb_share *ssp, struct statfs *sbp,
 	struct smb_t2rq *t2p;
 	struct mbchain *mbp;
 	struct mdchain *mdp;
-	u_int16_t bsize;
-	u_int32_t units, bpu, funits;
+	uint16_t bsize;
+	uint32_t units, bpu, funits;
 	int error;
 
 	error = smb_t2_alloc(SSTOCP(ssp), SMB_TRANS2_QUERY_FS_INFORMATION,
@@ -222,7 +222,7 @@ smbfs_query_info_disk(struct smb_share *ssp, struct statfs *sbp,
 {
 	struct smb_rq *rqp;
 	struct mdchain *mdp;
-	u_int16_t units, bpu, bsize, funits;
+	uint16_t units, bpu, bsize, funits;
 	int error;
 
 	error = smb_rq_alloc(SSTOCP(ssp), SMB_COM_QUERY_INFORMATION_DISK,
@@ -371,10 +371,10 @@ smbfs_smb_query_info(struct smbnode *np, const char *name, int len,
 	struct smb_share *ssp = np->n_mount->sm_share;
 	struct mbchain *mbp;
 	struct mdchain *mdp;
-	u_int8_t wc;
+	uint8_t wc;
 	int error;
-	u_int16_t wattr;
-	u_int32_t lint;
+	uint16_t wattr;
+	uint32_t lint;
 
 	error = smb_rq_alloc(SSTOCP(ssp), SMB_COM_QUERY_INFORMATION, scred,
 	    &rqp);
@@ -421,7 +421,7 @@ smbfs_smb_query_info(struct smbnode *np, const char *name, int len,
  * Set DOS file attributes. mtime should be NULL for dialects above lm10
  */
 int
-smbfs_smb_setpattr(struct smbnode *np, u_int16_t attr, struct timespec *mtime,
+smbfs_smb_setpattr(struct smbnode *np, uint16_t attr, struct timespec *mtime,
 	struct smb_cred *scred)
 {
 	struct smb_rq *rqp;
@@ -479,7 +479,7 @@ smbfs_smb_setptime2(struct smbnode *np, struct timespec *mtime,
 	struct smb_share *ssp = np->n_mount->sm_share;
 	struct smb_vc *vcp = SSTOVC(ssp);
 	struct mbchain *mbp;
-	u_int16_t date, time;
+	uint16_t date, time;
 	int error, tzoff;
 
 	error = smb_t2_alloc(SSTOCP(ssp), SMB_TRANS2_SET_PATH_INFORMATION,
@@ -584,7 +584,7 @@ smbfs_smb_setftime(struct smbnode *np, struct timespec *mtime,
 	struct smb_rq *rqp;
 	struct smb_share *ssp = np->n_mount->sm_share;
 	struct mbchain *mbp;
-	u_int16_t date, time;
+	uint16_t date, time;
 	int error, tzoff;
 
 	error = smb_rq_alloc(SSTOCP(ssp), SMB_COM_SET_INFORMATION2, scred,
@@ -623,7 +623,7 @@ smbfs_smb_setftime(struct smbnode *np, struct timespec *mtime,
  * Looks like this call can be used only if SMB_CAP_NT_SMBS bit is on.
  */
 int
-smbfs_smb_setfattrNT(struct smbnode *np, u_int16_t attr, struct timespec *mtime,
+smbfs_smb_setfattrNT(struct smbnode *np, uint16_t attr, struct timespec *mtime,
 	struct timespec *atime, struct smb_cred *scred)
 {
 	struct smb_t2rq *t2p;
@@ -673,8 +673,8 @@ smbfs_smb_open(struct smbnode *np, int accmode, struct smb_cred *scred)
 	struct smb_share *ssp = np->n_mount->sm_share;
 	struct mbchain *mbp;
 	struct mdchain *mdp;
-	u_int8_t wc;
-	u_int16_t fid, wattr, grantedmode;
+	uint8_t wc;
+	uint16_t fid, wattr, grantedmode;
 	int error;
 
 	error = smb_rq_alloc(SSTOCP(ssp), SMB_COM_OPEN, scred, &rqp);
@@ -718,7 +718,7 @@ smbfs_smb_open(struct smbnode *np, int accmode, struct smb_cred *scred)
 }
 
 int
-smbfs_smb_close(struct smb_share *ssp, u_int16_t fid, struct timespec *mtime,
+smbfs_smb_close(struct smb_share *ssp, uint16_t fid, struct timespec *mtime,
 	struct smb_cred *scred)
 {
 	struct smb_rq *rqp;
@@ -754,8 +754,8 @@ smbfs_smb_create(struct smbnode *dnp, const char *name, int nmlen,
 	struct mbchain *mbp;
 	struct mdchain *mdp;
 	struct timespec ctime;
-	u_int8_t wc;
-	u_int16_t fid;
+	uint8_t wc;
+	uint16_t fid;
 	u_long tm;
 	int error;
 
@@ -852,7 +852,7 @@ smbfs_smb_rename(struct smbnode *src, struct smbnode *tdnp,
 
 int
 smbfs_smb_move(struct smbnode *src, struct smbnode *tdnp,
-	const char *tname, int tnmlen, u_int16_t flags, struct smb_cred *scred)
+	const char *tname, int tnmlen, uint16_t flags, struct smb_cred *scred)
 {
 	struct smb_rq *rqp;
 	struct smb_share *ssp = src->n_mount->sm_share;
@@ -945,8 +945,8 @@ smbfs_smb_search(struct smbfs_fctx *ctx)
 	struct smb_rq *rqp;
 	struct mbchain *mbp;
 	struct mdchain *mdp;
-	u_int8_t wc, bt;
-	u_int16_t ec, dlen, bc;
+	uint8_t wc, bt;
+	uint16_t ec, dlen, bc;
 	int maxent, error, iseof = 0;
 
 	maxent = min(ctx->f_left, (vcp->vc_txmax - SMB_HDRLEN - 3) / SMB_DENTRYLEN);
@@ -1040,9 +1040,9 @@ smbfs_findnextLM1(struct smbfs_fctx *ctx, int limit)
 	struct mdchain *mbp;
 	struct smb_rq *rqp;
 	char *cp;
-	u_int8_t battr;
-	u_int16_t date, time;
-	u_int32_t size;
+	uint8_t battr;
+	uint16_t date, time;
+	uint32_t size;
 	int error;
 
 	if (ctx->f_ecnt == 0) {
@@ -1094,7 +1094,7 @@ smbfs_smb_trans2find2(struct smbfs_fctx *ctx)
 	struct smb_vc *vcp = SSTOVC(ctx->f_ssp);
 	struct mbchain *mbp;
 	struct mdchain *mdp;
-	u_int16_t tw, flags;
+	uint16_t tw, flags;
 	int error;
 
 	if (ctx->f_t2) {
@@ -1239,9 +1239,9 @@ smbfs_findnextLM2(struct smbfs_fctx *ctx, int limit)
 	struct mdchain *mbp;
 	struct smb_t2rq *t2p;
 	char *cp;
-	u_int8_t tb;
-	u_int16_t date, time, wattr;
-	u_int32_t size, next, dattr;
+	uint8_t tb;
+	uint16_t date, time, wattr;
+	uint32_t size, next, dattr;
 	int64_t lint;
 	int error, svtz, cnt, fxsz, nmlen, recsz;
 
@@ -1406,9 +1406,9 @@ smbfs_findnext(struct smbfs_fctx *ctx, int limit, struct smb_cred *scred)
 			return error;
 		if (SMB_UNICODE_STRINGS(SSTOVC(ctx->f_ssp))) {
 			if ((ctx->f_nmlen == 2 &&
-			     *(u_int16_t *)ctx->f_name == htole16(0x002e)) ||
+			     *(uint16_t *)ctx->f_name == htole16(0x002e)) ||
 			    (ctx->f_nmlen == 4 &&
-			     *(u_int32_t *)ctx->f_name == htole32(0x002e002e)))
+			     *(uint32_t *)ctx->f_name == htole32(0x002e002e)))
 				continue;
 		} else
 			if ((ctx->f_nmlen == 1 && ctx->f_name[0] == '.') ||

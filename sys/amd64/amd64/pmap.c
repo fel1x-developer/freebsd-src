@@ -442,11 +442,11 @@ pmap_is_la57(pmap_t pmap)
 #define	PAT_INDEX_SIZE	8
 static int pat_index[PAT_INDEX_SIZE];	/* cache mode to PAT index conversion */
 
-static u_int64_t	KPTphys;	/* phys addr of kernel level 1 */
-static u_int64_t	KPDphys;	/* phys addr of kernel level 2 */
-static u_int64_t	KPDPphys;	/* phys addr of kernel level 3 */
-u_int64_t		KPML4phys;	/* phys addr of kernel level 4 */
-u_int64_t		KPML5phys;	/* phys addr of kernel level 5,
+static uint64_t	KPTphys;	/* phys addr of kernel level 1 */
+static uint64_t	KPDphys;	/* phys addr of kernel level 2 */
+static uint64_t	KPDPphys;	/* phys addr of kernel level 3 */
+uint64_t		KPML4phys;	/* phys addr of kernel level 4 */
+uint64_t		KPML5phys;	/* phys addr of kernel level 5,
 					   if supported */
 
 #ifdef KASAN
@@ -465,8 +465,8 @@ _Static_assert(DMPML4I + NDMPML4E <= KMSANSHADPML4I, "direct map overflow");
 #endif
 
 static pml4_entry_t	*kernel_pml4;
-static u_int64_t	DMPDphys;	/* phys addr of direct mapped level 2 */
-static u_int64_t	DMPDPphys;	/* phys addr of direct mapped level 3 */
+static uint64_t	DMPDphys;	/* phys addr of direct mapped level 2 */
+static uint64_t	DMPDPphys;	/* phys addr of direct mapped level 3 */
 static int		ndmpdpphys;	/* number of DMPDPphys pages */
 
 vm_paddr_t		kernphys;	/* phys addr of start of bootstrap data */
@@ -1568,10 +1568,10 @@ vtopde(vm_offset_t va)
 	return ((pt_entry_t *)(PDmap + ((va >> (PDRSHIFT - 3)) & vtopdem)));
 }
 
-static u_int64_t
+static uint64_t
 allocpages(vm_paddr_t *firstaddr, int n)
 {
-	u_int64_t ret;
+	uint64_t ret;
 
 	ret = *firstaddr;
 	bzero((void *)ret, n * PAGE_SIZE);

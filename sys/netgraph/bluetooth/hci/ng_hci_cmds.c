@@ -61,19 +61,19 @@
 static int  complete_command (ng_hci_unit_p, int, struct mbuf **);
 
 static int process_link_control_params
-	(ng_hci_unit_p, u_int16_t, struct mbuf *, struct mbuf *);
+	(ng_hci_unit_p, uint16_t, struct mbuf *, struct mbuf *);
 static int process_link_policy_params
-	(ng_hci_unit_p, u_int16_t, struct mbuf *, struct mbuf *);
+	(ng_hci_unit_p, uint16_t, struct mbuf *, struct mbuf *);
 static int process_hc_baseband_params
-	(ng_hci_unit_p, u_int16_t, struct mbuf *, struct mbuf *);
+	(ng_hci_unit_p, uint16_t, struct mbuf *, struct mbuf *);
 static int process_info_params
-	(ng_hci_unit_p, u_int16_t, struct mbuf *, struct mbuf *);
+	(ng_hci_unit_p, uint16_t, struct mbuf *, struct mbuf *);
 static int process_status_params
-	(ng_hci_unit_p, u_int16_t, struct mbuf *, struct mbuf *);
+	(ng_hci_unit_p, uint16_t, struct mbuf *, struct mbuf *);
 static int process_testing_params
-	(ng_hci_unit_p, u_int16_t, struct mbuf *, struct mbuf *);
+	(ng_hci_unit_p, uint16_t, struct mbuf *, struct mbuf *);
 static int process_le_params
-	(ng_hci_unit_p, u_int16_t, struct mbuf *, struct mbuf *);
+	(ng_hci_unit_p, uint16_t, struct mbuf *, struct mbuf *);
 
 static int process_link_control_status
 	(ng_hci_unit_p, ng_hci_command_status_ep *, struct mbuf *);
@@ -196,7 +196,7 @@ ng_hci_process_command_complete(ng_hci_unit_p unit, struct mbuf *e)
 	ep->opcode = le16toh(ep->opcode);
 	m_adj(e, sizeof(*ep));
 
-	if (*mtod(e, u_int8_t *) == 0) { /* XXX m_pullup here? */
+	if (*mtod(e, uint8_t *) == 0) { /* XXX m_pullup here? */
 		switch (NG_HCI_OGF(ep->opcode)) {
 		case NG_HCI_OGF_LINK_CONTROL:
 			error = process_link_control_params(unit,
@@ -248,7 +248,7 @@ ng_hci_process_command_complete(ng_hci_unit_p unit, struct mbuf *e)
 "%s: %s - HCI command failed, OGF=%#x, OCF=%#x, status=%#x\n",
 			__func__, NG_NODE_NAME(unit->node),
 			NG_HCI_OGF(ep->opcode), NG_HCI_OCF(ep->opcode), 
-			*mtod(e, u_int8_t *));
+			*mtod(e, uint8_t *));
 
 		NG_FREE_M(cp);
 		NG_FREE_M(e);
@@ -393,7 +393,7 @@ ng_hci_process_command_timeout(node_p node, hook_p hook, void *arg1, int arg2)
 {
 	ng_hci_unit_p	 unit = NULL;
 	struct mbuf	*m = NULL;
-	u_int16_t	 opcode;
+	uint16_t	 opcode;
 
 	if (NG_NODE_NOT_VALID(node)) {
 		printf("%s: Netgraph node is not valid\n", __func__);
@@ -434,7 +434,7 @@ ng_hci_process_command_timeout(node_p node, hook_p hook, void *arg1, int arg2)
  */
 
 static int
-process_link_control_params(ng_hci_unit_p unit, u_int16_t ocf, 
+process_link_control_params(ng_hci_unit_p unit, uint16_t ocf, 
 		struct mbuf *mcp, struct mbuf *mrp)
 {
 	int	error  = 0;
@@ -489,7 +489,7 @@ process_link_control_params(ng_hci_unit_p unit, u_int16_t ocf,
  */
 
 static int
-process_link_policy_params(ng_hci_unit_p unit, u_int16_t ocf,
+process_link_policy_params(ng_hci_unit_p unit, uint16_t ocf,
 		struct mbuf *mcp, struct mbuf *mrp)
 {
 	int	error = 0;
@@ -498,7 +498,7 @@ process_link_policy_params(ng_hci_unit_p unit, u_int16_t ocf,
 	case NG_HCI_OCF_ROLE_DISCOVERY: {
 		ng_hci_role_discovery_rp	*rp = NULL;
 		ng_hci_unit_con_t		*con = NULL;
-		u_int16_t			 h;
+		uint16_t			 h;
 
 		NG_HCI_M_PULLUP(mrp, sizeof(*rp));
 		if (mrp != NULL) {
@@ -558,7 +558,7 @@ process_link_policy_params(ng_hci_unit_p unit, u_int16_t ocf,
  */
 
 int
-process_hc_baseband_params(ng_hci_unit_p unit, u_int16_t ocf, 
+process_hc_baseband_params(ng_hci_unit_p unit, uint16_t ocf, 
 		struct mbuf *mcp, struct mbuf *mrp)
 {
 	int	error = 0;
@@ -671,7 +671,7 @@ process_hc_baseband_params(ng_hci_unit_p unit, u_int16_t ocf,
  */
 
 static int
-process_info_params(ng_hci_unit_p unit, u_int16_t ocf, struct mbuf *mcp,
+process_info_params(ng_hci_unit_p unit, uint16_t ocf, struct mbuf *mcp,
 		struct mbuf *mrp)
 {
 	int	error = 0, len;
@@ -682,7 +682,7 @@ process_info_params(ng_hci_unit_p unit, u_int16_t ocf, struct mbuf *mcp,
 		break;
 
 	case NG_HCI_OCF_READ_LOCAL_FEATURES:
-		m_adj(mrp, sizeof(u_int8_t));
+		m_adj(mrp, sizeof(uint8_t));
 		len = min(mrp->m_pkthdr.len, sizeof(unit->features));
 		m_copydata(mrp, 0, len, (caddr_t) unit->features);
 		break;
@@ -724,7 +724,7 @@ process_info_params(ng_hci_unit_p unit, u_int16_t ocf, struct mbuf *mcp,
 		if ((unit->state & NG_HCI_UNIT_READY) == NG_HCI_UNIT_READY)
 			break;
 
-		m_adj(mrp, sizeof(u_int8_t));
+		m_adj(mrp, sizeof(uint8_t));
 		len = min(mrp->m_pkthdr.len, sizeof(unit->bdaddr));
 		m_copydata(mrp, 0, len, (caddr_t) &unit->bdaddr);
 
@@ -749,7 +749,7 @@ process_info_params(ng_hci_unit_p unit, u_int16_t ocf, struct mbuf *mcp,
  */
 
 static int
-process_status_params(ng_hci_unit_p unit, u_int16_t ocf, struct mbuf *mcp,
+process_status_params(ng_hci_unit_p unit, uint16_t ocf, struct mbuf *mcp,
 		struct mbuf *mrp)
 {
 	int	error = 0;
@@ -778,7 +778,7 @@ process_status_params(ng_hci_unit_p unit, u_int16_t ocf, struct mbuf *mcp,
  */
 
 int
-process_testing_params(ng_hci_unit_p unit, u_int16_t ocf, struct mbuf *mcp,
+process_testing_params(ng_hci_unit_p unit, uint16_t ocf, struct mbuf *mcp,
 		struct mbuf *mrp)
 {
 	int	error = 0;
@@ -812,7 +812,7 @@ process_testing_params(ng_hci_unit_p unit, u_int16_t ocf, struct mbuf *mcp,
  */
 
 static int
-process_le_params(ng_hci_unit_p unit, u_int16_t ocf,
+process_le_params(ng_hci_unit_p unit, uint16_t ocf,
 		struct mbuf *mcp, struct mbuf *mrp)
 {
 	int	error = 0;

@@ -383,7 +383,7 @@ load_dsdt(const char *dsdtfile)
 {
 	char			filetmp[PATH_MAX];
 	ACPI_NEW_TABLE_DESC	*list;
-	u_int8_t		*code;
+	uint8_t		*code;
 	struct stat		sb;
 	int			dounlink, error, fd;
 

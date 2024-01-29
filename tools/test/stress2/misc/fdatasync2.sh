@@ -73,12 +73,12 @@ EOF
 #include <string.h>
 #include <unistd.h>
 
-#define N (128 * 1024 / (int)sizeof(u_int32_t))
+#define N (128 * 1024 / (int)sizeof(uint32_t))
 #define RUNTIME 180
 #define THREADS 6
 
 static int fd[900];
-static u_int32_t r[N];
+static uint32_t r[N];
 static char *args[2];
 
 static unsigned long

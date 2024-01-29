@@ -114,10 +114,10 @@ enum pfsync_msg_versions {
  */
 
 struct pfsync_header {
-	u_int8_t			version;
-	u_int8_t			_pad;
-	u_int16_t			len;
-	u_int8_t			pfcksum[PF_MD5_DIGEST_LENGTH];
+	uint8_t			version;
+	uint8_t			_pad;
+	uint16_t			len;
+	uint8_t			pfcksum[PF_MD5_DIGEST_LENGTH];
 } __packed;
 
 /*
@@ -125,9 +125,9 @@ struct pfsync_header {
  */
 
 struct pfsync_subheader {
-	u_int8_t			action;
-	u_int8_t			_pad;
-	u_int16_t			count;
+	uint8_t			action;
+	uint8_t			_pad;
+	uint16_t			count;
 } __packed;
 
 /*
@@ -136,7 +136,7 @@ struct pfsync_subheader {
 
 struct pfsync_clr {
 	char				ifname[IFNAMSIZ];
-	u_int32_t			creatorid;
+	uint32_t			creatorid;
 } __packed;
 
 /*
@@ -150,8 +150,8 @@ struct pfsync_clr {
  */
 
 struct pfsync_ins_ack {
-	u_int64_t			id;
-	u_int32_t			creatorid;
+	uint64_t			id;
+	uint32_t			creatorid;
 } __packed;
 
 /*
@@ -159,13 +159,13 @@ struct pfsync_ins_ack {
  */
 
 struct pfsync_upd_c {
-	u_int64_t			id;
+	uint64_t			id;
 	struct pfsync_state_peer	src;
 	struct pfsync_state_peer	dst;
-	u_int32_t			creatorid;
-	u_int32_t			expire;
-	u_int8_t			timeout;
-	u_int8_t			_pad[3];
+	uint32_t			creatorid;
+	uint32_t			expire;
+	uint8_t			timeout;
+	uint8_t			_pad[3];
 } __packed;
 
 /*
@@ -173,8 +173,8 @@ struct pfsync_upd_c {
  */
 
 struct pfsync_upd_req {
-	u_int64_t			id;
-	u_int32_t			creatorid;
+	uint64_t			id;
+	uint32_t			creatorid;
 } __packed;
 
 /*
@@ -182,8 +182,8 @@ struct pfsync_upd_req {
  */
 
 struct pfsync_del_c {
-	u_int64_t			id;
-	u_int32_t			creatorid;
+	uint64_t			id;
+	uint32_t			creatorid;
 } __packed;
 
 /*
@@ -197,12 +197,12 @@ struct pfsync_del_c {
  */
 
 struct pfsync_bus {
-	u_int32_t			creatorid;
-	u_int32_t			endtime;
-	u_int8_t			status;
+	uint32_t			creatorid;
+	uint32_t			endtime;
+	uint8_t			status;
 #define	PFSYNC_BUS_START			1
 #define	PFSYNC_BUS_END				2
-	u_int8_t			_pad[3];
+	uint8_t			_pad[3];
 } __packed;
 
 /*
@@ -210,38 +210,38 @@ struct pfsync_bus {
  */
 
 struct pfsync_tdb {
-	u_int32_t			spi;
+	uint32_t			spi;
 	union sockaddr_union		dst;
-	u_int32_t			rpl;
-	u_int64_t			cur_bytes;
-	u_int8_t			sproto;
-	u_int8_t			updates;
-	u_int8_t			_pad[2];
+	uint32_t			rpl;
+	uint64_t			cur_bytes;
+	uint8_t			sproto;
+	uint8_t			updates;
+	uint8_t			_pad[2];
 } __packed;
 
 #define	PFSYNC_HDRLEN		sizeof(struct pfsync_header)
 
 struct pfsyncstats {
-	u_int64_t	pfsyncs_ipackets;	/* total input packets, IPv4 */
-	u_int64_t	pfsyncs_ipackets6;	/* total input packets, IPv6 */
-	u_int64_t	pfsyncs_badif;		/* not the right interface */
-	u_int64_t	pfsyncs_badttl;		/* TTL is not PFSYNC_DFLTTL */
-	u_int64_t	pfsyncs_hdrops;		/* packets shorter than hdr */
-	u_int64_t	pfsyncs_badver;		/* bad (incl unsupp) version */
-	u_int64_t	pfsyncs_badact;		/* bad action */
-	u_int64_t	pfsyncs_badlen;		/* data length does not match */
-	u_int64_t	pfsyncs_badauth;	/* bad authentication */
-	u_int64_t	pfsyncs_stale;		/* stale state */
-	u_int64_t	pfsyncs_badval;		/* bad values */
-	u_int64_t	pfsyncs_badstate;	/* insert/lookup failed */
+	uint64_t	pfsyncs_ipackets;	/* total input packets, IPv4 */
+	uint64_t	pfsyncs_ipackets6;	/* total input packets, IPv6 */
+	uint64_t	pfsyncs_badif;		/* not the right interface */
+	uint64_t	pfsyncs_badttl;		/* TTL is not PFSYNC_DFLTTL */
+	uint64_t	pfsyncs_hdrops;		/* packets shorter than hdr */
+	uint64_t	pfsyncs_badver;		/* bad (incl unsupp) version */
+	uint64_t	pfsyncs_badact;		/* bad action */
+	uint64_t	pfsyncs_badlen;		/* data length does not match */
+	uint64_t	pfsyncs_badauth;	/* bad authentication */
+	uint64_t	pfsyncs_stale;		/* stale state */
+	uint64_t	pfsyncs_badval;		/* bad values */
+	uint64_t	pfsyncs_badstate;	/* insert/lookup failed */
 
-	u_int64_t	pfsyncs_opackets;	/* total output packets, IPv4 */
-	u_int64_t	pfsyncs_opackets6;	/* total output packets, IPv6 */
-	u_int64_t	pfsyncs_onomem;		/* no memory for an mbuf */
-	u_int64_t	pfsyncs_oerrors;	/* ip output error */
+	uint64_t	pfsyncs_opackets;	/* total output packets, IPv4 */
+	uint64_t	pfsyncs_opackets6;	/* total output packets, IPv6 */
+	uint64_t	pfsyncs_onomem;		/* no memory for an mbuf */
+	uint64_t	pfsyncs_oerrors;	/* ip output error */
 
-	u_int64_t	pfsyncs_iacts[PFSYNC_ACT_MAX];
-	u_int64_t	pfsyncs_oacts[PFSYNC_ACT_MAX];
+	uint64_t	pfsyncs_iacts[PFSYNC_ACT_MAX];
+	uint64_t	pfsyncs_oacts[PFSYNC_ACT_MAX];
 };
 
 /*

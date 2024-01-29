@@ -110,18 +110,18 @@ extern u_long cpu_features2;
  */
 #define	CPU_CACHELINE	1
 
-static __inline u_int64_t
+static __inline uint64_t
 get_cyclecount(void)
 {
-	u_int32_t _upper, _lower;
-	u_int64_t _time;
+	uint32_t _upper, _lower;
+	uint64_t _time;
 
 	__asm __volatile(
 		"mftb %0\n"
 		"mftbu %1"
 		: "=r" (_lower), "=r" (_upper));
 
-	_time = (u_int64_t)_upper;
+	_time = (uint64_t)_upper;
 	_time = (_time << 32) + _lower;
 	return (_time);
 }

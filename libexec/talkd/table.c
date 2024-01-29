@@ -189,7 +189,7 @@ new_id(void)
  * Delete the invitation with id 'id_num'
  */
 int
-delete_invite(u_int32_t id_num)
+delete_invite(uint32_t id_num)
 {
 	TABLE_ENTRY *ptr;
 

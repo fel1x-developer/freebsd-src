@@ -79,9 +79,9 @@
 #define M_AUTH_AH	0x2000	/* header was authenticated (AH) */
 
 struct enchdr {
-	u_int32_t af;
-	u_int32_t spi;
-	u_int32_t flags;
+	uint32_t af;
+	uint32_t spi;
+	uint32_t flags;
 };
 struct enc_softc {
 	struct	ifnet *sc_ifp;

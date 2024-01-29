@@ -230,7 +230,7 @@ bmtphy_status(struct mii_softc *sc)
 static void
 bmtphy_reset(struct mii_softc *sc)
 {
-	u_int16_t data;
+	uint16_t data;
 
 	mii_phy_reset(sc);
 

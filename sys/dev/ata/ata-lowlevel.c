@@ -52,7 +52,7 @@
 
 /* prototypes */
 static int ata_generic_status(device_t dev);
-static int ata_wait(struct ata_channel *ch, int unit, u_int8_t);
+static int ata_wait(struct ata_channel *ch, int unit, uint8_t);
 static void ata_pio_read(struct ata_request *, int);
 static void ata_pio_write(struct ata_request *, int);
 static void ata_tf_read(struct ata_request *);
@@ -471,8 +471,8 @@ ata_generic_reset(device_t dev)
 {
     struct ata_channel *ch = device_get_softc(dev);
 
-    u_int8_t ostat0 = 0, stat0 = 0, ostat1 = 0, stat1 = 0;
-    u_int8_t err = 0, lsb = 0, msb = 0;
+    uint8_t ostat0 = 0, stat0 = 0, ostat1 = 0, stat1 = 0;
+    uint8_t err = 0, lsb = 0, msb = 0;
     int mask = 0, timeout;
 
     /* do we have any signs of ATA/ATAPI HW being present ? */
@@ -616,9 +616,9 @@ ata_generic_status(device_t dev)
 }
 
 static int
-ata_wait(struct ata_channel *ch, int unit, u_int8_t mask)
+ata_wait(struct ata_channel *ch, int unit, uint8_t mask)
 {
-    u_int8_t status;
+    uint8_t status;
     int timeout = 0;
     
     DELAY(1);
@@ -757,9 +757,9 @@ ata_tf_read(struct ata_request *request)
 	ATA_IDX_OUTB(ch, ATA_CONTROL, ATA_A_4BIT | ATA_A_HOB);
 	request->u.ata.count = (ATA_IDX_INB(ch, ATA_COUNT) << 8);
 	request->u.ata.lba =
-	    ((u_int64_t)(ATA_IDX_INB(ch, ATA_SECTOR)) << 24) |
-	    ((u_int64_t)(ATA_IDX_INB(ch, ATA_CYL_LSB)) << 32) |
-	    ((u_int64_t)(ATA_IDX_INB(ch, ATA_CYL_MSB)) << 40);
+	    ((uint64_t)(ATA_IDX_INB(ch, ATA_SECTOR)) << 24) |
+	    ((uint64_t)(ATA_IDX_INB(ch, ATA_CYL_LSB)) << 32) |
+	    ((uint64_t)(ATA_IDX_INB(ch, ATA_CYL_MSB)) << 40);
 
 	ATA_IDX_OUTB(ch, ATA_CONTROL, ATA_A_4BIT);
 	request->u.ata.count |= ATA_IDX_INB(ch, ATA_COUNT);

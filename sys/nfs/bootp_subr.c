@@ -106,13 +106,13 @@
 
 /* Definitions from RFC951 */
 struct bootp_packet {
-	u_int8_t op;
-	u_int8_t htype;
-	u_int8_t hlen;
-	u_int8_t hops;
-	u_int32_t xid;
-	u_int16_t secs;
-	u_int16_t flags;
+	uint8_t op;
+	uint8_t htype;
+	uint8_t hlen;
+	uint8_t hops;
+	uint32_t xid;
+	uint16_t secs;
+	uint16_t flags;
 	struct in_addr ciaddr;
 	struct in_addr yiaddr;
 	struct in_addr siaddr;
@@ -145,7 +145,7 @@ struct bootpc_ifcontext {
 	int gotrootpath;
 	int outstanding;
 	int sentmsg;
-	u_int32_t xid;
+	uint32_t xid;
 	enum {
 		IF_BOOTP_UNRESOLVED,
 		IF_BOOTP_RESOLVED,
@@ -173,7 +173,7 @@ struct bootpc_tagcontext {
 
 struct bootpc_globalcontext {
 	STAILQ_HEAD(, bootpc_ifcontext) interfaces;
-	u_int32_t xid;
+	uint32_t xid;
 	int any_root_overrides;
 	int gotrootpath;
 	int gotgw;
@@ -1137,11 +1137,11 @@ xdr_opaque_decode(struct mbuf **mptr, u_char *buf, int len)
 static int
 xdr_int_decode(struct mbuf **mptr, int *iptr)
 {
-	u_int32_t i;
+	uint32_t i;
 
-	if (xdr_opaque_decode(mptr, (u_char *) &i, sizeof(u_int32_t)) != 0)
+	if (xdr_opaque_decode(mptr, (u_char *) &i, sizeof(uint32_t)) != 0)
 		return EBADRPC;
-	*iptr = fxdr_unsigned(u_int32_t, i);
+	*iptr = fxdr_unsigned(uint32_t, i);
 	return 0;
 }
 

@@ -75,8 +75,8 @@ typedef struct rio {
 					   used for idle calibration */
 	int		 rio_flags;	/* rio flags */
 
-	u_int8_t	 rio_codepoint;	/* codepoint value to tag packets */
-	u_int8_t	 rio_codepointmask;	/* codepoint mask bits */
+	uint8_t	 rio_codepoint;	/* codepoint value to tag packets */
+	uint8_t	 rio_codepointmask;	/* codepoint mask bits */
 
 	struct redstats q_stats[RIO_NDROPPREC];	/* statistics */
 } rio_t;

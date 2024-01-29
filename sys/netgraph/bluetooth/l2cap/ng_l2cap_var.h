@@ -83,8 +83,8 @@ typedef struct ng_l2cap {
 	ng_l2cap_node_flags_ep		flags;        /* L2CAP node flags */
 	ng_l2cap_node_auto_discon_ep	discon_timo;  /* auto discon. timeout */
 
-	u_int16_t			pkt_size;     /* max. ACL packet size */
-	u_int16_t			num_pkts;     /* out queue size */
+	uint16_t			pkt_size;     /* max. ACL packet size */
+	uint16_t			num_pkts;     /* out queue size */
 	bdaddr_t			bdaddr;       /* unit BDADDR */
 
 	hook_p				hci;          /* HCI downstream hook */
@@ -93,8 +93,8 @@ typedef struct ng_l2cap {
 
 	LIST_HEAD(, ng_l2cap_con)	con_list;     /* ACL connections */
 
-    	u_int16_t			cid;          /* last allocated CID */
-    	u_int16_t			lecid;          /* last allocated CID for LE */
+    	uint16_t			cid;          /* last allocated CID */
+    	uint16_t			lecid;          /* last allocated CID for LE */
 
 	LIST_HEAD(, ng_l2cap_chan)	chan_list;    /* L2CAP channels */
 } ng_l2cap_t;
@@ -109,16 +109,16 @@ struct ng_l2cap_cmd;
 typedef struct ng_l2cap_con {
 	ng_l2cap_p			 l2cap;      /* pointer to L2CAP */
 
-	u_int16_t			 state;      /* ACL connection state */
-	u_int16_t			 flags;      /* ACL connection flags */
+	uint16_t			 state;      /* ACL connection state */
+	uint16_t			 flags;      /* ACL connection flags */
 
 	int32_t				 refcnt;     /* reference count */
 
 	bdaddr_t			 remote;     /* remote unit address */
-	u_int16_t			 con_handle; /* ACL connection handle */
+	uint16_t			 con_handle; /* ACL connection handle */
 	struct callout			 con_timo;   /* connection timeout */
 
-	u_int8_t			 ident;      /* last allocated ident */
+	uint8_t			 ident;      /* last allocated ident */
 	uint8_t				 linktype;
 	uint8_t				 encryption;
 
@@ -141,28 +141,28 @@ typedef ng_l2cap_con_t *		ng_l2cap_con_p;
 typedef struct ng_l2cap_chan {
 	ng_l2cap_con_p			con;        /* pointer to connection */
 
-	u_int16_t			state;      /* channel state */
+	uint16_t			state;      /* channel state */
 
-	u_int8_t			cfg_state;  /* configuration state */
+	uint8_t			cfg_state;  /* configuration state */
 #define NG_L2CAP_CFG_IN			(1 << 0)    /* incoming cfg path done */
 #define NG_L2CAP_CFG_OUT		(1 << 1)    /* outgoing cfg path done */
 #define NG_L2CAP_CFG_BOTH		(NG_L2CAP_CFG_IN|NG_L2CAP_CFG_OUT)
 
-	u_int8_t			ident;      /* last L2CAP req. ident */
+	uint8_t			ident;      /* last L2CAP req. ident */
 
-	u_int16_t			psm;        /* channel PSM */
-	u_int16_t			scid;       /* source channel ID */
-	u_int16_t			dcid;       /* destination channel ID */
+	uint16_t			psm;        /* channel PSM */
+	uint16_t			scid;       /* source channel ID */
+	uint16_t			dcid;       /* destination channel ID */
 
 	uint16_t			idtype;
-	u_int16_t			imtu;       /* incoming channel MTU */
+	uint16_t			imtu;       /* incoming channel MTU */
 	ng_l2cap_flow_t			iflow;      /* incoming flow control */
 
-	u_int16_t			omtu;       /* outgoing channel MTU */
+	uint16_t			omtu;       /* outgoing channel MTU */
 	ng_l2cap_flow_t			oflow;      /* outgoing flow control */
 
-	u_int16_t			flush_timo; /* flush timeout */
-	u_int16_t			link_timo;  /* link timeout */
+	uint16_t			flush_timo; /* flush timeout */
+	uint16_t			link_timo;  /* link timeout */
 
 	LIST_ENTRY(ng_l2cap_chan)	next;       /* link */
 } ng_l2cap_chan_t;
@@ -176,12 +176,12 @@ typedef struct ng_l2cap_cmd {
 	ng_l2cap_con_p			 con;       /* L2CAP connection */
 	ng_l2cap_chan_p			 ch;        /* L2CAP channel */
 
-	u_int16_t 			 flags;     /* command flags */
+	uint16_t 			 flags;     /* command flags */
 #define NG_L2CAP_CMD_PENDING		 (1 << 0)   /* command is pending */
 
-	u_int8_t 			 code;      /* L2CAP command opcode */
-	u_int8_t			 ident;     /* L2CAP command ident */
-	u_int32_t			 token;     /* L2CA message token */
+	uint8_t 			 code;      /* L2CAP command opcode */
+	uint8_t			 ident;     /* L2CAP command ident */
+	uint32_t			 token;     /* L2CA message token */
 
 	struct callout			 timo;      /* RTX/ERTX timeout */
 

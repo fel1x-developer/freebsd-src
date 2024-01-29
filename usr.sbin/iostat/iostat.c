@@ -787,11 +787,11 @@ devstats(int perf_select, long double etime, int havelast)
 	long double transfers_per_second_write;
 	long double kb_per_transfer, mb_per_second, mb_per_second_read;
 	long double mb_per_second_write;
-	u_int64_t total_bytes, total_transfers, total_blocks;
-	u_int64_t total_bytes_read, total_transfers_read;
-	u_int64_t total_bytes_write, total_transfers_write;
+	uint64_t total_bytes, total_transfers, total_blocks;
+	uint64_t total_bytes_read, total_transfers_read;
+	uint64_t total_bytes_write, total_transfers_write;
 	long double busy_pct, busy_time;
-	u_int64_t queue_len;
+	uint64_t queue_len;
 	long double total_mb, blocks_per_second, total_duration;
 	long double ms_per_other, ms_per_read, ms_per_write, ms_per_transaction;
 	int firstline = 1;

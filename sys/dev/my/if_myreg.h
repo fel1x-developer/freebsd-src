@@ -209,10 +209,10 @@
  */
 
 struct my_desc {
-        u_int32_t       my_status;
-        u_int32_t       my_ctl;
-        u_int32_t       my_data;
-        u_int32_t       my_next;
+        uint32_t       my_status;
+        uint32_t       my_ctl;
+        uint32_t       my_data;
+        uint32_t       my_next;
 };
 
 /*
@@ -318,14 +318,14 @@ struct my_chain {
         struct my_txdesc        *my_ptr;
         struct mbuf             *my_mbuf;
         struct my_chain         *my_nextdesc;
-        u_int8_t                my_lastdesc;
+        uint8_t                my_lastdesc;
 };
 
 struct my_chain_onefrag {
         struct my_desc          *my_ptr;
         struct mbuf             *my_mbuf;
         struct my_chain_onefrag *my_nextdesc;
-        u_int8_t                my_rlast;
+        uint8_t                my_rlast;
 };
 
 struct my_chain_data {
@@ -340,8 +340,8 @@ struct my_chain_data {
 };
 
 struct my_type {
-        u_int16_t               my_vid;
-        u_int16_t               my_did;
+        uint16_t               my_vid;
+        uint16_t               my_did;
         char                    *my_name;
 };
 
@@ -360,12 +360,12 @@ struct my_softc {
 	struct resource		*my_res;
 	struct resource		*my_irq;
 	void			*my_intrhand;
-        u_int8_t                my_phy_addr;    /* PHY address */
-        u_int8_t                my_tx_pend;     /* TX pending */
-        u_int8_t                my_want_auto;
-        u_int8_t                my_autoneg;
-        u_int16_t               my_txthresh;
-	u_int8_t		my_stats_no_timeout;        
+        uint8_t                my_phy_addr;    /* PHY address */
+        uint8_t                my_tx_pend;     /* TX pending */
+        uint8_t                my_want_auto;
+        uint8_t                my_autoneg;
+        uint16_t               my_txthresh;
+	uint8_t		my_stats_no_timeout;        
         caddr_t                 my_ldata_ptr;
         struct my_list_data     *my_ldata;
         struct my_chain_data    my_cdata;

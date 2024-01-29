@@ -52,7 +52,7 @@ crypt_nthash(const char *pw, const char *salt __unused, char *buffer)
 	int i;
 	static const char hexconvtab[] = "0123456789abcdef";
 	static const char *magic = "$3$";
-	u_int16_t unipw[128];
+	uint16_t unipw[128];
 	u_char hash[MD4_SIZE];
 	const char *s;
 	MD4_CTX	ctx;
@@ -65,7 +65,7 @@ crypt_nthash(const char *pw, const char *salt __unused, char *buffer)
 
 	/* Compute MD4 of Unicode password */
 	MD4Init(&ctx);
-	MD4Update(&ctx, (u_char *)unipw, unipwLen*sizeof(u_int16_t));
+	MD4Update(&ctx, (u_char *)unipw, unipwLen*sizeof(uint16_t));
 	MD4Final(hash, &ctx);
 
 	buffer = stpcpy(buffer, magic);

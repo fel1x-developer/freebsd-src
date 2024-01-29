@@ -148,7 +148,7 @@ powl(long double x, long double y)
   long double yy1, t1, t2, r, s, t, u, v, w;
   long double s2, s_h, s_l, t_h, t_l;
   int32_t i, j, k, yisint, n;
-  u_int32_t ix, iy;
+  uint32_t ix, iy;
   int32_t hx, hy;
   ieee_quad_shape_type o, p, q;
 
@@ -256,7 +256,7 @@ powl(long double x, long double y)
     }
 
   /* (x<0)**(non-int) is NaN */
-  if (((((u_int32_t) hx >> 31) - 1) | yisint) == 0)
+  if (((((uint32_t) hx >> 31) - 1) | yisint) == 0)
     return (x - x) / (x - x);
 
   /* |y| is huge.
@@ -361,7 +361,7 @@ powl(long double x, long double y)
 
   /* s (sign of result -ve**odd) = -1 else = 1 */
   s = one;
-  if (((((u_int32_t) hx >> 31) - 1) | (yisint - 1)) == 0)
+  if (((((uint32_t) hx >> 31) - 1) | (yisint - 1)) == 0)
     s = -one;			/* (-ve)**(odd int) */
 
   /* split up y into yy1+y2 and compute (yy1+y2)*(t1+t2) */

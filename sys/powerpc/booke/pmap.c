@@ -570,7 +570,7 @@ pv_insert(pmap_t pmap, vm_offset_t va, vm_page_t m)
 
 	//int su = (pmap == kernel_pmap);
 	//debugf("pv_insert: s (su = %d pmap = 0x%08x va = 0x%08x m = 0x%08x)\n", su,
-	//	(u_int32_t)pmap, va, (u_int32_t)m);
+	//	(uint32_t)pmap, va, (uint32_t)m);
 
 	pve = pv_alloc();
 	if (pve == NULL)
@@ -595,7 +595,7 @@ pv_remove(pmap_t pmap, vm_offset_t va, vm_page_t m)
 	pv_entry_t pve;
 
 	//int su = (pmap == kernel_pmap);
-	//debugf("pv_remove: s (su = %d pmap = 0x%08x va = 0x%08x)\n", su, (u_int32_t)pmap, va);
+	//debugf("pv_remove: s (su = %d pmap = 0x%08x va = 0x%08x)\n", su, (uint32_t)pmap, va);
 
 	PMAP_LOCK_ASSERT(pmap, MA_OWNED);
 	rw_assert(&pvh_global_lock, RA_WLOCKED);
@@ -1285,8 +1285,8 @@ mmu_booke_enter_locked(pmap_t pmap, vm_offset_t va, vm_page_t m,
 
 	//debugf("mmu_booke_enter_locked: s (pmap=0x%08x su=%d tid=%d m=0x%08x va=0x%08x "
 	//		"pa=0x%08x prot=0x%08x flags=%#x)\n",
-	//		(u_int32_t)pmap, su, pmap->pm_tid,
-	//		(u_int32_t)m, va, pa, prot, flags);
+	//		(uint32_t)pmap, su, pmap->pm_tid,
+	//		(uint32_t)m, va, pa, prot, flags);
 
 	if (su) {
 		KASSERT(((va >= virtual_avail) &&
@@ -1504,7 +1504,7 @@ mmu_booke_remove(pmap_t pmap, vm_offset_t va, vm_offset_t endva)
 	int su = (pmap == kernel_pmap);
 
 	//debugf("mmu_booke_remove: s (su = %d pmap=0x%08x tid=%d va=0x%08x endva=0x%08x)\n",
-	//		su, (u_int32_t)pmap, pmap->pm_tid, va, endva);
+	//		su, (uint32_t)pmap, pmap->pm_tid, va, endva);
 
 	if (su) {
 		KASSERT(((va >= virtual_avail) &&

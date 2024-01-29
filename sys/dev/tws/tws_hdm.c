@@ -39,37 +39,37 @@
 #include <dev/tws/tws_hdm.h>
 
 int tws_use_32bit_sgls=0;
-extern u_int64_t mfa_base;
+extern uint64_t mfa_base;
 extern struct tws_request *tws_get_request(struct tws_softc *sc, 
-                                           u_int16_t type);
+                                           uint16_t type);
 extern void tws_q_insert_tail(struct tws_softc *sc, struct tws_request *req,
-                                u_int8_t q_type );
+                                uint8_t q_type );
 extern struct tws_request * tws_q_remove_request(struct tws_softc *sc,
-                                   struct tws_request *req, u_int8_t q_type );
+                                   struct tws_request *req, uint8_t q_type );
 
 extern void tws_cmd_complete(struct tws_request *req);
 extern void tws_print_stats(void *arg);
 extern int tws_send_scsi_cmd(struct tws_softc *sc, int cmd);
-extern int tws_set_param(struct tws_softc *sc, u_int32_t table_id, 
-           u_int32_t param_id, u_int32_t param_size, void *data);
-extern int tws_get_param(struct tws_softc *sc, u_int32_t table_id,
-            u_int32_t param_id, u_int32_t param_size, void *data);
+extern int tws_set_param(struct tws_softc *sc, uint32_t table_id, 
+           uint32_t param_id, uint32_t param_size, void *data);
+extern int tws_get_param(struct tws_softc *sc, uint32_t table_id,
+            uint32_t param_id, uint32_t param_size, void *data);
 extern void tws_reset(void *arg);
 
-int tws_init_connect(struct tws_softc *sc, u_int16_t mc);
+int tws_init_connect(struct tws_softc *sc, uint16_t mc);
 int tws_init_ctlr(struct tws_softc *sc);
 int tws_submit_command(struct tws_softc *sc, struct tws_request *req);
 void tws_nop_cmd(void *arg);
-u_int16_t tws_poll4_response(struct tws_softc *sc, u_int64_t *mfa);
-boolean tws_get_response(struct tws_softc *sc, u_int16_t *req_id, 
-                                               u_int64_t *mfa);
+uint16_t tws_poll4_response(struct tws_softc *sc, uint64_t *mfa);
+boolean tws_get_response(struct tws_softc *sc, uint16_t *req_id, 
+                                               uint64_t *mfa);
 boolean tws_ctlr_ready(struct tws_softc *sc);
 void tws_turn_on_interrupts(struct tws_softc *sc);
 void tws_turn_off_interrupts(struct tws_softc *sc);
 boolean tws_ctlr_reset(struct tws_softc *sc);
 void tws_assert_soft_reset(struct tws_softc *sc);
 
-int tws_send_generic_cmd(struct tws_softc *sc, u_int8_t opcode);
+int tws_send_generic_cmd(struct tws_softc *sc, uint8_t opcode);
 void tws_fetch_aen(void *arg);
 void tws_disable_db_intr(struct tws_softc *sc);
 void tws_enable_db_intr(struct tws_softc *sc);
@@ -80,8 +80,8 @@ void tws_display_ctlr_info(struct tws_softc *sc);
 int 
 tws_init_ctlr(struct tws_softc *sc)
 {
-    u_int64_t reg __tws_debug;
-    u_int32_t regh, regl;
+    uint64_t reg __tws_debug;
+    uint32_t regh, regl;
 
     TWS_TRACE_DEBUG(sc, "entry", sc, sc->is64bit);
     sc->obfl_q_overrun = false;
@@ -95,7 +95,7 @@ tws_init_ctlr(struct tws_softc *sc)
     while( 1 ) {
         regh = tws_read_reg(sc, TWS_I2O0_IOPOBQPH, 4);
         regl = tws_read_reg(sc, TWS_I2O0_IOPOBQPL, 4);
-        reg = (((u_int64_t)regh) << 32) | regl;
+        reg = (((uint64_t)regh) << 32) | regl;
         TWS_TRACE_DEBUG(sc, "host outbound cleanup",reg, regl);
         if ( regh == TWS_FIFO_EMPTY32 )
             break;
@@ -112,15 +112,15 @@ void
 tws_init_obfl_q(struct tws_softc *sc)
 {
     int i=0;
-    u_int64_t paddr;
-    u_int32_t paddrh, paddrl, status;
+    uint64_t paddr;
+    uint32_t paddrh, paddrl, status;
 
     TWS_TRACE_DEBUG(sc, "entry", 0, sc->obfl_q_overrun);
 
     while ( i < tws_queue_depth ) {
         paddr = sc->sense_bufs[i].hdr_pkt_phy;
-        paddrh = (u_int32_t)( paddr>>32);
-        paddrl = (u_int32_t) paddr;
+        paddrh = (uint32_t)( paddr>>32);
+        paddrl = (uint32_t) paddr;
         tws_write_reg(sc, TWS_I2O0_HOBQPH, paddrh, 4);
         tws_write_reg(sc, TWS_I2O0_HOBQPL, paddrl, 4);
   
@@ -138,12 +138,12 @@ tws_init_obfl_q(struct tws_softc *sc)
 }
 
 int
-tws_init_connect(struct tws_softc *sc, u_int16_t mcreadits )
+tws_init_connect(struct tws_softc *sc, uint16_t mcreadits )
 {
     struct tws_request *req;
     struct tws_cmd_init_connect *initc;
-    u_int16_t reqid;
-    u_int64_t mfa;
+    uint16_t reqid;
+    uint64_t mfa;
 
     TWS_TRACE_DEBUG(sc, "entry", 0, mcreadits);
 #if       0
@@ -237,7 +237,7 @@ tws_display_ctlr_info(struct tws_softc *sc)
 }
 
 int
-tws_send_generic_cmd(struct tws_softc *sc, u_int8_t opcode)
+tws_send_generic_cmd(struct tws_softc *sc, uint8_t opcode)
 {
     struct tws_request *req;
     struct tws_cmd_generic *cmd;
@@ -272,8 +272,8 @@ tws_send_generic_cmd(struct tws_softc *sc, u_int8_t opcode)
 int
 tws_submit_command(struct tws_softc *sc, struct tws_request *req)
 {
-    u_int32_t regl, regh;
-    u_int64_t mfa=0;
+    uint32_t regl, regh;
+    uint64_t mfa=0;
     
     /* 
      * mfa register  read and write must be in order. 
@@ -287,11 +287,11 @@ tws_submit_command(struct tws_softc *sc, struct tws_request *req)
     }
        
 #ifdef TWS_PULL_MODE_ENABLE
-    regh = (u_int32_t)(req->cmd_pkt_phy >> 32);
+    regh = (uint32_t)(req->cmd_pkt_phy >> 32);
     /* regh = regh | TWS_MSG_ACC_MASK; */ 
     mfa = regh;
     mfa = mfa << 32;
-    regl = (u_int32_t)req->cmd_pkt_phy;
+    regl = (uint32_t)req->cmd_pkt_phy;
     regl = regl | TWS_BIT0;
     mfa = mfa | regl;
 #else
@@ -319,7 +319,7 @@ tws_submit_command(struct tws_softc *sc, struct tws_request *req)
     for (int i=mfa; i<(sizeof(struct tws_command_packet)+ mfa - 
                             sizeof( struct tws_command_header)); i++) {
         bus_space_write_1(sc->bus_mfa_tag, sc->bus_mfa_handle,i, 
-                               ((u_int8_t *)&req->cmd_pkt->cmd)[i-mfa]);
+                               ((uint8_t *)&req->cmd_pkt->cmd)[i-mfa]);
     }
 #endif
 
@@ -352,13 +352,13 @@ tws_submit_command(struct tws_softc *sc, struct tws_request *req)
  * req_id will be TWS_INVALID_REQID
  */
 boolean
-tws_get_response(struct tws_softc *sc, u_int16_t *req_id, u_int64_t *mfa) 
+tws_get_response(struct tws_softc *sc, uint16_t *req_id, uint64_t *mfa) 
 {
-    u_int64_t out_mfa=0, val=0;
+    uint64_t out_mfa=0, val=0;
     struct tws_outbound_response out_res;
 
     *req_id = TWS_INVALID_REQID;
-    out_mfa = (u_int64_t)tws_read_reg(sc, TWS_I2O0_HOBQPH, 4);
+    out_mfa = (uint64_t)tws_read_reg(sc, TWS_I2O0_HOBQPH, 4);
 
     if ( out_mfa == TWS_FIFO_EMPTY32 ) {
         return(false);
@@ -379,10 +379,10 @@ tws_get_response(struct tws_softc *sc, u_int16_t *req_id, u_int64_t *mfa)
     return(true);
 }
 
-u_int16_t
-tws_poll4_response(struct tws_softc *sc, u_int64_t *mfa)
+uint16_t
+tws_poll4_response(struct tws_softc *sc, uint64_t *mfa)
 {
-    u_int16_t req_id;
+    uint16_t req_id;
     time_t endt;
 
     endt = TWS_LOCAL_TIME + TWS_POLL_TIMEOUT;
@@ -402,7 +402,7 @@ tws_poll4_response(struct tws_softc *sc, u_int64_t *mfa)
 boolean
 tws_ctlr_ready(struct tws_softc *sc)
 {
-    u_int32_t reg;
+    uint32_t reg;
 
     reg = tws_read_reg(sc, TWS_I2O0_SCRPD3, 4);
     if ( reg & TWS_BIT13 )
@@ -434,7 +434,7 @@ tws_turn_off_interrupts(struct tws_softc *sc)
 void
 tws_disable_db_intr(struct tws_softc *sc)
 {
-    u_int32_t reg;
+    uint32_t reg;
 
     TWS_TRACE_DEBUG(sc, "entry", 0, 0);
     reg = tws_read_reg(sc, TWS_I2O0_HIMASK, 4);
@@ -445,7 +445,7 @@ tws_disable_db_intr(struct tws_softc *sc)
 void
 tws_enable_db_intr(struct tws_softc *sc)
 {
-    u_int32_t reg;
+    uint32_t reg;
 
     TWS_TRACE_DEBUG(sc, "entry", 0, 0);
     reg = tws_read_reg(sc, TWS_I2O0_HIMASK, 4);
@@ -457,7 +457,7 @@ boolean
 tws_ctlr_reset(struct tws_softc *sc)
 {
 
-    u_int32_t reg;
+    uint32_t reg;
     time_t endt;
     /* int i=0; */
 
@@ -481,7 +481,7 @@ tws_ctlr_reset(struct tws_softc *sc)
 void
 tws_assert_soft_reset(struct tws_softc *sc)
 {
-    u_int32_t reg;
+    uint32_t reg;
 
     reg = tws_read_reg(sc, TWS_I2O0_HIBDB, 4);
     TWS_TRACE_DEBUG(sc, "in bound door bell read ", reg, TWS_I2O0_HIBDB);

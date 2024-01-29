@@ -78,7 +78,7 @@
 
 #define	RPCAUTHGSS_MAXSEQ	0x80000000
 
-#define	RPCAUTHGSS_WINDOW	64	/* # of bits in u_int64_t */
+#define	RPCAUTHGSS_WINDOW	64	/* # of bits in uint64_t */
 #define	RPCAUTHGSS_SEQWINDOW	(RPCAUTHGSS_WINDOW + 1)
 
 #define	RPCAUTHGSS_MIC		1
@@ -95,7 +95,7 @@
 #define	RPCGSS_KEYSIZ		8
 
 #define	GSSX_AUTHHEAD	(5 * NFSX_UNSIGNED)
-#define	GSSX_MYHANDLE	(sizeof (long) + sizeof (u_int64_t))
+#define	GSSX_MYHANDLE	(sizeof (long) + sizeof (uint64_t))
 #define	GSSX_RPCHEADER	(13 * NFSX_UNSIGNED + GSSX_MYHANDLE)
 #define	GSSX_MINWRAP	(2 * NFSX_UNSIGNED)
 #define	GSSX_KERBVTOKEN	24
@@ -200,8 +200,8 @@
 
 /* Structs for common parts of the rpc's */
 struct rpcv2_time {
-	u_int32_t rpc_sec;
-	u_int32_t rpc_usec;
+	uint32_t rpc_sec;
+	uint32_t rpc_usec;
 };
 
 #endif	/* _NFS_RPCV2_H_ */

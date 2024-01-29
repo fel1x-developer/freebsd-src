@@ -354,33 +354,33 @@ enum ipfw_table_lookup_type {
  *		to skip past the last instruction of the block.
  *
  * NOTA BENE: in a couple of places we assume that
- *	sizeof(ipfw_insn) == sizeof(u_int32_t)
+ *	sizeof(ipfw_insn) == sizeof(uint32_t)
  * this needs to be fixed.
  *
  */
 typedef struct	_ipfw_insn {	/* template for instructions */
-	_Alignas(_Alignof(u_int32_t)) u_int8_t 	opcode;
-	u_int8_t	len;	/* number of 32-bit words */
+	_Alignas(_Alignof(uint32_t)) uint8_t 	opcode;
+	uint8_t	len;	/* number of 32-bit words */
 #define	F_NOT		0x80
 #define	F_OR		0x40
 #define	F_LEN_MASK	0x3f
 #define	F_LEN(cmd)	((cmd)->len & F_LEN_MASK)
 
-	u_int16_t	arg1;
+	uint16_t	arg1;
 } ipfw_insn;
 
 /*
  * The F_INSN_SIZE(type) computes the size, in 4-byte words, of
  * a given type.
  */
-#define	F_INSN_SIZE(t)	((sizeof (t))/sizeof(u_int32_t))
+#define	F_INSN_SIZE(t)	((sizeof (t))/sizeof(uint32_t))
 
 /*
  * This is used to store an array of 16-bit entries (ports etc.)
  */
 typedef struct	_ipfw_insn_u16 {
 	ipfw_insn o;
-	u_int16_t ports[2];	/* there may be more */
+	uint16_t ports[2];	/* there may be more */
 } ipfw_insn_u16;
 
 /*
@@ -389,7 +389,7 @@ typedef struct	_ipfw_insn_u16 {
  */
 typedef struct	_ipfw_insn_u32 {
 	ipfw_insn o;
-	u_int32_t d[1];	/* one or more */
+	uint32_t d[1];	/* one or more */
 } ipfw_insn_u32;
 
 /*
@@ -444,7 +444,7 @@ typedef struct	_ipfw_insn_if {
  */
 typedef struct _ipfw_insn_altq {
 	ipfw_insn	o;
-	u_int32_t	qid;
+	uint32_t	qid;
 } ipfw_insn_altq;
 
 /*
@@ -452,14 +452,14 @@ typedef struct _ipfw_insn_altq {
  */
 typedef struct	_ipfw_insn_limit {
 	ipfw_insn o;
-	u_int8_t _pad;
-	u_int8_t limit_mask;	/* combination of DYN_* below	*/
+	uint8_t _pad;
+	uint8_t limit_mask;	/* combination of DYN_* below	*/
 #define	DYN_SRC_ADDR	0x1
 #define	DYN_SRC_PORT	0x2
 #define	DYN_DST_ADDR	0x4
 #define	DYN_DST_PORT	0x8
 
-	u_int16_t conn_limit;
+	uint16_t conn_limit;
 } ipfw_insn_limit;
 
 /*
@@ -467,8 +467,8 @@ typedef struct	_ipfw_insn_limit {
  */
 typedef struct  _ipfw_insn_log {
         ipfw_insn o;
-	u_int32_t max_log;	/* how many do we log -- 0 = all */
-	u_int32_t log_left;	/* how many left to log 	*/
+	uint32_t max_log;	/* how many do we log -- 0 = all */
+	uint32_t log_left;	/* how many left to log 	*/
 } ipfw_insn_log;
 
 /* Legacy NAT structures, compat only */
@@ -495,7 +495,7 @@ struct cfg_spool {
 /* Nat redirect configuration. */
 struct cfg_redir {
 	LIST_ENTRY(cfg_redir)   _next;          /* chain of redir instances */
-	u_int16_t               mode;           /* type of redirect mode */
+	uint16_t               mode;           /* type of redirect mode */
 	struct in_addr	        laddr;          /* local ip address */
 	struct in_addr	        paddr;          /* public ip address */
 	struct in_addr	        raddr;          /* remote ip address */
@@ -507,7 +507,7 @@ struct cfg_redir {
 	int                     proto;          /* protocol: tcp/udp */
 	struct alias_link       **alink;
 	/* num of entry in spool chain */
-	u_int16_t               spool_cnt;
+	uint16_t               spool_cnt;
 	/* chain of spool instances */
 	LIST_HEAD(spool_chain, cfg_spool) spool_chain;
 };
@@ -685,7 +685,7 @@ struct ip_fw {
 #endif
 
 #define ACTION_PTR(rule)				\
-	(ipfw_insn *)( (u_int32_t *)((rule)->cmd) + ((rule)->act_ofs) )
+	(ipfw_insn *)( (uint32_t *)((rule)->cmd) + ((rule)->act_ofs) )
 
 #define RULESIZE(rule)  (sizeof(*(rule)) + (rule)->cmd_len * 4 - 4)
 
@@ -727,21 +727,21 @@ struct _ipfw_dyn_rule {
 	/* 'rule' is used to pass up the rule number (from the parent)	*/
 
 	ipfw_dyn_rule *parent;		/* pointer to parent rule	*/
-	u_int64_t	pcnt;		/* packet match counter		*/
-	u_int64_t	bcnt;		/* byte match counter		*/
+	uint64_t	pcnt;		/* packet match counter		*/
+	uint64_t	bcnt;		/* byte match counter		*/
 	struct ipfw_flow_id id;		/* (masked) flow id		*/
-	u_int32_t	expire;		/* expire time			*/
-	u_int32_t	bucket;		/* which bucket in hash table	*/
-	u_int32_t	state;		/* state of this rule (typically a
+	uint32_t	expire;		/* expire time			*/
+	uint32_t	bucket;		/* which bucket in hash table	*/
+	uint32_t	state;		/* state of this rule (typically a
 					 * combination of TCP flags)
 					 */
 #define	IPFW_DYN_ORPHANED	0x40000	/* state's parent rule was deleted */
-	u_int32_t	ack_fwd;	/* most recent ACKs in forward	*/
-	u_int32_t	ack_rev;	/* and reverse directions (used	*/
+	uint32_t	ack_fwd;	/* most recent ACKs in forward	*/
+	uint32_t	ack_rev;	/* and reverse directions (used	*/
 					/* to generate keepalives)	*/
-	u_int16_t	dyn_type;	/* rule type			*/
-	u_int16_t	count;		/* refcount			*/
-	u_int16_t	kidx;		/* index of named object */
+	uint16_t	dyn_type;	/* rule type			*/
+	uint16_t	count;		/* refcount			*/
+	uint16_t	kidx;		/* index of named object */
 } __packed __aligned(8);
 
 /*
@@ -799,9 +799,9 @@ struct _ipfw_dyn_rule {
 
 typedef struct	_ipfw_table_entry {
 	in_addr_t	addr;		/* network address		*/
-	u_int32_t	value;		/* value			*/
-	u_int16_t	tbl;		/* table number			*/
-	u_int8_t	masklen;	/* mask length			*/
+	uint32_t	value;		/* value			*/
+	uint16_t	tbl;		/* table number			*/
+	uint8_t	masklen;	/* mask length			*/
 } ipfw_table_entry;
 
 typedef struct	_ipfw_table_xentry {
@@ -820,9 +820,9 @@ typedef struct	_ipfw_table_xentry {
 #define	IPFW_TCF_INET	0x01		/* CIDR flags: IPv4 record	*/
 
 typedef struct	_ipfw_table {
-	u_int32_t	size;		/* size of entries in bytes	*/
-	u_int32_t	cnt;		/* # of entries			*/
-	u_int16_t	tbl;		/* table number			*/
+	uint32_t	size;		/* size of entries in bytes	*/
+	uint32_t	cnt;		/* # of entries			*/
+	uint16_t	tbl;		/* table number			*/
 	ipfw_table_entry ent[0];	/* entries			*/
 } ipfw_table;
 

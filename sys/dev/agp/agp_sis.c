@@ -47,7 +47,7 @@
 
 struct agp_sis_softc {
 	struct agp_softc agp;
-	u_int32_t	initial_aperture; /* aperture size at startup */
+	uint32_t	initial_aperture; /* aperture size at startup */
 	struct agp_gatt *gatt;
 };
 
@@ -188,7 +188,7 @@ agp_sis_detach(device_t dev)
 	return 0;
 }
 
-static u_int32_t
+static uint32_t
 agp_sis_get_aperture(device_t dev)
 {
 	int gws;
@@ -201,7 +201,7 @@ agp_sis_get_aperture(device_t dev)
 }
 
 static int
-agp_sis_set_aperture(device_t dev, u_int32_t aperture)
+agp_sis_set_aperture(device_t dev, uint32_t aperture)
 {
 	int gws;
 

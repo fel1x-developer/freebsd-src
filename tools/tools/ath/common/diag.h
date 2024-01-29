@@ -55,6 +55,6 @@ struct statshandler {
 
 extern	void reportstats(FILE *fd, struct statshandler *sh);
 extern	void runstats(FILE *fd, struct statshandler *sh);
-extern	void reportcol(FILE *fd, u_int32_t v, const char *def_fmt,
-		u_int32_t max, const char *alt_fmt);
+extern	void reportcol(FILE *fd, uint32_t v, const char *def_fmt,
+		uint32_t max, const char *alt_fmt);
 #endif /* _DIAG_ */

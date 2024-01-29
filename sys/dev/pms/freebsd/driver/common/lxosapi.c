@@ -155,7 +155,7 @@ Return:
 U32 ostiChipConfigReadBit32( tiRoot_t *ptiRoot, U32 chipConfigOffset )
 {
   device_t lDev = TIROOT_TO_PCIDEV(ptiRoot);
-  u_int32_t lData = 0;
+  uint32_t lData = 0;
 
   lData = pci_read_config( lDev, chipConfigOffset, 4 );
 

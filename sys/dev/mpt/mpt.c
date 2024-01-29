@@ -1435,13 +1435,13 @@ int
 mpt_recv_handshake_reply(struct mpt_softc *mpt, size_t reply_len, void *reply)
 {
 	int left, reply_left;
-	u_int16_t *data16;
+	uint16_t *data16;
 	uint32_t data;
 	MSG_DEFAULT_REPLY *hdr;
 
 	/* We move things out in 16 bit chunks */
 	reply_len >>= 1;
-	data16 = (u_int16_t *)reply;
+	data16 = (uint16_t *)reply;
 
 	hdr = (MSG_DEFAULT_REPLY *)reply;
 

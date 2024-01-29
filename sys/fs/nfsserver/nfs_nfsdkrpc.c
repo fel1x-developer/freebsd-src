@@ -97,7 +97,7 @@ SYSCTL_INT(_vfs_nfsd, OID_AUTO, server_max_nfsvers,
     CTLFLAG_NFSD_VNET | CTLFLAG_RWTUN, &NFSD_VNET_NAME(nfs_maxvers), 0,
     "The highest version of NFS handled by the server");
 
-static int nfs_proc(struct nfsrv_descript *, u_int32_t, SVCXPRT *xprt,
+static int nfs_proc(struct nfsrv_descript *, uint32_t, SVCXPRT *xprt,
     struct nfsrvcache **);
 
 extern u_long sb_max_adj;
@@ -398,13 +398,13 @@ out:
  * Return the appropriate cache response.
  */
 static int
-nfs_proc(struct nfsrv_descript *nd, u_int32_t xid, SVCXPRT *xprt,
+nfs_proc(struct nfsrv_descript *nd, uint32_t xid, SVCXPRT *xprt,
     struct nfsrvcache **rpp)
 {
 	int cacherep = RC_DOIT, isdgram, taglen = -1;
 	struct mbuf *m;
 	u_char tag[NFSV4_SMALLSTR + 1], *tagstr = NULL;
-	u_int32_t minorvers = 0;
+	uint32_t minorvers = 0;
 	uint32_t ack;
 
 	*rpp = NULL;
@@ -517,7 +517,7 @@ nfsrvd_addsock(struct file *fp)
 	struct socket *so;
 	int error = 0;
 	SVCXPRT *xprt;
-	static u_int64_t sockref = 0;
+	static uint64_t sockref = 0;
 
 	so = fp->f_data;
 

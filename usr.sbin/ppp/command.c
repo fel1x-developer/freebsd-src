@@ -1828,7 +1828,7 @@ SetVariable(struct cmdargs const *arg)
     if (arg->argc > arg->argn) {
       u_long ulong_val;
       sscanf(argp, "%lx", &ulong_val);
-      cx->physical->link.lcp.cfg.accmap = (u_int32_t)ulong_val;
+      cx->physical->link.lcp.cfg.accmap = (uint32_t)ulong_val;
     } else {
       log_Printf(LogWARN, "No accmap specified\n");
       res = 1;

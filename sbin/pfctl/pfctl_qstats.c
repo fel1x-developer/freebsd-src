@@ -60,8 +60,8 @@ struct queue_stats {
 	int			 avgn;
 	double			 avg_bytes;
 	double			 avg_packets;
-	u_int64_t		 prev_bytes;
-	u_int64_t		 prev_packets;
+	uint64_t		 prev_bytes;
+	uint64_t		 prev_packets;
 };
 
 struct pf_altq_node {
@@ -141,9 +141,9 @@ pfctl_update_qstats(int dev, struct pf_altq_node **root)
 	struct pf_altq_node	*node;
 	struct pfioc_altq	 pa;
 	struct pfioc_qstats	 pq;
-	u_int32_t		 mnr, nr;
+	uint32_t		 mnr, nr;
 	struct queue_stats	 qstats;
-	static	u_int32_t	 last_ticket;
+	static	uint32_t	 last_ticket;
 
 	memset(&pa, 0, sizeof(pa));
 	memset(&pq, 0, sizeof(pq));
@@ -455,7 +455,7 @@ void
 update_avg(struct pf_altq_node *a)
 {
 	struct queue_stats	*qs;
-	u_int64_t		 b, p;
+	uint64_t		 b, p;
 	int			 n;
 
 	if (a->altq.qid == 0 && a->altq.scheduler != ALTQT_CODEL)

@@ -38,23 +38,23 @@
 #define	PFLOG_RULESET_NAME_SIZE	16
 
 struct pfloghdr {
-	u_int8_t	length;
+	uint8_t	length;
 	sa_family_t	af;
-	u_int8_t	action;
-	u_int8_t	reason;
+	uint8_t	action;
+	uint8_t	reason;
 	char		ifname[IFNAMSIZ];
 	char		ruleset[PFLOG_RULESET_NAME_SIZE];
-	u_int32_t	rulenr;
-	u_int32_t	subrulenr;
+	uint32_t	rulenr;
+	uint32_t	subrulenr;
 	uid_t		uid;
 	pid_t		pid;
 	uid_t		rule_uid;
 	pid_t		rule_pid;
-	u_int8_t	dir;
-	u_int8_t	pad[3];
-	u_int32_t	ridentifier;
-	u_int8_t	reserve;	/* Appease broken software like Wireshark. */
-	u_int8_t	pad2[3];
+	uint8_t	dir;
+	uint8_t	pad[3];
+	uint32_t	ridentifier;
+	uint8_t	reserve;	/* Appease broken software like Wireshark. */
+	uint8_t	pad2[3];
 };
 
 #define PFLOG_ALIGNMENT		sizeof(uint32_t)

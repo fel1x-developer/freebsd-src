@@ -189,7 +189,7 @@ xdr_u_long(XDR *xdrs, u_long *ulp)
 
 /*
  * XDR 32-bit integers
- * same as xdr_u_int32_t - open coded to save a proc call!
+ * same as xdr_uint32_t - open coded to save a proc call!
  */
 bool_t
 xdr_int32_t(XDR *xdrs, int32_t *int32_p)
@@ -221,7 +221,7 @@ xdr_int32_t(XDR *xdrs, int32_t *int32_p)
  * same as xdr_int32_t - open coded to save a proc call!
  */
 bool_t
-xdr_u_int32_t(XDR *xdrs, u_int32_t *u_int32_p)
+xdr_uint32_t(XDR *xdrs, uint32_t *u_int32_p)
 {
 	u_long l;
 
@@ -235,7 +235,7 @@ xdr_u_int32_t(XDR *xdrs, u_int32_t *u_int32_p)
 		if (!XDR_GETLONG(xdrs, (long *)&l)) {
 			return (FALSE);
 		}
-		*u_int32_p = (u_int32_t) l;
+		*u_int32_p = (uint32_t) l;
 		return (TRUE);
 
 	case XDR_FREE:
@@ -264,7 +264,7 @@ xdr_uint32_t(XDR *xdrs, uint32_t *u_int32_p)
 		if (!XDR_GETLONG(xdrs, (long *)&l)) {
 			return (FALSE);
 		}
-		*u_int32_p = (u_int32_t) l;
+		*u_int32_p = (uint32_t) l;
 		return (TRUE);
 
 	case XDR_FREE:
@@ -363,7 +363,7 @@ xdr_int16_t(XDR *xdrs, int16_t *int16_p)
  * XDR unsigned 16-bit integers
  */
 bool_t
-xdr_u_int16_t(XDR *xdrs, u_int16_t *u_int16_p)
+xdr_uint16_t(XDR *xdrs, uint16_t *u_int16_p)
 {
 	u_long l;
 
@@ -377,7 +377,7 @@ xdr_u_int16_t(XDR *xdrs, u_int16_t *u_int16_p)
 		if (!XDR_GETLONG(xdrs, (long *)&l)) {
 			return (FALSE);
 		}
-		*u_int16_p = (u_int16_t) l;
+		*u_int16_p = (uint16_t) l;
 		return (TRUE);
 
 	case XDR_FREE:
@@ -405,7 +405,7 @@ xdr_uint16_t(XDR *xdrs, uint16_t *u_int16_p)
 		if (!XDR_GETLONG(xdrs, (long *)&l)) {
 			return (FALSE);
 		}
-		*u_int16_p = (u_int16_t) l;
+		*u_int16_p = (uint16_t) l;
 		return (TRUE);
 
 	case XDR_FREE:
@@ -780,8 +780,8 @@ xdr_int64_t(XDR *xdrs, int64_t *llp)
 
 	switch (xdrs->x_op) {
 	case XDR_ENCODE:
-		ul[0] = (u_long)((u_int64_t)*llp >> 32) & 0xffffffff;
-		ul[1] = (u_long)((u_int64_t)*llp) & 0xffffffff;
+		ul[0] = (u_long)((uint64_t)*llp >> 32) & 0xffffffff;
+		ul[1] = (u_long)((uint64_t)*llp) & 0xffffffff;
 		if (XDR_PUTLONG(xdrs, (long *)&ul[0]) == FALSE)
 			return (FALSE);
 		return (XDR_PUTLONG(xdrs, (long *)&ul[1]));
@@ -791,7 +791,7 @@ xdr_int64_t(XDR *xdrs, int64_t *llp)
 		if (XDR_GETLONG(xdrs, (long *)&ul[1]) == FALSE)
 			return (FALSE);
 		*llp = (int64_t)
-		    (((u_int64_t)ul[0] << 32) | ((u_int64_t)ul[1]));
+		    (((uint64_t)ul[0] << 32) | ((uint64_t)ul[1]));
 		return (TRUE);
 	case XDR_FREE:
 		return (TRUE);
@@ -805,7 +805,7 @@ xdr_int64_t(XDR *xdrs, int64_t *llp)
  * XDR unsigned 64-bit integers
  */
 bool_t
-xdr_u_int64_t(XDR *xdrs, u_int64_t *ullp)
+xdr_uint64_t(XDR *xdrs, uint64_t *ullp)
 {
 	u_long ul[2];
 
@@ -821,8 +821,8 @@ xdr_u_int64_t(XDR *xdrs, u_int64_t *ullp)
 			return (FALSE);
 		if (XDR_GETLONG(xdrs, (long *)&ul[1]) == FALSE)
 			return (FALSE);
-		*ullp = (u_int64_t)
-		    (((u_int64_t)ul[0] << 32) | ((u_int64_t)ul[1]));
+		*ullp = (uint64_t)
+		    (((uint64_t)ul[0] << 32) | ((uint64_t)ul[1]));
 		return (TRUE);
 	case XDR_FREE:
 		return (TRUE);
@@ -851,8 +851,8 @@ xdr_uint64_t(XDR *xdrs, uint64_t *ullp)
 			return (FALSE);
 		if (XDR_GETLONG(xdrs, (long *)&ul[1]) == FALSE)
 			return (FALSE);
-		*ullp = (u_int64_t)
-		    (((u_int64_t)ul[0] << 32) | ((u_int64_t)ul[1]));
+		*ullp = (uint64_t)
+		    (((uint64_t)ul[0] << 32) | ((uint64_t)ul[1]));
 		return (TRUE);
 	case XDR_FREE:
 		return (TRUE);
@@ -886,9 +886,9 @@ xdr_u_hyper(XDR *xdrs, u_longlong_t *ullp)
 
 	/*
 	 * Don't bother open-coding this; it's a fair amount of code.  Just
-	 * call xdr_u_int64_t().
+	 * call xdr_uint64_t().
 	 */
-	return (xdr_u_int64_t(xdrs, (u_int64_t *)ullp));
+	return (xdr_uint64_t(xdrs, (uint64_t *)ullp));
 }
 
 
@@ -916,7 +916,7 @@ xdr_u_longlong_t(XDR *xdrs, u_longlong_t *ullp)
 
 	/*
 	 * Don't bother open-coding this; it's a fair amount of code.  Just
-	 * call xdr_u_int64_t().
+	 * call xdr_uint64_t().
 	 */
-	return (xdr_u_int64_t(xdrs, (u_int64_t *)ullp));
+	return (xdr_uint64_t(xdrs, (uint64_t *)ullp));
 }

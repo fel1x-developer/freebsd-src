@@ -177,8 +177,8 @@ static int get80211(if_ctx *ctx, int type, void *data, int len);
 static int get80211len(if_ctx *ctx, int type, void *data, int len, int *plen);
 static int get80211val(if_ctx *ctx, int type, int *val);
 static const char *get_string(const char *val, const char *sep,
-    u_int8_t *buf, int *lenp);
-static void print_string(const u_int8_t *buf, int len);
+    uint8_t *buf, int *lenp);
+static void print_string(const uint8_t *buf, int len);
 static void print_regdomain(const struct ieee80211_regdomain *, int);
 static void print_channels(if_ctx *, const struct ieee80211req_chaninfo *,
     int allchans, int verbose);
@@ -605,7 +605,7 @@ set80211ssid(if_ctx *ctx, const char *val, int dummy __unused)
 {
 	int		ssid;
 	int		len;
-	u_int8_t	data[IEEE80211_NWID_LEN];
+	uint8_t	data[IEEE80211_NWID_LEN];
 
 	ssid = 0;
 	len = strlen(val);
@@ -626,7 +626,7 @@ static void
 set80211meshid(if_ctx *ctx, const char *val, int dummy __unused)
 {
 	int		len;
-	u_int8_t	data[IEEE80211_NWID_LEN];
+	uint8_t	data[IEEE80211_NWID_LEN];
 
 	memset(data, 0, sizeof(data));
 	len = sizeof(data);
@@ -640,7 +640,7 @@ static void
 set80211stationname(if_ctx *ctx, const char *val, int dummy __unused)
 {
 	int			len;
-	u_int8_t		data[33];
+	uint8_t		data[33];
 
 	bzero(data, sizeof(data));
 	len = sizeof(data);
@@ -956,7 +956,7 @@ set80211wepkey(if_ctx *ctx, const char *val, int dummy __unused)
 {
 	int		key = 0;
 	int		len;
-	u_int8_t	data[IEEE80211_KEYBUF_SIZE];
+	uint8_t	data[IEEE80211_KEYBUF_SIZE];
 
 	if (isdigit((int)val[0]) && val[1] == ':') {
 		key = atoi(val)-1;
@@ -980,7 +980,7 @@ set80211nwkey(if_ctx *ctx, const char *val, int dummy __unused)
 {
 	int		txkey;
 	int		i, len;
-	u_int8_t	data[IEEE80211_KEYBUF_SIZE];
+	uint8_t	data[IEEE80211_KEYBUF_SIZE];
 
 	set80211(ctx, IEEE80211_IOC_WEP, IEEE80211_WEP_ON, 0, NULL);
 
@@ -2718,15 +2718,15 @@ printie(if_ctx *ctx, const char* tag, const uint8_t *ie, size_t ielen, unsigned 
 }
 
 #define LE_READ_2(p)					\
-	((u_int16_t)					\
-	 ((((const u_int8_t *)(p))[0]      ) |		\
-	  (((const u_int8_t *)(p))[1] <<  8)))
+	((uint16_t)					\
+	 ((((const uint8_t *)(p))[0]      ) |		\
+	  (((const uint8_t *)(p))[1] <<  8)))
 #define LE_READ_4(p)					\
-	((u_int32_t)					\
-	 ((((const u_int8_t *)(p))[0]      ) |		\
-	  (((const u_int8_t *)(p))[1] <<  8) |		\
-	  (((const u_int8_t *)(p))[2] << 16) |		\
-	  (((const u_int8_t *)(p))[3] << 24)))
+	((uint32_t)					\
+	 ((((const uint8_t *)(p))[0]      ) |		\
+	  (((const uint8_t *)(p))[1] <<  8) |		\
+	  (((const uint8_t *)(p))[2] << 16) |		\
+	  (((const uint8_t *)(p))[3] << 24)))
 
 /*
  * NB: The decoding routines assume a properly formatted ie
@@ -2735,7 +2735,7 @@ printie(if_ctx *ctx, const char* tag, const uint8_t *ie, size_t ielen, unsigned 
  */
 
 static void
-printwmeparam(if_ctx *ctx, const char *tag, const u_int8_t *ie)
+printwmeparam(if_ctx *ctx, const char *tag, const uint8_t *ie)
 {
 	static const char *acnames[] = { "BE", "BK", "VO", "VI" };
 	const struct ieee80211_wme_param *wme =
@@ -2765,7 +2765,7 @@ printwmeparam(if_ctx *ctx, const char *tag, const u_int8_t *ie)
 }
 
 static void
-printwmeinfo(if_ctx *ctx, const char *tag, const u_int8_t *ie)
+printwmeinfo(if_ctx *ctx, const char *tag, const uint8_t *ie)
 {
 	printf("%s", tag);
 	if (ctx->args->verbose) {
@@ -2777,7 +2777,7 @@ printwmeinfo(if_ctx *ctx, const char *tag, const u_int8_t *ie)
 }
 
 static void
-printvhtcap(if_ctx *ctx, const char *tag, const u_int8_t *ie)
+printvhtcap(if_ctx *ctx, const char *tag, const uint8_t *ie)
 {
 	printf("%s", tag);
 	if (ctx->args->verbose) {
@@ -2808,7 +2808,7 @@ printvhtcap(if_ctx *ctx, const char *tag, const u_int8_t *ie)
 }
 
 static void
-printvhtinfo(if_ctx *ctx, const char *tag, const u_int8_t *ie)
+printvhtinfo(if_ctx *ctx, const char *tag, const uint8_t *ie)
 {
 	printf("%s", tag);
 	if (ctx->args->verbose) {
@@ -2831,7 +2831,7 @@ printvhtinfo(if_ctx *ctx, const char *tag, const u_int8_t *ie)
 }
 
 static void
-printvhtpwrenv(if_ctx *ctx, const char *tag, const u_int8_t *ie, size_t ielen)
+printvhtpwrenv(if_ctx *ctx, const char *tag, const uint8_t *ie, size_t ielen)
 {
 	printf("%s", tag);
 	static const char *txpwrmap[] = {
@@ -2864,7 +2864,7 @@ printvhtpwrenv(if_ctx *ctx, const char *tag, const u_int8_t *ie, size_t ielen)
 }
 
 static void
-printhtcap(if_ctx *ctx, const char *tag, const u_int8_t *ie)
+printhtcap(if_ctx *ctx, const char *tag, const uint8_t *ie)
 {
 	printf("%s", tag);
 	if (ctx->args->verbose) {
@@ -2898,7 +2898,7 @@ printhtcap(if_ctx *ctx, const char *tag, const u_int8_t *ie)
 }
 
 static void
-printhtinfo(if_ctx *ctx, const char *tag, const u_int8_t *ie)
+printhtinfo(if_ctx *ctx, const char *tag, const uint8_t *ie)
 {
 	printf("%s", tag);
 	if (ctx->args->verbose) {
@@ -2930,7 +2930,7 @@ printhtinfo(if_ctx *ctx, const char *tag, const u_int8_t *ie)
 }
 
 static void
-printathie(if_ctx *ctx, const char *tag, const u_int8_t *ie)
+printathie(if_ctx *ctx, const char *tag, const uint8_t *ie)
 {
 
 	printf("%s", tag);
@@ -3013,7 +3013,7 @@ printbssload(if_ctx *ctx, const char *tag, const uint8_t *ie)
 }
 
 static void
-printapchanrep(if_ctx *ctx, const char *tag, const u_int8_t *ie, size_t ielen)
+printapchanrep(if_ctx *ctx, const char *tag, const uint8_t *ie, size_t ielen)
 {
 	printf("%s", tag);
 	if (ctx->args->verbose) {
@@ -3032,10 +3032,10 @@ printapchanrep(if_ctx *ctx, const char *tag, const u_int8_t *ie, size_t ielen)
 }
 
 static const char *
-wpa_cipher(const u_int8_t *sel)
+wpa_cipher(const uint8_t *sel)
 {
 #define	WPA_SEL(x)	(((x)<<24)|WPA_OUI)
-	u_int32_t w = LE_READ_4(sel);
+	uint32_t w = LE_READ_4(sel);
 
 	switch (w) {
 	case WPA_SEL(WPA_CSE_NULL):
@@ -3054,10 +3054,10 @@ wpa_cipher(const u_int8_t *sel)
 }
 
 static const char *
-wpa_keymgmt(const u_int8_t *sel)
+wpa_keymgmt(const uint8_t *sel)
 {
 #define	WPA_SEL(x)	(((x)<<24)|WPA_OUI)
-	u_int32_t w = LE_READ_4(sel);
+	uint32_t w = LE_READ_4(sel);
 
 	switch (w) {
 	case WPA_SEL(WPA_ASE_8021X_UNSPEC):
@@ -3072,9 +3072,9 @@ wpa_keymgmt(const u_int8_t *sel)
 }
 
 static void
-printwpaie(if_ctx *ctx, const char *tag, const u_int8_t *ie)
+printwpaie(if_ctx *ctx, const char *tag, const uint8_t *ie)
 {
-	u_int8_t len = ie[1];
+	uint8_t len = ie[1];
 
 	printf("%s", tag);
 	if (ctx->args->verbose) {
@@ -3116,10 +3116,10 @@ printwpaie(if_ctx *ctx, const char *tag, const u_int8_t *ie)
 }
 
 static const char *
-rsn_cipher(const u_int8_t *sel)
+rsn_cipher(const uint8_t *sel)
 {
 #define	RSN_SEL(x)	(((x)<<24)|RSN_OUI)
-	u_int32_t w = LE_READ_4(sel);
+	uint32_t w = LE_READ_4(sel);
 
 	switch (w) {
 	case RSN_SEL(RSN_CSE_NULL):
@@ -3140,10 +3140,10 @@ rsn_cipher(const u_int8_t *sel)
 }
 
 static const char *
-rsn_keymgmt(const u_int8_t *sel)
+rsn_keymgmt(const uint8_t *sel)
 {
 #define	RSN_SEL(x)	(((x)<<24)|RSN_OUI)
-	u_int32_t w = LE_READ_4(sel);
+	uint32_t w = LE_READ_4(sel);
 
 	switch (w) {
 	case RSN_SEL(RSN_ASE_8021X_UNSPEC):
@@ -3158,7 +3158,7 @@ rsn_keymgmt(const u_int8_t *sel)
 }
 
 static void
-printrsnie(if_ctx *ctx, const char *tag, const u_int8_t *ie, size_t ielen)
+printrsnie(if_ctx *ctx, const char *tag, const uint8_t *ie, size_t ielen)
 {
 	printf("%s", tag);
 	if (ctx->args->verbose) {
@@ -3201,14 +3201,14 @@ printrsnie(if_ctx *ctx, const char *tag, const u_int8_t *ie, size_t ielen)
 }
 
 #define BE_READ_2(p)					\
-	((u_int16_t)					\
-	 ((((const u_int8_t *)(p))[1]      ) |		\
-	  (((const u_int8_t *)(p))[0] <<  8)))
+	((uint16_t)					\
+	 ((((const uint8_t *)(p))[1]      ) |		\
+	  (((const uint8_t *)(p))[0] <<  8)))
 
 static void
-printwpsie(if_ctx *ctx, const char *tag, const u_int8_t *ie)
+printwpsie(if_ctx *ctx, const char *tag, const uint8_t *ie)
 {
-	u_int8_t len = ie[1];
+	uint8_t len = ie[1];
 
 	printf("%s", tag);
 	if (ctx->args->verbose) {
@@ -3436,7 +3436,7 @@ printwpsie(if_ctx *ctx, const char *tag, const u_int8_t *ie)
 }
 
 static void
-printtdmaie(if_ctx *ctx, const char *tag, const u_int8_t *ie, size_t ielen)
+printtdmaie(if_ctx *ctx, const char *tag, const uint8_t *ie, size_t ielen)
 {
 	printf("%s", tag);
 	if (ctx->args->verbose && ielen >= sizeof(struct ieee80211_tdma_param)) {
@@ -3458,9 +3458,9 @@ printtdmaie(if_ctx *ctx, const char *tag, const u_int8_t *ie, size_t ielen)
  * three characters with "...".
  */
 static int
-copy_essid(char buf[], size_t bufsize, const u_int8_t *essid, size_t essid_len)
+copy_essid(char buf[], size_t bufsize, const uint8_t *essid, size_t essid_len)
 {
-	const u_int8_t *p; 
+	const uint8_t *p; 
 	size_t maxlen;
 	u_int i;
 
@@ -3494,7 +3494,7 @@ copy_essid(char buf[], size_t bufsize, const u_int8_t *essid, size_t essid_len)
 }
 
 static void
-printssid(const char *tag, const u_int8_t *ie, int maxlen)
+printssid(const char *tag, const uint8_t *ie, int maxlen)
 {
 	char ssid[2*IEEE80211_NWID_LEN+1];
 
@@ -3502,7 +3502,7 @@ printssid(const char *tag, const u_int8_t *ie, int maxlen)
 }
 
 static void
-printrates(const char *tag, const u_int8_t *ie, size_t ielen)
+printrates(const char *tag, const uint8_t *ie, size_t ielen)
 {
 	const char *sep;
 
@@ -3518,7 +3518,7 @@ printrates(const char *tag, const u_int8_t *ie, size_t ielen)
 }
 
 static void
-printcountry(const char *tag, const u_int8_t *ie)
+printcountry(const char *tag, const uint8_t *ie)
 {
 	const struct ieee80211_country_ie *cie =
 	   (const struct ieee80211_country_ie *) ie;
@@ -3539,27 +3539,27 @@ printcountry(const char *tag, const u_int8_t *ie)
 }
 
 static __inline int
-iswpaoui(const u_int8_t *frm)
+iswpaoui(const uint8_t *frm)
 {
 	return frm[1] > 3 && LE_READ_4(frm+2) == ((WPA_OUI_TYPE<<24)|WPA_OUI);
 }
 
 static __inline int
-iswmeinfo(const u_int8_t *frm)
+iswmeinfo(const uint8_t *frm)
 {
 	return frm[1] > 5 && LE_READ_4(frm+2) == ((WME_OUI_TYPE<<24)|WME_OUI) &&
 		frm[6] == WME_INFO_OUI_SUBTYPE;
 }
 
 static __inline int
-iswmeparam(const u_int8_t *frm)
+iswmeparam(const uint8_t *frm)
 {
 	return frm[1] > 5 && LE_READ_4(frm+2) == ((WME_OUI_TYPE<<24)|WME_OUI) &&
 		frm[6] == WME_PARAM_OUI_SUBTYPE;
 }
 
 static __inline int
-isatherosoui(const u_int8_t *frm)
+isatherosoui(const uint8_t *frm)
 {
 	return frm[1] > 3 && LE_READ_4(frm+2) == ((ATH_OUI_TYPE<<24)|ATH_OUI);
 }
@@ -3615,7 +3615,7 @@ iename(int elemid)
 }
 
 static void
-printies(if_ctx *ctx, const u_int8_t *vp, int ielen, unsigned int maxcols)
+printies(if_ctx *ctx, const uint8_t *vp, int ielen, unsigned int maxcols)
 {
 	const int verbose = ctx->args->verbose;
 
@@ -5645,11 +5645,11 @@ set80211(if_ctx *ctx, int type, int val, int len, void *data)
 }
 
 static const char *
-get_string(const char *val, const char *sep, u_int8_t *buf, int *lenp)
+get_string(const char *val, const char *sep, uint8_t *buf, int *lenp)
 {
 	int len;
 	int hexstr;
-	u_int8_t *p;
+	uint8_t *p;
 
 	len = *lenp;
 	p = buf;
@@ -5701,7 +5701,7 @@ get_string(const char *val, const char *sep, u_int8_t *buf, int *lenp)
 }
 
 static void
-print_string(const u_int8_t *buf, int len)
+print_string(const uint8_t *buf, int len)
 {
 	int i;
 	int hasspc;

@@ -101,14 +101,14 @@
 struct smb_sopt {
 	int		sv_proto;
 	int16_t		sv_tz;		/* offset in min relative to UTC */
-	u_int32_t	sv_maxtx;	/* maximum transmit buf size */
+	uint32_t	sv_maxtx;	/* maximum transmit buf size */
 	u_char		sv_sm;		/* security mode */
-	u_int16_t	sv_maxmux;	/* max number of outstanding rq's */
-	u_int16_t 	sv_maxvcs;	/* max number of VCs */
-	u_int16_t	sv_rawmode;
-	u_int32_t	sv_maxraw;	/* maximum raw-buffer size */
-	u_int32_t	sv_skey;	/* session key */
-	u_int32_t	sv_caps;	/* capabilities SMB_CAP_ */
+	uint16_t	sv_maxmux;	/* max number of outstanding rq's */
+	uint16_t 	sv_maxvcs;	/* max number of VCs */
+	uint16_t	sv_rawmode;
+	uint32_t	sv_maxraw;	/* maximum raw-buffer size */
+	uint32_t	sv_skey;	/* session key */
+	uint32_t	sv_caps;	/* capabilities SMB_CAP_ */
 };
 
 /*
@@ -264,8 +264,8 @@ struct smb_vc {
 	int		vc_wxmax;	/* max writex data size */
 	struct smbiod *	vc_iod;
 	struct smb_slock vc_stlock;
-	u_int32_t	vc_seqno;	/* my next sequence number */
-	u_int8_t	*vc_mackey;	/* MAC key */
+	uint32_t	vc_seqno;	/* my next sequence number */
+	uint8_t	*vc_mackey;	/* MAC key */
 	int		vc_mackeylen;	/* length of MAC key */
 };
 
@@ -406,9 +406,9 @@ int  smb_smb_ssnsetup(struct smb_vc *vcp, struct smb_cred *scred);
 int  smb_smb_ssnclose(struct smb_vc *vcp, struct smb_cred *scred);
 int  smb_smb_treeconnect(struct smb_share *ssp, struct smb_cred *scred);
 int  smb_smb_treedisconnect(struct smb_share *ssp, struct smb_cred *scred);
-int  smb_read(struct smb_share *ssp, u_int16_t fid, struct uio *uio,
+int  smb_read(struct smb_share *ssp, uint16_t fid, struct uio *uio,
 	struct smb_cred *scred);
-int  smb_write(struct smb_share *ssp, u_int16_t fid, struct uio *uio,
+int  smb_write(struct smb_share *ssp, uint16_t fid, struct uio *uio,
 	struct smb_cred *scred);
 int  smb_smb_echo(struct smb_vc *vcp, struct smb_cred *scred);
 

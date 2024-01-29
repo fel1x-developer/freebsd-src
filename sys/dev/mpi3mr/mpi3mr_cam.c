@@ -225,7 +225,7 @@ fill_in_last_segment:
 static void
 mpi3mr_map_request(struct mpi3mr_softc *sc, struct mpi3mr_cmd *cm)
 {
-	u_int32_t retcode = 0;
+	uint32_t retcode = 0;
 	union ccb *ccb;
 
 	ccb = cm->ccb;

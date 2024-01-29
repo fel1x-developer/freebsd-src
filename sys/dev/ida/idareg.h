@@ -119,18 +119,18 @@
 
 /* logical drive parameter table */
 struct ida_drive_param {
-	u_int16_t	ncylinders;
-	u_int8_t	nheads;
-	u_int8_t	signature;
-	u_int8_t	psectors;
-	u_int16_t	wprecomp;
-	u_int8_t	max_acc;
-	u_int8_t	control;
-	u_int16_t	pcylinders;
-	u_int8_t	ptracks;
-	u_int16_t	landing_zone;
-	u_int8_t	nsectors;
-	u_int8_t	checksum;
+	uint16_t	ncylinders;
+	uint8_t	nheads;
+	uint8_t	signature;
+	uint8_t	psectors;
+	uint16_t	wprecomp;
+	uint8_t	max_acc;
+	uint8_t	control;
+	uint16_t	pcylinders;
+	uint8_t	ptracks;
+	uint16_t	landing_zone;
+	uint8_t	nsectors;
+	uint8_t	checksum;
 } __packed;
 
 #define	IDA_RAID0	0	/* No fault tolerance. */
@@ -143,12 +143,12 @@ struct ida_drive_param {
  * Identify Logical Drive
  */
 struct ida_drive_info {
-	u_int16_t	secsize;	/* block size in bytes */
-	u_int32_t	secperunit;	/* blocks available */
+	uint16_t	secsize;	/* block size in bytes */
+	uint32_t	secperunit;	/* blocks available */
 	struct ida_drive_param	dp;	/* logical drive parameter table */
-	u_int8_t	mirror;		/* fault tolerance */
-	u_int8_t	reserved;
-	u_int8_t	bios_disable;
+	uint8_t	mirror;		/* fault tolerance */
+	uint8_t	reserved;
+	uint8_t	bios_disable;
 } __packed;
 
 /*
@@ -156,14 +156,14 @@ struct ida_drive_info {
  * Identify Logical Drive, Extended
  */
 struct ida_drive_info_ext {
-	u_int16_t	secsize;	/* block size in bytes */
-	u_int32_t	secperunit;	/* blocks available */
+	uint16_t	secsize;	/* block size in bytes */
+	uint32_t	secperunit;	/* blocks available */
 	struct ida_drive_param	dp;	/* logical drive parameter table */
-	u_int8_t	mirror;		/* fault tolerance */
-	u_int8_t	reserved;
-	u_int8_t	bios_disable;
-	u_int32_t	ld_id;		/* Logical drive identifier */
-	u_int8_t	ld_label[64];	/* Logical drive label */
+	uint8_t	mirror;		/* fault tolerance */
+	uint8_t	reserved;
+	uint8_t	bios_disable;
+	uint32_t	ld_id;		/* Logical drive identifier */
+	uint8_t	ld_label[64];	/* Logical drive label */
 } __packed;
 
 /*
@@ -171,42 +171,42 @@ struct ida_drive_info_ext {
  * Identify Controller
  */
 struct ida_controller_info {
-	u_int8_t	num_drvs;	/* Number of configured logical drives */
-	u_int32_t	signature;	/* Configuration signature */
-	u_int8_t	firm_rev[4];	/* ASCII firmware revision */
-	u_int8_t	rom_rev[4];	/* ROM firmware revision */
-	u_int8_t	hw_rev;		/* Revision level of the hardware */
-	u_int32_t	bb_rev;
-	u_int32_t	dp_map;		/* Drive present bit map */
-	u_int32_t	ed_map;		/* External drive bit map */
-	u_int32_t	board_id;
-	u_int8_t	cfg_error;
-	u_int32_t	nd_map;		/* Non-disk map */
-	u_int8_t	bad_ram_addr;
-	u_int8_t	cpu_rev;
-	u_int8_t	pdpi_rev;
-	u_int8_t	epic_rev;
-	u_int8_t	wcxc_rev;
-	u_int8_t	mkt_rev;	/* Marketing revision */
-	u_int8_t	cflag;		/* Controller flags */
+	uint8_t	num_drvs;	/* Number of configured logical drives */
+	uint32_t	signature;	/* Configuration signature */
+	uint8_t	firm_rev[4];	/* ASCII firmware revision */
+	uint8_t	rom_rev[4];	/* ROM firmware revision */
+	uint8_t	hw_rev;		/* Revision level of the hardware */
+	uint32_t	bb_rev;
+	uint32_t	dp_map;		/* Drive present bit map */
+	uint32_t	ed_map;		/* External drive bit map */
+	uint32_t	board_id;
+	uint8_t	cfg_error;
+	uint32_t	nd_map;		/* Non-disk map */
+	uint8_t	bad_ram_addr;
+	uint8_t	cpu_rev;
+	uint8_t	pdpi_rev;
+	uint8_t	epic_rev;
+	uint8_t	wcxc_rev;
+	uint8_t	mkt_rev;	/* Marketing revision */
+	uint8_t	cflag;		/* Controller flags */
 #define	IDA_CI_CFLAG_7DPB	(1<<3)
 #define	IDA_CI_CFLAG_BIGMAP	(1<<7)
-	u_int8_t	hflag;
-	u_int8_t	expand_dis;
-	u_int8_t	scsi_cc;	/* SCSI chip count */
-	u_int32_t	max_req_blocks;
-	u_int32_t	cclock;		/* Controller Clock */
-	u_int8_t	dp_scsi;	/* Drives per SCSI bus */
-	u_int16_t	big_dp_map[8];	/* Big drive present bit map */
-	u_int16_t	big_ed_map[8];	/* Big external drive bit map */
-	u_int16_t	big_nd_map[8];	/* Big non-disk map */
-	u_int16_t	task_flags;
-	u_int8_t	icl_bus;
-	u_int8_t	red_modes;
-	u_int8_t	cur_red_mode;
-	u_int8_t	red_ctlr_stat;
-	u_int8_t	red_fail_reason;
-	u_int8_t	reserved[403];
+	uint8_t	hflag;
+	uint8_t	expand_dis;
+	uint8_t	scsi_cc;	/* SCSI chip count */
+	uint32_t	max_req_blocks;
+	uint32_t	cclock;		/* Controller Clock */
+	uint8_t	dp_scsi;	/* Drives per SCSI bus */
+	uint16_t	big_dp_map[8];	/* Big drive present bit map */
+	uint16_t	big_ed_map[8];	/* Big external drive bit map */
+	uint16_t	big_nd_map[8];	/* Big non-disk map */
+	uint16_t	task_flags;
+	uint8_t	icl_bus;
+	uint8_t	red_modes;
+	uint8_t	cur_red_mode;
+	uint8_t	red_ctlr_stat;
+	uint8_t	red_fail_reason;
+	uint8_t	reserved[403];
 } __packed;
 
 /*
@@ -214,31 +214,31 @@ struct ida_controller_info {
  * Sense logical drive status
  */
 struct ida_drive_status {
-	u_int8_t	status;
-	u_int32_t	failure_map;
-	u_int16_t	read_err[32];
-	u_int16_t	write_error[32];
-	u_int8_t	reserved0[288];
-	u_int32_t	secrecover;
-	u_int8_t	rebuilding;
-	u_int16_t	remap_cnt[32];
-	u_int32_t	repl_map;
-	u_int32_t	spare_map;
-	u_int8_t	spare_status;
-	u_int8_t	spare_repl_map[32];
-	u_int32_t	repl_ok_map;
-	u_int8_t	media_exchange;
-	u_int8_t	cache_failure;
-	u_int8_t	expand_failure;
-	u_int8_t	unit_flags;
-	u_int16_t	big_failure_map[8];
-	u_int16_t	big_remap_cnt[128];
-	u_int16_t	big_repl_map[8];
-	u_int16_t	big_act_spare_map[8];
-	u_int8_t	big_spare_repl_map[128];
-	u_int16_t	big_repl_ok_map[8];
-	u_int8_t	big_rebuilding;
-	u_int8_t	reserved1[36];
+	uint8_t	status;
+	uint32_t	failure_map;
+	uint16_t	read_err[32];
+	uint16_t	write_error[32];
+	uint8_t	reserved0[288];
+	uint32_t	secrecover;
+	uint8_t	rebuilding;
+	uint16_t	remap_cnt[32];
+	uint32_t	repl_map;
+	uint32_t	spare_map;
+	uint8_t	spare_status;
+	uint8_t	spare_repl_map[32];
+	uint32_t	repl_ok_map;
+	uint8_t	media_exchange;
+	uint8_t	cache_failure;
+	uint8_t	expand_failure;
+	uint8_t	unit_flags;
+	uint16_t	big_failure_map[8];
+	uint16_t	big_remap_cnt[128];
+	uint16_t	big_repl_map[8];
+	uint16_t	big_act_spare_map[8];
+	uint8_t	big_spare_repl_map[128];
+	uint16_t	big_repl_ok_map[8];
+	uint8_t	big_rebuilding;
+	uint8_t	reserved1[36];
 } __packed;
 
 /*
@@ -246,18 +246,18 @@ struct ida_drive_status {
  * Identify Physical Drive
  */
 struct ida_phys_drv_info {
-	u_int8_t	scsi_bus;	/* SCSI Bus */
-	u_int8_t	scsi_id;	/* SCSI ID */
-	u_int16_t	blksize;	/* block size in bytes */
-	u_int32_t	blkcount;	/* total blocks */
-	u_int32_t	blkreserved;	/* reserved blocks */
-	u_int8_t	drv_model[40];	/* drive model */
-	u_int8_t	drv_serial[40];	/* drive serial number */
-	u_int8_t	drv_fwrev[8];	/* drive firmware revision */
-	u_int8_t	scsi_inq;	/* SCSI inquiry bits */
-	u_int8_t	cpq_drv_stmp;
-	u_int8_t	last_fail;
-	u_int8_t	pd_flags;	/* physical drive flags */
+	uint8_t	scsi_bus;	/* SCSI Bus */
+	uint8_t	scsi_id;	/* SCSI ID */
+	uint16_t	blksize;	/* block size in bytes */
+	uint32_t	blkcount;	/* total blocks */
+	uint32_t	blkreserved;	/* reserved blocks */
+	uint8_t	drv_model[40];	/* drive model */
+	uint8_t	drv_serial[40];	/* drive serial number */
+	uint8_t	drv_fwrev[8];	/* drive firmware revision */
+	uint8_t	scsi_inq;	/* SCSI inquiry bits */
+	uint8_t	cpq_drv_stmp;
+	uint8_t	last_fail;
+	uint8_t	pd_flags;	/* physical drive flags */
 #define	PDF_DISK_PRESENT	0x01
 #define	PDF_NONDISK_PRESENT	0x02
 #define	PDF_WIDE_ENABLED	0x04
@@ -266,7 +266,7 @@ struct ida_phys_drv_info {
 #define	PDF_WIDEFAIL		0x20
 #define	PDF_ULTRA		0x40
 #define	PDF_ULTRA2		0x80
-	u_int8_t	mpd_flags;	/* more physical drive flags */
+	uint8_t	mpd_flags;	/* more physical drive flags */
 #define	MPDF_SMART_SUPPORT	0x01	/* S.M.A.R.T supported */
 #define	MPDF_SMART_ERRORS	0x02	/* S.M.A.R.T errors recorded */
 #define	MPDF_SMART_ENABLED	0x04	/* S.M.A.R.T predictive failure is enabled */
@@ -275,15 +275,15 @@ struct ida_phys_drv_info {
 #define	MPDF_DRIVE_CONF_LVOL	0x20	/* Configured as part of a logical volume */
 #define	MPDF_DRIVE_CONF_SPARE	0x40	/* Configured as a spare */
 #define	MPDF_DRIVE_WCE		0x80	/* Drive WCE set on spinup */
-	u_int8_t	scsi_lun;
-	u_int8_t	ympd_flags;	/* yet more physical drive flags */
+	uint8_t	scsi_lun;
+	uint8_t	ympd_flags;	/* yet more physical drive flags */
 #define	YMPDF_DRIVE_WCE_SET	0x40	/* WCE currently set */
 #define	YMPDF_DRIVE_WCE_CHNG	0x80	/* WCE changeable */
-	u_int8_t	reserved;
-	u_int32_t	spi_speed_rules;
-	u_int8_t	phys_con[2];	/* Physical Connector */
-	u_int8_t	phys_box;	/* Physical Box on Bus */
-	u_int8_t	phys_bay;	/* Physical Bay in Box */
+	uint8_t	reserved;
+	uint32_t	spi_speed_rules;
+	uint8_t	phys_con[2];	/* Physical Connector */
+	uint8_t	phys_box;	/* Physical Box on Bus */
+	uint8_t	phys_bay;	/* Physical Bay in Box */
 } __packed;
 
 /*
@@ -294,10 +294,10 @@ struct ida_phys_drv_info {
  * Sense Blinking Drive Tray LEDs
  */
 struct ida_blink_drv_leds {
-	u_int32_t	bd;		/* Blink duration (in 10ths sec) */
-	u_int32_t	bte;		/* Blink time elapsed (sense only) */
-	u_int8_t	bse[256];	/* Blink/seek enable */
-	u_int8_t	reserved1[248];
+	uint32_t	bd;		/* Blink duration (in 10ths sec) */
+	uint32_t	bte;		/* Blink time elapsed (sense only) */
+	uint8_t	bse[256];	/* Blink/seek enable */
+	uint8_t	reserved1[248];
 } __packed;
 
 /*
@@ -305,6 +305,6 @@ struct ida_blink_drv_leds {
  * Label Logical Drive
  */
 struct ida_label_logical {
-	u_int32_t	ld_id;		/* Logical drive identifier */
-	u_int8_t	ld_label[64];	/* Logical drive label */
+	uint32_t	ld_id;		/* Logical drive identifier */
+	uint8_t	ld_label[64];	/* Logical drive label */
 } __packed;

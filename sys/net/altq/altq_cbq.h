@@ -76,7 +76,7 @@ CTASSERT(CBQCLF_CODEL == RMCF_CODEL);
 #define	CBQ_MAXPRI		RM_MAXPRIO
 
 typedef struct _cbq_class_stats_ {
-	u_int32_t	handle;
+	uint32_t	handle;
 	u_int		depth;
 
 	struct pktcntr	xmit_cnt;	/* packets sent in this class */

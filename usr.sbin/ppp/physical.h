@@ -63,7 +63,7 @@ struct device {
   int (*raw)(struct physical *);
   void (*offline)(struct physical *);
   void (*cooked)(struct physical *);
-  void (*setasyncparams)(struct physical *, u_int32_t, u_int32_t);
+  void (*setasyncparams)(struct physical *, uint32_t, uint32_t);
   void (*stoptimer)(struct physical *);
   void (*destroy)(struct physical *);
   ssize_t (*read)(struct physical *, void *, size_t);
@@ -169,6 +169,6 @@ extern void physical_StopDeviceTimer(struct physical *);
 extern unsigned physical_MaxDeviceSize(void);
 extern int physical_AwaitCarrier(struct physical *);
 extern void physical_SetDescriptor(struct physical *);
-extern void physical_SetAsyncParams(struct physical *, u_int32_t, u_int32_t);
+extern void physical_SetAsyncParams(struct physical *, uint32_t, uint32_t);
 extern int physical_Slot(struct physical *);
 extern int physical_SetPPPoEnonstandard(struct physical *, int);

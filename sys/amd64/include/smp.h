@@ -21,7 +21,7 @@
 
 /* global symbols in mpboot.S */
 extern char			mptramp_start[];
-extern u_int32_t		mptramp_pagetables;
+extern uint32_t		mptramp_pagetables;
 
 /* IPI handlers */
 inthand_t

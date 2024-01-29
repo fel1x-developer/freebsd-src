@@ -552,7 +552,7 @@ tcp6_usr_connect(struct socket *so, struct sockaddr *nam, struct thread *td)
 	struct inpcb *inp;
 	struct tcpcb *tp;
 	struct sockaddr_in6 *sin6;
-	u_int8_t incflagsav;
+	uint8_t incflagsav;
 	u_char vflagsav;
 
 	inp = sotoinpcb(so);
@@ -928,7 +928,7 @@ tcp_usr_send(struct socket *so, int flags, struct mbuf *m,
 	struct sockaddr_in6 *sin6;
 	int isipv6;
 #endif
-	u_int8_t incflagsav;
+	uint8_t incflagsav;
 	u_char vflagsav;
 	bool restoreflags;
 
@@ -1582,8 +1582,8 @@ tcp_fill_info(const struct tcpcb *tp, struct tcp_info *ti)
 
 	ti->tcpi_rto = tp->t_rxtcur * tick;
 	ti->tcpi_last_data_recv = ((uint32_t)ticks - tp->t_rcvtime) * tick;
-	ti->tcpi_rtt = ((u_int64_t)tp->t_srtt * tick) >> TCP_RTT_SHIFT;
-	ti->tcpi_rttvar = ((u_int64_t)tp->t_rttvar * tick) >> TCP_RTTVAR_SHIFT;
+	ti->tcpi_rtt = ((uint64_t)tp->t_srtt * tick) >> TCP_RTT_SHIFT;
+	ti->tcpi_rttvar = ((uint64_t)tp->t_rttvar * tick) >> TCP_RTTVAR_SHIFT;
 
 	ti->tcpi_snd_ssthresh = tp->snd_ssthresh;
 	ti->tcpi_snd_cwnd = tp->snd_cwnd;

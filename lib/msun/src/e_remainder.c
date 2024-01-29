@@ -31,7 +31,7 @@ double
 remainder(double x, double p)
 {
 	int32_t hx,hp;
-	u_int32_t sx,lx,lp;
+	uint32_t sx,lx,lp;
 	double p_half;
 
 	EXTRACT_WORDS(hx,lx,x);

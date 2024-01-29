@@ -285,11 +285,11 @@
  * list of ``particle descriptors'' when using scatter/gather i/o.
  */
 struct safe_desc {
-	u_int32_t	d_csr;			/* per-packet control/status */
-	u_int32_t	d_src;			/* source address */
-	u_int32_t	d_dst;			/* destination address */
-	u_int32_t	d_sa;			/* SA address */
-	u_int32_t	d_len;			/* length, bypass, status */
+	uint32_t	d_csr;			/* per-packet control/status */
+	uint32_t	d_src;			/* source address */
+	uint32_t	d_dst;			/* destination address */
+	uint32_t	d_sa;			/* SA address */
+	uint32_t	d_len;			/* length, bypass, status */
 };
 
 /*
@@ -299,9 +299,9 @@ struct safe_desc {
  *     by the setting of the SAFE_PE_PARTCFG register.
  */
 struct safe_pdesc {
-	u_int32_t	pd_addr;		/* particle address */
-	u_int16_t	pd_flags;		/* control word */
-	u_int16_t	pd_size;		/* particle size (bytes) */
+	uint32_t	pd_addr;		/* particle address */
+	uint16_t	pd_flags;		/* control word */
+	uint16_t	pd_size;		/* particle size (bytes) */
 };
 
 #define	SAFE_PD_READY	0x0001			/* ready for processing */
@@ -312,21 +312,21 @@ struct safe_pdesc {
  * required for each operation processed by the packet engine.
  */
 struct safe_sarec {
-	u_int32_t	sa_cmd0;
-	u_int32_t	sa_cmd1;
-	u_int32_t	sa_resv0;
-	u_int32_t	sa_resv1;
-	u_int32_t	sa_key[8];		/* DES/3DES/AES key */
-	u_int32_t	sa_indigest[5];		/* inner digest */
-	u_int32_t	sa_outdigest[5];	/* outer digest */
-	u_int32_t	sa_spi;			/* SPI */
-	u_int32_t	sa_seqnum;		/* sequence number */
-	u_int32_t	sa_seqmask[2];		/* sequence number mask */
-	u_int32_t	sa_resv2;
-	u_int32_t	sa_staterec;		/* address of state record */
-	u_int32_t	sa_resv3[2];
-	u_int32_t	sa_samgmt0;		/* SA management field 0 */
-	u_int32_t	sa_samgmt1;		/* SA management field 0 */
+	uint32_t	sa_cmd0;
+	uint32_t	sa_cmd1;
+	uint32_t	sa_resv0;
+	uint32_t	sa_resv1;
+	uint32_t	sa_key[8];		/* DES/3DES/AES key */
+	uint32_t	sa_indigest[5];		/* inner digest */
+	uint32_t	sa_outdigest[5];	/* outer digest */
+	uint32_t	sa_spi;			/* SPI */
+	uint32_t	sa_seqnum;		/* sequence number */
+	uint32_t	sa_seqmask[2];		/* sequence number mask */
+	uint32_t	sa_resv2;
+	uint32_t	sa_staterec;		/* address of state record */
+	uint32_t	sa_resv3[2];
+	uint32_t	sa_samgmt0;		/* SA management field 0 */
+	uint32_t	sa_samgmt1;		/* SA management field 0 */
 };
 
 #define	SAFE_SA_CMD0_OP		0x00000007	/* operation code */
@@ -405,8 +405,8 @@ struct safe_sarec {
  * Security Associate State Record (Rev 1).
  */
 struct safe_sastate {
-	u_int32_t	sa_saved_iv[4];		/* saved IV (DES/3DES/AES) */
-	u_int32_t	sa_saved_hashbc;	/* saved hash byte count */
-	u_int32_t	sa_saved_indigest[5];	/* saved inner digest */
+	uint32_t	sa_saved_iv[4];		/* saved IV (DES/3DES/AES) */
+	uint32_t	sa_saved_hashbc;	/* saved hash byte count */
+	uint32_t	sa_saved_indigest[5];	/* saved inner digest */
 };
 #endif /* _SAFE_SAFEREG_H_ */

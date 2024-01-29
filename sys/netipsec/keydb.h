@@ -74,21 +74,21 @@ struct secasindex {
 
 /* sadb_identity */
 struct secident {
-	u_int16_t type;
-	u_int64_t id;
+	uint16_t type;
+	uint64_t id;
 };
 
 /* sadb_key */
 struct seckey {
-	u_int16_t bits;
+	uint16_t bits;
 	char *key_data;
 };
 
 struct seclifetime {
-	u_int32_t allocations;
-	u_int64_t bytes;
-	u_int64_t addtime;
-	u_int64_t usetime;
+	uint32_t allocations;
+	uint64_t bytes;
+	uint64_t addtime;
+	uint64_t usetime;
 };
 
 struct secnatt {
@@ -211,10 +211,10 @@ struct secasvar {
  */
 struct secreplay {
 	struct mtx lock;
-	u_int64_t count;	/* (m) */
+	uint64_t count;	/* (m) */
 	u_int wsize;		/* (c) window size, i.g. 4 bytes */
-	u_int64_t last;		/* (m) used by receiver */
-	u_int32_t *bitmap;	/* (m) used by receiver */
+	uint64_t last;		/* (m) used by receiver */
+	uint32_t *bitmap;	/* (m) used by receiver */
 	u_int bitmap_size;	/* (c) size of the bitmap array */
 	int overflow;		/* (m) overflow flag */
 };

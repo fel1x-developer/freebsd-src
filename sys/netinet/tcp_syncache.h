@@ -52,21 +52,21 @@ struct syncache {
 	TAILQ_ENTRY(syncache)	sc_hash;
 	struct		in_conninfo sc_inc;	/* addresses */
 	int		sc_rxttime;		/* retransmit time */
-	u_int16_t	sc_rxmits;		/* retransmit counter */
-	u_int16_t	sc_port;		/* remote UDP encaps port */
-	u_int32_t	sc_tsreflect;		/* timestamp to reflect */
-	u_int32_t	sc_tsoff;		/* ts offset w/ syncookies */
-	u_int32_t	sc_flowlabel;		/* IPv6 flowlabel */
+	uint16_t	sc_rxmits;		/* retransmit counter */
+	uint16_t	sc_port;		/* remote UDP encaps port */
+	uint32_t	sc_tsreflect;		/* timestamp to reflect */
+	uint32_t	sc_tsoff;		/* ts offset w/ syncookies */
+	uint32_t	sc_flowlabel;		/* IPv6 flowlabel */
 	tcp_seq		sc_irs;			/* seq from peer */
 	tcp_seq		sc_iss;			/* our ISS */
 	struct		mbuf *sc_ipopts;	/* source route */
-	u_int16_t	sc_peer_mss;		/* peer's MSS */
-	u_int16_t	sc_wnd;			/* advertised window */
-	u_int8_t	sc_ip_ttl;		/* TTL / Hop Limit */
-	u_int8_t	sc_ip_tos;		/* TOS / Traffic Class */
-	u_int8_t	sc_requested_s_scale:4,
+	uint16_t	sc_peer_mss;		/* peer's MSS */
+	uint16_t	sc_wnd;			/* advertised window */
+	uint8_t	sc_ip_ttl;		/* TTL / Hop Limit */
+	uint8_t	sc_ip_tos;		/* TOS / Traffic Class */
+	uint8_t	sc_requested_s_scale:4,
 			sc_requested_r_scale:4;
-	u_int16_t	sc_flags;
+	uint16_t	sc_flags;
 #if defined(TCP_OFFLOAD) || !defined(TCP_OFFLOAD_DISABLE)
 	struct toedev	*sc_tod;		/* entry added by this TOE */
 	void		*sc_todctx;		/* TOE driver context */
@@ -75,7 +75,7 @@ struct syncache {
 	struct ucred	*sc_cred;		/* cred cache for jail checks */
 	void		*sc_tfo_cookie;		/* for TCP Fast Open response */
 	void		*sc_pspare;		/* TCP_SIGNATURE */
-	u_int32_t	sc_spare[2];		/* UTO */
+	uint32_t	sc_spare[2];		/* UTO */
 };
 
 /*

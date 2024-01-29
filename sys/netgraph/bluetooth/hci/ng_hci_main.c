@@ -724,7 +724,7 @@ ng_hci_drv_rcvdata(hook_p hook, item_p item)
 	 * the beginning of the chain. HCI layer WILL NOT call m_pullup() here.
 	 */
 
-	switch (*mtod(m, u_int8_t *)) {
+	switch (*mtod(m, uint8_t *)) {
 	case NG_HCI_ACL_DATA_PKT:
 		NG_HCI_STAT_ACL_RECV(unit->stat);
 
@@ -769,7 +769,7 @@ ng_hci_drv_rcvdata(hook_p hook, item_p item)
 		NG_HCI_ALERT(
 "%s: %s - got unknown HCI packet type=%#x\n",
 			__func__, NG_NODE_NAME(unit->node),
-			*mtod(m, u_int8_t *));
+			*mtod(m, uint8_t *));
 
 		NG_FREE_ITEM(item);
 
@@ -791,18 +791,18 @@ ng_hci_acl_rcvdata(hook_p hook, item_p item)
 	ng_hci_unit_p		 unit = (ng_hci_unit_p) NG_NODE_PRIVATE(NG_HOOK_NODE(hook));
 	struct mbuf		*m = NULL;
 	ng_hci_unit_con_p	 con = NULL;
-	u_int16_t		 con_handle;
+	uint16_t		 con_handle;
 	int			 size, error = 0;
 
 	NG_HCI_BUFF_ACL_SIZE(unit->buffer, size);
 	/* Check packet */
 	NGI_GET_M(item, m);
 
-	if (*mtod(m, u_int8_t *) != NG_HCI_ACL_DATA_PKT) {
+	if (*mtod(m, uint8_t *) != NG_HCI_ACL_DATA_PKT) {
 		NG_HCI_ALERT(
 "%s: %s - invalid HCI data packet type=%#x\n",
 			__func__, NG_NODE_NAME(unit->node),
-			*mtod(m, u_int8_t *));
+			*mtod(m, uint8_t *));
 
 		error = EINVAL;
 		goto drop;
@@ -908,7 +908,7 @@ ng_hci_sco_rcvdata(hook_p hook, item_p item)
 	ng_hci_unit_p		 unit = (ng_hci_unit_p) NG_NODE_PRIVATE(NG_HOOK_NODE(hook));
 	struct mbuf		*m = NULL;
 	ng_hci_unit_con_p	 con = NULL;
-	u_int16_t		 con_handle;
+	uint16_t		 con_handle;
 	int			 size, error = 0;
 
 	NG_HCI_BUFF_SCO_SIZE(unit->buffer, size);
@@ -916,11 +916,11 @@ ng_hci_sco_rcvdata(hook_p hook, item_p item)
 	/* Check packet */
 	NGI_GET_M(item, m);
 
-	if (*mtod(m, u_int8_t *) != NG_HCI_SCO_DATA_PKT) {
+	if (*mtod(m, uint8_t *) != NG_HCI_SCO_DATA_PKT) {
 		NG_HCI_ALERT(
 "%s: %s - invalid HCI data packet type=%#x\n",
 			__func__, NG_NODE_NAME(unit->node),
-			*mtod(m, u_int8_t *));
+			*mtod(m, uint8_t *));
 
 		error = EINVAL;
 		goto drop;
@@ -1032,11 +1032,11 @@ ng_hci_raw_rcvdata(hook_p hook, item_p item)
 	NG_FREE_ITEM(item);
 
 	/* Check packet */
-	if (*mtod(m, u_int8_t *) != NG_HCI_CMD_PKT) {
+	if (*mtod(m, uint8_t *) != NG_HCI_CMD_PKT) {
 		NG_HCI_ALERT(
 "%s: %s - invalid HCI command packet type=%#x\n",
 			__func__, NG_NODE_NAME(unit->node),
-			*mtod(m, u_int8_t *));
+			*mtod(m, uint8_t *));
 
 		error = EINVAL;
 		goto drop;

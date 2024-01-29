@@ -50,19 +50,19 @@
 #include <netinet/udp.h>
 #include <netinet/if_ether.h>
 
-#define ETHER_HEADER_SIZE (ETHER_ADDR_LEN * 2 + sizeof(u_int16_t))
+#define ETHER_HEADER_SIZE (ETHER_ADDR_LEN * 2 + sizeof(uint16_t))
 
-u_int32_t	checksum(unsigned char *, unsigned, u_int32_t);
-u_int32_t	wrapsum(u_int32_t);
+uint32_t	checksum(unsigned char *, unsigned, uint32_t);
+uint32_t	wrapsum(uint32_t);
 
-u_int32_t
-checksum(unsigned char *buf, unsigned nbytes, u_int32_t sum)
+uint32_t
+checksum(unsigned char *buf, unsigned nbytes, uint32_t sum)
 {
 	unsigned i;
 
 	/* Checksum all the pairs of bytes first... */
 	for (i = 0; i < (nbytes & ~1U); i += 2) {
-		sum += (u_int16_t)ntohs(*((u_int16_t *)(buf + i)));
+		sum += (uint16_t)ntohs(*((uint16_t *)(buf + i)));
 		if (sum > 0xFFFF)
 			sum -= 0xFFFF;
 	}
@@ -81,8 +81,8 @@ checksum(unsigned char *buf, unsigned nbytes, u_int32_t sum)
 	return (sum);
 }
 
-u_int32_t
-wrapsum(u_int32_t sum)
+uint32_t
+wrapsum(uint32_t sum)
 {
 	sum = ~sum & 0xFFFF;
 	return (htons(sum));
@@ -108,8 +108,8 @@ assemble_hw_header(struct interface_info *interface, unsigned char *buf,
 }
 
 void
-assemble_udp_ip_header(unsigned char *buf, int *bufix, u_int32_t from,
-    u_int32_t to, unsigned int port, unsigned char *data, int len)
+assemble_udp_ip_header(unsigned char *buf, int *bufix, uint32_t from,
+    uint32_t to, unsigned int port, unsigned char *data, int len)
 {
 	struct ip ip;
 	struct udphdr udp;
@@ -138,7 +138,7 @@ assemble_udp_ip_header(unsigned char *buf, int *bufix, u_int32_t from,
 	udp.uh_sum = wrapsum(checksum((unsigned char *)&udp, sizeof(udp),
 	    checksum(data, len, checksum((unsigned char *)&ip.ip_src,
 	    2 * sizeof(ip.ip_src),
-	    IPPROTO_UDP + (u_int32_t)ntohs(udp.uh_ulen)))));
+	    IPPROTO_UDP + (uint32_t)ntohs(udp.uh_ulen)))));
 
 	memcpy(&buf[*bufix], &udp, sizeof(udp));
 	*bufix += sizeof(udp);
@@ -165,8 +165,8 @@ decode_udp_ip_header(unsigned char *buf, int bufix, struct sockaddr_in *from,
 {
 	struct ip *ip;
 	struct udphdr *udp;
-	u_int32_t ip_len = (buf[bufix] & 0xf) << 2;
-	u_int32_t sum, usum;
+	uint32_t ip_len = (buf[bufix] & 0xf) << 2;
+	uint32_t sum, usum;
 	static int ip_packets_seen;
 	static int ip_packets_bad_checksum;
 	static int udp_packets_seen;
@@ -229,7 +229,7 @@ decode_udp_ip_header(unsigned char *buf, int bufix, struct sockaddr_in *from,
 	sum = wrapsum(checksum((unsigned char *)udp, sizeof(*udp),
 	    checksum(data, len, checksum((unsigned char *)&ip->ip_src,
 	    2 * sizeof(ip->ip_src),
-	    IPPROTO_UDP + (u_int32_t)ntohs(udp->uh_ulen)))));
+	    IPPROTO_UDP + (uint32_t)ntohs(udp->uh_ulen)))));
 
 	udp_packets_seen++;
 	if (usum && usum != sum) {

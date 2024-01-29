@@ -123,8 +123,8 @@ struct ng_patch_stats {
 };
 
 struct ng_patch_vlan_header {
-	u_int16_t tag;
-	u_int16_t etype;
+	uint16_t tag;
+	uint16_t etype;
 };
 
 #define NG_PATCH_CONF_SIZE(count) (sizeof(struct ng_patch_config) + \

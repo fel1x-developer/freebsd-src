@@ -44,8 +44,8 @@ struct ng_message;
 
 struct ng_btsocket_sco_rtentry {
 	bdaddr_t				 src;  /* source BD_ADDR */
-	u_int16_t				 pkt_size; /* mtu */
-	u_int16_t				 num_pkts; /* buffer size */
+	uint16_t				 pkt_size; /* mtu */
+	uint16_t				 num_pkts; /* buffer size */
 	int32_t					 pending; /* pending packets */
 	struct ng_hook				*hook; /* downstream hook */
 	LIST_ENTRY(ng_btsocket_sco_rtentry)	 next; /* link to next */
@@ -72,13 +72,13 @@ struct ng_btsocket_sco_pcb {
 	bdaddr_t			 src;	     /* Source address */
 	bdaddr_t			 dst;	     /* Destination address */
 
-	u_int16_t			 con_handle; /* connection handle */
+	uint16_t			 con_handle; /* connection handle */
 
-	u_int16_t			 flags;      /* socket flags */
+	uint16_t			 flags;      /* socket flags */
 #define NG_BTSOCKET_SCO_CLIENT		(1 << 0)     /* socket is client */
 #define NG_BTSOCKET_SCO_TIMO		(1 << 1)     /* timeout pending */
 
-	u_int8_t			 state;      /* socket state */
+	uint8_t			 state;      /* socket state */
 #define NG_BTSOCKET_SCO_CLOSED		0            /* socket closed */
 #define NG_BTSOCKET_SCO_CONNECTING	1            /* wait for connect */
 #define NG_BTSOCKET_SCO_OPEN		2            /* socket open */

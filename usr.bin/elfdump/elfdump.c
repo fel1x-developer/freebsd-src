@@ -171,7 +171,7 @@ static int elf64_offsets[] = {
 
 /* http://www.sco.com/developers/gabi/latest/ch5.dynamic.html#tag_encodings */
 static const char *
-d_tags(u_int64_t tag)
+d_tags(uint64_t tag)
 {
 	static char unknown_tag[48];
 
@@ -449,14 +449,14 @@ static char *shstrtab;
 static char *strtab;
 static FILE *out;
 
-static u_int64_t elf_get_byte(Elf32_Ehdr *e, void *base, elf_member_t member);
-static u_int64_t elf_get_quarter(Elf32_Ehdr *e, void *base,
+static uint64_t elf_get_byte(Elf32_Ehdr *e, void *base, elf_member_t member);
+static uint64_t elf_get_quarter(Elf32_Ehdr *e, void *base,
     elf_member_t member);
 #if 0
-static u_int64_t elf_get_half(Elf32_Ehdr *e, void *base, elf_member_t member);
+static uint64_t elf_get_half(Elf32_Ehdr *e, void *base, elf_member_t member);
 #endif
-static u_int64_t elf_get_word(Elf32_Ehdr *e, void *base, elf_member_t member);
-static u_int64_t elf_get_quad(Elf32_Ehdr *e, void *base, elf_member_t member);
+static uint64_t elf_get_word(Elf32_Ehdr *e, void *base, elf_member_t member);
+static uint64_t elf_get_quad(Elf32_Ehdr *e, void *base, elf_member_t member);
 
 static void elf_print_ehdr(Elf32_Ehdr *e, void *sh);
 static void elf_print_phdr(Elf32_Ehdr *e, void *p);
@@ -503,16 +503,16 @@ int
 main(int ac, char **av)
 {
 	cap_rights_t rights;
-	u_int64_t phoff;
-	u_int64_t shoff;
-	u_int64_t phentsize;
-	u_int64_t phnum;
-	u_int64_t shentsize;
-	u_int64_t shnum;
-	u_int64_t shstrndx;
-	u_int64_t offset;
-	u_int64_t name;
-	u_int64_t type;
+	uint64_t phoff;
+	uint64_t shoff;
+	uint64_t phentsize;
+	uint64_t phnum;
+	uint64_t shentsize;
+	uint64_t shnum;
+	uint64_t shstrndx;
+	uint64_t offset;
+	uint64_t name;
+	uint64_t type;
 	struct stat sb;
 	u_int flags;
 	Elf32_Ehdr *e;
@@ -625,7 +625,7 @@ main(int ac, char **av)
 		shstrndx = 0;
 		shstrtab = NULL;
 	}
-	for (i = 0; (u_int64_t)i < shnum; i++) {
+	for (i = 0; (uint64_t)i < shnum; i++) {
 		name = elf_get_word(e, (char *)sh + i * shentsize, SH_NAME);
 		offset = elf_get_off(e, (char *)sh + i * shentsize, SH_OFFSET);
 		if (strcmp(shstrtab + name, ".strtab") == 0)
@@ -639,7 +639,7 @@ main(int ac, char **av)
 		elf_print_phdr(e, p);
 	if (flags & ED_SHDR)
 		elf_print_shdr(e, sh);
-	for (i = 0; (u_int64_t)i < phnum; i++) {
+	for (i = 0; (uint64_t)i < phnum; i++) {
 		v = (char *)p + i * phentsize;
 		type = elf_get_word(e, v, P_TYPE);
 		switch (type) {
@@ -656,7 +656,7 @@ main(int ac, char **av)
 			break;
 		}
 	}
-	for (i = 0; (u_int64_t)i < shnum; i++) {
+	for (i = 0; (uint64_t)i < shnum; i++) {
 		v = (char *)sh + i * shentsize;
 		type = elf_get_word(e, v, SH_TYPE);
 		switch (type) {
@@ -710,22 +710,22 @@ main(int ac, char **av)
 static void
 elf_print_ehdr(Elf32_Ehdr *e, void *sh)
 {
-	u_int64_t class;
-	u_int64_t data;
-	u_int64_t osabi;
-	u_int64_t type;
-	u_int64_t machine;
-	u_int64_t version;
-	u_int64_t entry;
-	u_int64_t phoff;
-	u_int64_t shoff;
-	u_int64_t flags;
-	u_int64_t ehsize;
-	u_int64_t phentsize;
-	u_int64_t phnum;
-	u_int64_t shentsize;
-	u_int64_t shnum;
-	u_int64_t shstrndx;
+	uint64_t class;
+	uint64_t data;
+	uint64_t osabi;
+	uint64_t type;
+	uint64_t machine;
+	uint64_t version;
+	uint64_t entry;
+	uint64_t phoff;
+	uint64_t shoff;
+	uint64_t flags;
+	uint64_t ehsize;
+	uint64_t phentsize;
+	uint64_t phnum;
+	uint64_t shentsize;
+	uint64_t shnum;
+	uint64_t shstrndx;
 
 	class = elf_get_byte(e, e, E_CLASS);
 	data = elf_get_byte(e, e, E_DATA);
@@ -767,23 +767,23 @@ elf_print_ehdr(Elf32_Ehdr *e, void *sh)
 static void
 elf_print_phdr(Elf32_Ehdr *e, void *p)
 {
-	u_int64_t phentsize;
-	u_int64_t phnum;
-	u_int64_t type;
-	u_int64_t offset;
-	u_int64_t vaddr;
-	u_int64_t paddr;
-	u_int64_t filesz;
-	u_int64_t memsz;
-	u_int64_t flags;
-	u_int64_t align;
+	uint64_t phentsize;
+	uint64_t phnum;
+	uint64_t type;
+	uint64_t offset;
+	uint64_t vaddr;
+	uint64_t paddr;
+	uint64_t filesz;
+	uint64_t memsz;
+	uint64_t flags;
+	uint64_t align;
 	void *v;
 	int i;
 
 	phentsize = elf_get_quarter(e, e, E_PHENTSIZE);
 	phnum = elf_get_quarter(e, e, E_PHNUM);
 	fprintf(out, "\nprogram header:\n");
-	for (i = 0; (u_int64_t)i < phnum; i++) {
+	for (i = 0; (uint64_t)i < phnum; i++) {
 		v = (char *)p + i * phentsize;
 		type = elf_get_word(e, v, P_TYPE);
 		offset = elf_get_off(e, v, P_OFFSET);
@@ -809,19 +809,19 @@ elf_print_phdr(Elf32_Ehdr *e, void *p)
 static void
 elf_print_shdr(Elf32_Ehdr *e, void *sh)
 {
-	u_int64_t shentsize;
-	u_int64_t shnum;
-	u_int64_t name;
-	u_int64_t type;
-	u_int64_t flags;
-	u_int64_t addr;
-	u_int64_t offset;
-	u_int64_t size;
-	u_int64_t shlink;
-	u_int64_t info;
-	u_int64_t addralign;
-	u_int64_t entsize;
-	u_int64_t machine;
+	uint64_t shentsize;
+	uint64_t shnum;
+	uint64_t name;
+	uint64_t type;
+	uint64_t flags;
+	uint64_t addr;
+	uint64_t offset;
+	uint64_t size;
+	uint64_t shlink;
+	uint64_t info;
+	uint64_t addralign;
+	uint64_t entsize;
+	uint64_t machine;
 	void *v;
 	int i;
 
@@ -834,7 +834,7 @@ elf_print_shdr(Elf32_Ehdr *e, void *sh)
 	shentsize = elf_get_quarter(e, e, E_SHENTSIZE);
 	shnum = elf_get_shnum(e, sh);
 	fprintf(out, "\nsection header:\n");
-	for (i = 0; (u_int64_t)i < shnum; i++) {
+	for (i = 0; (uint64_t)i < shnum; i++) {
 		v = (char *)sh + i * shentsize;
 		name = elf_get_word(e, v, SH_NAME);
 		type = elf_get_word(e, v, SH_TYPE);
@@ -864,14 +864,14 @@ elf_print_shdr(Elf32_Ehdr *e, void *sh)
 static void
 elf_print_symtab(Elf32_Ehdr *e, void *sh, char *str)
 {
-	u_int64_t machine;
-	u_int64_t offset;
-	u_int64_t entsize;
-	u_int64_t size;
-	u_int64_t name;
-	u_int64_t value;
-	u_int64_t info;
-	u_int64_t shndx;
+	uint64_t machine;
+	uint64_t offset;
+	uint64_t entsize;
+	uint64_t size;
+	uint64_t name;
+	uint64_t value;
+	uint64_t info;
+	uint64_t shndx;
 	void *st;
 	int len;
 	int i;
@@ -905,12 +905,12 @@ elf_print_symtab(Elf32_Ehdr *e, void *sh, char *str)
 static void
 elf_print_dynamic(Elf32_Ehdr *e, void *sh)
 {
-	u_int64_t offset;
-	u_int64_t entsize;
-	u_int64_t size;
+	uint64_t offset;
+	uint64_t entsize;
+	uint64_t size;
 	int64_t tag;
-	u_int64_t ptr;
-	u_int64_t val;
+	uint64_t ptr;
+	uint64_t val;
 	void *d;
 	int i;
 
@@ -918,7 +918,7 @@ elf_print_dynamic(Elf32_Ehdr *e, void *sh)
 	entsize = elf_get_size(e, sh, SH_ENTSIZE);
 	size = elf_get_size(e, sh, SH_SIZE);
 	fprintf(out, "\ndynamic:\n");
-	for (i = 0; (u_int64_t)i < size / entsize; i++) {
+	for (i = 0; (uint64_t)i < size / entsize; i++) {
 		d = (char *)e + offset + i * entsize;
 		tag = elf_get_size(e, d, D_TAG);
 		ptr = elf_get_size(e, d, D_PTR);
@@ -965,11 +965,11 @@ elf_print_dynamic(Elf32_Ehdr *e, void *sh)
 static void
 elf_print_rela(Elf32_Ehdr *e, void *sh)
 {
-	u_int64_t offset;
-	u_int64_t entsize;
-	u_int64_t size;
-	u_int64_t name;
-	u_int64_t info;
+	uint64_t offset;
+	uint64_t entsize;
+	uint64_t size;
+	uint64_t name;
+	uint64_t info;
 	int64_t addend;
 	void *ra;
 	void *v;
@@ -981,7 +981,7 @@ elf_print_rela(Elf32_Ehdr *e, void *sh)
 	name = elf_get_word(e, sh, SH_NAME);
 	v = (char *)e + offset;
 	fprintf(out, "\nrelocation with addend (%s):\n", shstrtab + name);
-	for (i = 0; (u_int64_t)i < size / entsize; i++) {
+	for (i = 0; (uint64_t)i < size / entsize; i++) {
 		ra = (char *)v + i * entsize;
 		offset = elf_get_addr(e, ra, RA_OFFSET);
 		info = elf_get_word(e, ra, RA_INFO);
@@ -997,11 +997,11 @@ elf_print_rela(Elf32_Ehdr *e, void *sh)
 static void
 elf_print_rel(Elf32_Ehdr *e, void *sh)
 {
-	u_int64_t offset;
-	u_int64_t entsize;
-	u_int64_t size;
-	u_int64_t name;
-	u_int64_t info;
+	uint64_t offset;
+	uint64_t entsize;
+	uint64_t size;
+	uint64_t name;
+	uint64_t info;
 	void *r;
 	void *v;
 	int i;
@@ -1012,7 +1012,7 @@ elf_print_rel(Elf32_Ehdr *e, void *sh)
 	name = elf_get_word(e, sh, SH_NAME);
 	v = (char *)e + offset;
 	fprintf(out, "\nrelocation (%s):\n", shstrtab + name);
-	for (i = 0; (u_int64_t)i < size / entsize; i++) {
+	for (i = 0; (uint64_t)i < size / entsize; i++) {
 		r = (char *)v + i * entsize;
 		offset = elf_get_addr(e, r, R_OFFSET);
 		info = elf_get_word(e, r, R_INFO);
@@ -1026,7 +1026,7 @@ elf_print_rel(Elf32_Ehdr *e, void *sh)
 static void
 elf_print_interp(Elf32_Ehdr *e, void *p)
 {
-	u_int64_t offset;
+	uint64_t offset;
 	char *s;
 
 	offset = elf_get_off(e, p, P_OFFSET);
@@ -1038,10 +1038,10 @@ elf_print_interp(Elf32_Ehdr *e, void *p)
 static void
 elf_print_got(Elf32_Ehdr *e, void *sh)
 {
-	u_int64_t offset;
-	u_int64_t addralign;
-	u_int64_t size;
-	u_int64_t addr;
+	uint64_t offset;
+	uint64_t addralign;
+	uint64_t size;
+	uint64_t addr;
 	void *v;
 	int i;
 
@@ -1050,7 +1050,7 @@ elf_print_got(Elf32_Ehdr *e, void *sh)
 	size = elf_get_size(e, sh, SH_SIZE);
 	v = (char *)e + offset;
 	fprintf(out, "\nglobal offset table:\n");
-	for (i = 0; (u_int64_t)i < size / addralign; i++) {
+	for (i = 0; (uint64_t)i < size / addralign; i++) {
 		addr = elf_get_addr(e, (char *)v + i * addralign, 0);
 		fprintf(out, "\n");
 		fprintf(out, "entry: %d\n", i);
@@ -1066,13 +1066,13 @@ elf_print_hash(Elf32_Ehdr *e __unused, void *sh __unused)
 static void
 elf_print_note(Elf32_Ehdr *e, void *sh)
 {
-	u_int64_t offset;
-	u_int64_t size;
-	u_int64_t name;
-	u_int32_t namesz;
-	u_int32_t descsz;
-	u_int32_t desc;
-	u_int32_t type;
+	uint64_t offset;
+	uint64_t size;
+	uint64_t name;
+	uint32_t namesz;
+	uint32_t descsz;
+	uint32_t desc;
+	uint32_t type;
 	char *n, *s;
 	const char *nt_type;
 
@@ -1096,10 +1096,10 @@ elf_print_note(Elf32_Ehdr *e, void *sh)
 	}
 }
 
-static u_int64_t
+static uint64_t
 elf_get_byte(Elf32_Ehdr *e, void *base, elf_member_t member)
 {
-	u_int64_t val;
+	uint64_t val;
 
 	val = 0;
 	switch (e->e_ident[EI_CLASS]) {
@@ -1116,10 +1116,10 @@ elf_get_byte(Elf32_Ehdr *e, void *base, elf_member_t member)
 	return val;
 }
 
-static u_int64_t
+static uint64_t
 elf_get_quarter(Elf32_Ehdr *e, void *base, elf_member_t member)
 {
-	u_int64_t val;
+	uint64_t val;
 
 	val = 0;
 	switch (e->e_ident[EI_CLASS]) {
@@ -1157,10 +1157,10 @@ elf_get_quarter(Elf32_Ehdr *e, void *base, elf_member_t member)
 }
 
 #if 0
-static u_int64_t
+static uint64_t
 elf_get_half(Elf32_Ehdr *e, void *base, elf_member_t member)
 {
-	u_int64_t val;
+	uint64_t val;
 
 	val = 0;
 	switch (e->e_ident[EI_CLASS]) {
@@ -1198,10 +1198,10 @@ elf_get_half(Elf32_Ehdr *e, void *base, elf_member_t member)
 }
 #endif
 
-static u_int64_t
+static uint64_t
 elf_get_word(Elf32_Ehdr *e, void *base, elf_member_t member)
 {
-	u_int64_t val;
+	uint64_t val;
 
 	val = 0;
 	switch (e->e_ident[EI_CLASS]) {
@@ -1238,10 +1238,10 @@ elf_get_word(Elf32_Ehdr *e, void *base, elf_member_t member)
 	return val;
 }
 
-static u_int64_t
+static uint64_t
 elf_get_quad(Elf32_Ehdr *e, void *base, elf_member_t member)
 {
-	u_int64_t val;
+	uint64_t val;
 
 	val = 0;
 	switch (e->e_ident[EI_CLASS]) {

@@ -95,7 +95,7 @@ static const struct mkuz_format uzip_fmts[] = {
 	},
 };
 
-static struct mkuz_blk *readblock(int, u_int32_t);
+static struct mkuz_blk *readblock(int, uint32_t);
 static void usage(void) __dead2;
 static void cleanup(void);
 
@@ -421,7 +421,7 @@ drain:
 }
 
 static struct mkuz_blk *
-readblock(int fd, u_int32_t clstsize)
+readblock(int fd, uint32_t clstsize)
 {
 	int numread;
 	struct mkuz_blk *rval;

@@ -126,7 +126,7 @@ static void *lge_jalloc(struct lge_softc *);
 static void lge_jfree(struct mbuf *);
 
 static int lge_newbuf(struct lge_softc *, struct lge_rx_desc *, struct mbuf *);
-static int lge_encap(struct lge_softc *, struct mbuf *, u_int32_t *);
+static int lge_encap(struct lge_softc *, struct mbuf *, uint32_t *);
 static void lge_rxeof(struct lge_softc *, int);
 static void lge_rxeoc(struct lge_softc *);
 static void lge_txeof(struct lge_softc *);
@@ -144,7 +144,7 @@ static int lge_ifmedia_upd(if_t);
 static void lge_ifmedia_upd_locked(if_t);
 static void lge_ifmedia_sts(if_t, struct ifmediareq *);
 
-static void lge_eeprom_getword(struct lge_softc *, int, u_int16_t *);
+static void lge_eeprom_getword(struct lge_softc *, int, uint16_t *);
 static void lge_read_eeprom(struct lge_softc *, caddr_t, int, int, int);
 
 static int lge_miibus_readreg(device_t, int, int);
@@ -209,10 +209,10 @@ MODULE_DEPEND(lge, miibus, 1, 1, 1);
  * Read a word of data stored in the EEPROM at address 'addr.'
  */
 static void
-lge_eeprom_getword(struct lge_softc *sc, int addr, u_int16_t *dest)
+lge_eeprom_getword(struct lge_softc *sc, int addr, uint16_t *dest)
 {
 	int			i;
-	u_int32_t		val;
+	uint32_t		val;
 
 	CSR_WRITE_4(sc, LGE_EECTL, LGE_EECTL_CMD_READ|
 	    LGE_EECTL_SINGLEACCESS|((addr >> 1) << 8));
@@ -243,11 +243,11 @@ static void
 lge_read_eeprom(struct lge_softc *sc, caddr_t dest, int off, int cnt, int swap)
 {
 	int			i;
-	u_int16_t		word = 0, *ptr;
+	uint16_t		word = 0, *ptr;
 
 	for (i = 0; i < cnt; i++) {
 		lge_eeprom_getword(sc, off + i, &word);
-		ptr = (u_int16_t *)(dest + (i * 2));
+		ptr = (uint16_t *)(dest + (i * 2));
 		if (swap)
 			*ptr = ntohs(word);
 		else
@@ -858,7 +858,7 @@ lge_rxeof(struct lge_softc *sc, int cnt)
         if_t ifp;
 	struct lge_rx_desc	*cur_rx;
 	int			c, i, total_len = 0;
-	u_int32_t		rxsts, rxctl;
+	uint32_t		rxsts, rxctl;
 
 	ifp = sc->lge_ifp;
 
@@ -954,7 +954,7 @@ lge_txeof(struct lge_softc *sc)
 {
 	struct lge_tx_desc	*cur_tx = NULL;
 	if_t			ifp;
-	u_int32_t		idx, txdone;
+	uint32_t		idx, txdone;
 
 	ifp = sc->lge_ifp;
 
@@ -1034,7 +1034,7 @@ lge_intr(void *arg)
 {
 	struct lge_softc	*sc;
 	if_t			ifp;
-	u_int32_t		status;
+	uint32_t		status;
 
 	sc = arg;
 	ifp = sc->lge_ifp;
@@ -1089,7 +1089,7 @@ lge_intr(void *arg)
  * pointers to the fragment pointers.
  */
 static int
-lge_encap(struct lge_softc *sc, struct mbuf *m_head, u_int32_t *txidx)
+lge_encap(struct lge_softc *sc, struct mbuf *m_head, uint32_t *txidx)
 {
 	struct lge_frag		*f = NULL;
 	struct lge_tx_desc	*cur_tx;
@@ -1152,7 +1152,7 @@ lge_start_locked(if_t ifp)
 {
 	struct lge_softc	*sc;
 	struct mbuf		*m_head = NULL;
-	u_int32_t		idx;
+	uint32_t		idx;
 
 	sc = if_getsoftc(ifp);
 
@@ -1221,8 +1221,8 @@ lge_init_locked(struct lge_softc *sc)
 	lge_reset(sc);
 
 	/* Set MAC address */
-	CSR_WRITE_4(sc, LGE_PAR0, *(u_int32_t *)(&if_getlladdr(sc->lge_ifp)[0]));
-	CSR_WRITE_4(sc, LGE_PAR1, *(u_int32_t *)(&if_getlladdr(sc->lge_ifp)[4]));
+	CSR_WRITE_4(sc, LGE_PAR0, *(uint32_t *)(&if_getlladdr(sc->lge_ifp)[0]));
+	CSR_WRITE_4(sc, LGE_PAR1, *(uint32_t *)(&if_getlladdr(sc->lge_ifp)[4]));
 
 	/* Init circular RX list. */
 	if (lge_list_rx_init(sc) == ENOBUFS) {

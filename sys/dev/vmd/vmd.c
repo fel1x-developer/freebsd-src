@@ -56,8 +56,8 @@
 #include "pcib_if.h"
 
 struct vmd_type {
-	u_int16_t	vmd_vid;
-	u_int16_t	vmd_did;
+	uint16_t	vmd_vid;
+	uint16_t	vmd_did;
 	char		*vmd_name;
 	int		flags;
 #define BUS_RESTRICT	1

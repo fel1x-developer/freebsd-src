@@ -63,15 +63,15 @@ MALLOC_DECLARE(M_NETGRAPH_HCI);
  */
 
 typedef struct ng_hci_unit_buff {
-	u_int8_t			cmd_free; /* space available (cmds) */
+	uint8_t			cmd_free; /* space available (cmds) */
 
-	u_int8_t			sco_size; /* max. size of one packet */
-	u_int16_t			sco_pkts; /* size of buffer (packets) */
-	u_int16_t			sco_free; /* space available (packets)*/
+	uint8_t			sco_size; /* max. size of one packet */
+	uint16_t			sco_pkts; /* size of buffer (packets) */
+	uint16_t			sco_free; /* space available (packets)*/
 
-	u_int16_t			acl_size; /* max. size of one packet */
-	u_int16_t			acl_pkts; /* size of buffer (packets) */
-	u_int16_t			acl_free; /* space available (packets)*/
+	uint16_t			acl_size; /* max. size of one packet */
+	uint16_t			acl_pkts; /* size of buffer (packets) */
+	uint16_t			acl_free; /* space available (packets)*/
 } ng_hci_unit_buff_t;
 
 /* 
@@ -131,7 +131,7 @@ typedef struct ng_hci_unit {
 	ng_hci_node_state_ep		state;          /* unit state */
 
 	bdaddr_t			bdaddr;         /* unit address */
-	u_int8_t			features[NG_HCI_FEATURES_SIZE];
+	uint8_t			features[NG_HCI_FEATURES_SIZE];
 					                /* LMP features */
 
 	ng_hci_node_link_policy_mask_ep	link_policy_mask; /* link policy mask */
@@ -172,19 +172,19 @@ typedef ng_hci_unit_t *			ng_hci_unit_p;
 typedef struct ng_hci_unit_con {
 	ng_hci_unit_p			unit;            /* pointer back */
 
-	u_int16_t			state;           /* con. state */
-	u_int16_t			flags;           /* con. flags */
+	uint16_t			state;           /* con. state */
+	uint16_t			flags;           /* con. flags */
 #define NG_HCI_CON_TIMEOUT_PENDING		(1 << 0)
 #define NG_HCI_CON_NOTIFY_ACL			(1 << 1)
 #define NG_HCI_CON_NOTIFY_SCO			(1 << 2)
 
 	bdaddr_t			bdaddr;          /* remote address */
-	u_int16_t			con_handle;      /* con. handle */
+	uint16_t			con_handle;      /* con. handle */
 
-	u_int8_t			link_type;       /* ACL or SCO */
-	u_int8_t			encryption_mode; /* none, p2p, ... */
-	u_int8_t			mode;            /* ACTIVE, HOLD ... */
-	u_int8_t			role;            /* MASTER/SLAVE */
+	uint8_t			link_type;       /* ACL or SCO */
+	uint8_t			encryption_mode; /* none, p2p, ... */
+	uint8_t			mode;            /* ACTIVE, HOLD ... */
+	uint8_t			role;            /* MASTER/SLAVE */
 
 	struct callout			con_timo;        /* con. timeout */
 
@@ -204,13 +204,13 @@ typedef struct ng_hci_neighbor {
 	struct timeval			updated;	/* entry was updated */
 
 	bdaddr_t			bdaddr;         /* address */
-	u_int8_t			features[NG_HCI_FEATURES_SIZE];
+	uint8_t			features[NG_HCI_FEATURES_SIZE];
 					                /* LMP features */
-	u_int8_t 			addrtype;	/*Address Type*/
+	uint8_t 			addrtype;	/*Address Type*/
 
-	u_int8_t			page_scan_rep_mode; /* PS rep. mode */
-	u_int8_t			page_scan_mode; /* page scan mode */
-	u_int16_t			clock_offset;   /* clock offset */
+	uint8_t			page_scan_rep_mode; /* PS rep. mode */
+	uint8_t			page_scan_mode; /* page scan mode */
+	uint16_t			clock_offset;   /* clock offset */
 	uint8_t				extinq_size;
 	uint8_t				extinq_data[NG_HCI_EXTINQ_MAX];
 	LIST_ENTRY(ng_hci_neighbor)	next;

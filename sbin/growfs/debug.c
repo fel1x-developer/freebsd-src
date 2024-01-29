@@ -248,7 +248,7 @@ dbg_dump_fs(struct fs *sb, const char *comment)
 	    sb->fs_fsmnt);
 	fprintf(dbg_log, "volname           u_char[MAXVOLLEN] \"%s\"\n",
 	    sb->fs_volname);
-	fprintf(dbg_log, "swuid             u_int64_t        0x%08x%08x\n",
+	fprintf(dbg_log, "swuid             uint64_t        0x%08x%08x\n",
 	    ((unsigned int *)&(sb->fs_swuid))[1],
 		((unsigned int *)&(sb->fs_swuid))[0]);
 
@@ -315,7 +315,7 @@ dbg_dump_fs(struct fs *sb, const char *comment)
 	    sb->fs_maxsymlinklen);
 	fprintf(dbg_log, "old_inodefmt      int32_t          0x%08x\n",
 	    sb->fs_old_inodefmt);
-	fprintf(dbg_log, "maxfilesize       u_int64_t        0x%08x%08x\n",
+	fprintf(dbg_log, "maxfilesize       uint64_t        0x%08x%08x\n",
 	    ((unsigned int *)&(sb->fs_maxfilesize))[1],
 	    ((unsigned int *)&(sb->fs_maxfilesize))[0]);
 	fprintf(dbg_log, "qbmask            int64_t          0x%08x%08x\n",
@@ -674,9 +674,9 @@ dbg_dump_ufs1_ino(struct fs *sb, const char *comment, struct ufs1_dinode *ino)
 	fprintf(dbg_log, "# %d@%lx: %s\n", indent, (unsigned long)ino, comment);
 	indent++;
 
-	fprintf(dbg_log, "mode       u_int16_t      0%o\n", ino->di_mode);
+	fprintf(dbg_log, "mode       uint16_t      0%o\n", ino->di_mode);
 	fprintf(dbg_log, "nlink      int16_t        0x%04x\n", ino->di_nlink);
-	fprintf(dbg_log, "size       u_int64_t      0x%08x%08x\n", 
+	fprintf(dbg_log, "size       uint64_t      0x%08x%08x\n", 
 	    ((unsigned int *)&(ino->di_size))[1],
 	    ((unsigned int *)&(ino->di_size))[0]);
 	fprintf(dbg_log, "atime      int32_t        0x%08x\n", ino->di_atime);
@@ -713,11 +713,11 @@ dbg_dump_ufs1_ino(struct fs *sb, const char *comment, struct ufs1_dinode *ino)
 		    ino->di_ib[2]);
 	}
 
-	fprintf(dbg_log, "flags      u_int32_t      0x%08x\n", ino->di_flags);
+	fprintf(dbg_log, "flags      uint32_t      0x%08x\n", ino->di_flags);
 	fprintf(dbg_log, "blocks     int32_t        0x%08x\n", ino->di_blocks);
 	fprintf(dbg_log, "gen        int32_t        0x%08x\n", ino->di_gen);
-	fprintf(dbg_log, "uid        u_int32_t      0x%08x\n", ino->di_uid);
-	fprintf(dbg_log, "gid        u_int32_t      0x%08x\n", ino->di_gid);
+	fprintf(dbg_log, "uid        uint32_t      0x%08x\n", ino->di_uid);
+	fprintf(dbg_log, "gid        uint32_t      0x%08x\n", ino->di_gid);
 
 	indent--;
 	fprintf(dbg_log, "===== END UFS1 INODE DUMP =====\n");
@@ -741,15 +741,15 @@ dbg_dump_ufs2_ino(struct fs *sb, const char *comment, struct ufs2_dinode *ino)
 	fprintf(dbg_log, "# %d@%lx: %s\n", indent, (unsigned long)ino, comment);
 	indent++;
 
-	fprintf(dbg_log, "mode       u_int16_t      0%o\n", ino->di_mode);
+	fprintf(dbg_log, "mode       uint16_t      0%o\n", ino->di_mode);
 	fprintf(dbg_log, "nlink      int16_t        0x%04x\n", ino->di_nlink);
-	fprintf(dbg_log, "uid        u_int32_t      0x%08x\n", ino->di_uid);
-	fprintf(dbg_log, "gid        u_int32_t      0x%08x\n", ino->di_gid);
-	fprintf(dbg_log, "blksize    u_int32_t      0x%08x\n", ino->di_blksize);
-	fprintf(dbg_log, "size       u_int64_t      0x%08x%08x\n", 
+	fprintf(dbg_log, "uid        uint32_t      0x%08x\n", ino->di_uid);
+	fprintf(dbg_log, "gid        uint32_t      0x%08x\n", ino->di_gid);
+	fprintf(dbg_log, "blksize    uint32_t      0x%08x\n", ino->di_blksize);
+	fprintf(dbg_log, "size       uint64_t      0x%08x%08x\n", 
 	    ((unsigned int *)&(ino->di_size))[1],
 	    ((unsigned int *)&(ino->di_size))[0]);
-	fprintf(dbg_log, "blocks     u_int64_t      0x%08x%08x\n", 
+	fprintf(dbg_log, "blocks     uint64_t      0x%08x%08x\n", 
 	    ((unsigned int *)&(ino->di_blocks))[1],
 	    ((unsigned int *)&(ino->di_blocks))[0]);
 	fprintf(dbg_log, "atime      ufs_time_t     %10jd\n", ino->di_atime);
@@ -761,9 +761,9 @@ dbg_dump_ufs2_ino(struct fs *sb, const char *comment, struct ufs2_dinode *ino)
 	fprintf(dbg_log, "ctimensec  int32_t        0x%08x\n", ino->di_ctimensec);
 	fprintf(dbg_log, "birthnsec  int32_t        0x%08x\n", ino->di_birthnsec);
 	fprintf(dbg_log, "gen        int32_t        0x%08x\n", ino->di_gen);
-	fprintf(dbg_log, "kernflags  u_int32_t      0x%08x\n", ino->di_kernflags);
-	fprintf(dbg_log, "flags      u_int32_t      0x%08x\n", ino->di_flags);
-	fprintf(dbg_log, "extsize    u_int32_t      0x%08x\n", ino->di_extsize);
+	fprintf(dbg_log, "kernflags  uint32_t      0x%08x\n", ino->di_kernflags);
+	fprintf(dbg_log, "flags      uint32_t      0x%08x\n", ino->di_flags);
+	fprintf(dbg_log, "extsize    uint32_t      0x%08x\n", ino->di_extsize);
 
 	/* XXX: What do we do with di_extb[UFS_NXADDR]? */
 

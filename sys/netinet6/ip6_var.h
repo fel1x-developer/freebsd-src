@@ -75,10 +75,10 @@ TAILQ_HEAD(ip6fraghead, ip6asfrag);
  */
 struct	ip6q {
 	struct ip6fraghead ip6q_frags;
-	u_int32_t	ip6q_ident;
-	u_int8_t	ip6q_nxt;
-	u_int8_t	ip6q_ecn;
-	u_int16_t	ip6q_ttl;
+	uint32_t	ip6q_ident;
+	uint8_t	ip6q_nxt;
+	uint8_t	ip6q_ecn;
+	uint16_t	ip6q_ttl;
 	struct in6_addr ip6q_src, ip6q_dst;
 	TAILQ_ENTRY(ip6q) ip6q_tq;
 	int		ip6q_unfrglen;	/* len of unfragmentable part */
@@ -364,7 +364,7 @@ void	ip6_input(struct mbuf *);
 void	ip6_direct_input(struct mbuf *);
 void	ip6_freepcbopts(struct ip6_pktopts *);
 
-int	ip6_unknown_opt(u_int8_t *, struct mbuf *, int);
+int	ip6_unknown_opt(uint8_t *, struct mbuf *, int);
 int	ip6_get_prevhdr(const struct mbuf *, int);
 int	ip6_nexthdr(const struct mbuf *, int, int, int *);
 int	ip6_lasthdr(const struct mbuf *, int, int, int *);
@@ -372,12 +372,12 @@ int	ip6_lasthdr(const struct mbuf *, int, int, int *);
 extern int	(*ip6_mforward)(struct ip6_hdr *, struct ifnet *,
     struct mbuf *);
 
-int	ip6_process_hopopts(struct mbuf *, u_int8_t *, int, u_int32_t *,
-				 u_int32_t *);
+int	ip6_process_hopopts(struct mbuf *, uint8_t *, int, uint32_t *,
+				 uint32_t *);
 struct mbuf	**ip6_savecontrol_v4(struct inpcb *, struct mbuf *,
 	    struct mbuf **, int *);
 void	ip6_savecontrol(struct inpcb *, struct mbuf *, struct mbuf **);
-void	ip6_notify_pmtu(struct inpcb *, struct sockaddr_in6 *, u_int32_t);
+void	ip6_notify_pmtu(struct inpcb *, struct sockaddr_in6 *, uint32_t);
 int	ip6_sysctl(int *, u_int, void *, size_t *, void *, size_t);
 
 void	ip6_forward(struct mbuf *, int);
@@ -422,8 +422,8 @@ int	in6_selectsrc_addr(uint32_t, const struct in6_addr *,
 int in6_selectroute(struct sockaddr_in6 *, struct ip6_pktopts *,
 	struct ip6_moptions *, struct route_in6 *, struct ifnet **,
 	struct nhop_object **, u_int, uint32_t);
-u_int32_t ip6_randomid(void);
-u_int32_t ip6_randomflowlabel(void);
+uint32_t ip6_randomid(void);
+uint32_t ip6_randomflowlabel(void);
 void in6_delayed_cksum(struct mbuf *m, uint32_t plen, u_short offset);
 
 int	ip6_log_ratelimit(void);
@@ -454,7 +454,7 @@ struct ip6ctlparam {
 	struct sockaddr_in6 *ip6c_dst;	/* (final) dstaddr w/ additional info */
 	struct sockaddr_in6 *ip6c_finaldst;	/* final destination address */
 	void *ip6c_cmdarg;		/* control command dependent data */
-	u_int8_t ip6c_nxt;		/* final next header field */
+	uint8_t ip6c_nxt;		/* final next header field */
 };
 
 typedef int	ip6proto_input_t(struct mbuf **, int *, int);

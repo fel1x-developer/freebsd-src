@@ -40,7 +40,7 @@
 #include <string.h>
 #include <stdio.h>
 
-static int ip6optlen(u_int8_t *opt, u_int8_t *lim);
+static int ip6optlen(uint8_t *opt, uint8_t *lim);
 static void inet6_insert_padopt(u_char *p, int len);
 
 #ifndef IPV6_2292HOPOPTS
@@ -104,7 +104,7 @@ inet6_option_init(void *bp, struct cmsghdr **cmsgp, int type)
  * earlier.  It must have a value between 0 and 7, inclusive.
  */
 int
-inet6_option_append(struct cmsghdr *cmsg, const u_int8_t *typep, int multx,
+inet6_option_append(struct cmsghdr *cmsg, const uint8_t *typep, int multx,
     int plusy)
 {
 	int padlen, optlen, off;
@@ -172,12 +172,12 @@ inet6_option_append(struct cmsghdr *cmsg, const u_int8_t *typep, int multx,
  * then be built by the caller.
  * 
  */
-u_int8_t *
+uint8_t *
 inet6_option_alloc(struct cmsghdr *cmsg, int datalen, int multx, int plusy)
 {
 	int padlen, off;
-	u_int8_t *bp = (u_char *)cmsg + cmsg->cmsg_len;
-	u_int8_t *retval;
+	uint8_t *bp = (u_char *)cmsg + cmsg->cmsg_len;
+	uint8_t *retval;
 	struct ip6_ext *eh = (struct ip6_ext *)CMSG_DATA(cmsg);
 
 	/* argument validation */
@@ -235,11 +235,11 @@ inet6_option_alloc(struct cmsghdr *cmsg, int datalen, int multx, int plusy)
  * (RFC 2292, 6.3.5)
  */
 int
-inet6_option_next(const struct cmsghdr *cmsg, u_int8_t **tptrp)
+inet6_option_next(const struct cmsghdr *cmsg, uint8_t **tptrp)
 {
 	struct ip6_ext *ip6e;
 	int hdrlen, optlen;
-	u_int8_t *lim;
+	uint8_t *lim;
 
 	if (cmsg->cmsg_level != IPPROTO_IPV6 ||
 	    (!is_ipv6_hopopts(cmsg->cmsg_type) &&
@@ -259,9 +259,9 @@ inet6_option_next(const struct cmsghdr *cmsg, u_int8_t **tptrp)
 	 * simply return the 1st option.
 	 * Otherwise, search the option list for the next option.
 	 */
-	lim = (u_int8_t *)ip6e + hdrlen;
+	lim = (uint8_t *)ip6e + hdrlen;
 	if (*tptrp == NULL)
-		*tptrp = (u_int8_t *)(ip6e + 1);
+		*tptrp = (uint8_t *)(ip6e + 1);
 	else {
 		if ((optlen = ip6optlen(*tptrp, lim)) == 0)
 			return(-1);
@@ -287,15 +287,15 @@ inet6_option_next(const struct cmsghdr *cmsg, u_int8_t **tptrp)
  * except this function lets the caller specify the option type to be
  * searched for, instead of always returning the next option in the
  * ancillary data object.
- * Note: RFC 2292 says the type of tptrp is u_int8_t *, but we think
- *       it's a typo. The variable should be type of u_int8_t **.
+ * Note: RFC 2292 says the type of tptrp is uint8_t *, but we think
+ *       it's a typo. The variable should be type of uint8_t **.
  */
 int
-inet6_option_find(const struct cmsghdr *cmsg, u_int8_t **tptrp, int type)
+inet6_option_find(const struct cmsghdr *cmsg, uint8_t **tptrp, int type)
 {
 	struct ip6_ext *ip6e;
 	int hdrlen, optlen;
-	u_int8_t *optp, *lim;
+	uint8_t *optp, *lim;
 
 	if (cmsg->cmsg_level != IPPROTO_IPV6 ||
 	    (!is_ipv6_hopopts(cmsg->cmsg_type) &&
@@ -315,9 +315,9 @@ inet6_option_find(const struct cmsghdr *cmsg, u_int8_t **tptrp, int type)
 	 * search from the beginning of the option list.
 	 * Otherwise, search from *the next option* of the specified point.
 	 */
-	lim = (u_int8_t *)ip6e + hdrlen;
+	lim = (uint8_t *)ip6e + hdrlen;
 	if (*tptrp == NULL)
-		*tptrp = (u_int8_t *)(ip6e + 1);
+		*tptrp = (uint8_t *)(ip6e + 1);
 	else {
 		if ((optlen = ip6optlen(*tptrp, lim)) == 0)
 			return(-1);
@@ -344,7 +344,7 @@ inet6_option_find(const struct cmsghdr *cmsg, u_int8_t **tptrp, int type)
  * calculated length and the limitation of the buffer.
  */
 static int
-ip6optlen(u_int8_t *opt, u_int8_t *lim)
+ip6optlen(uint8_t *opt, uint8_t *lim)
 {
 	int optlen;
 
@@ -399,8 +399,8 @@ inet6_opt_init(void *extbuf, socklen_t extlen)
 }
 
 int
-inet6_opt_append(void *extbuf, socklen_t extlen, int offset, u_int8_t type,
-		 socklen_t len, u_int8_t align, void **databufp)
+inet6_opt_append(void *extbuf, socklen_t extlen, int offset, uint8_t type,
+		 socklen_t len, uint8_t align, void **databufp)
 {
 	int currentlen = offset, padlen = 0;
 
@@ -439,7 +439,7 @@ inet6_opt_append(void *extbuf, socklen_t extlen, int offset, u_int8_t type,
 		return(-1);
 
 	if (extbuf) {
-		u_int8_t *optp = (u_int8_t *)extbuf + offset;
+		uint8_t *optp = (uint8_t *)extbuf + offset;
 
 		if (padlen == 1) {
 			/* insert a Pad1 option */
@@ -469,13 +469,13 @@ inet6_opt_finish(void *extbuf, socklen_t extlen, int offset)
 	int updatelen = offset > 0 ? (1 + ((offset - 1) | 7)) : 0;
 
 	if (extbuf) {
-		u_int8_t *padp;
+		uint8_t *padp;
 		int padlen = updatelen - offset;
 
 		if (updatelen > extlen)
 			return(-1);
 
-		padp = (u_int8_t *)extbuf + offset;
+		padp = (uint8_t *)extbuf + offset;
 		if (padlen == 1)
 			*padp = IP6OPT_PAD1;
 		else if (padlen > 0) {
@@ -492,21 +492,21 @@ int
 inet6_opt_set_val(void *databuf, int offset, void *val, socklen_t vallen)
 {
 
-	memcpy((u_int8_t *)databuf + offset, val, vallen);
+	memcpy((uint8_t *)databuf + offset, val, vallen);
 	return(offset + vallen);
 }
 
 int
-inet6_opt_next(void *extbuf, socklen_t extlen, int offset, u_int8_t *typep,
+inet6_opt_next(void *extbuf, socklen_t extlen, int offset, uint8_t *typep,
 	       socklen_t *lenp, void **databufp)
 {
-	u_int8_t *optp, *lim;
+	uint8_t *optp, *lim;
 	int optlen;
 
 	/* Validate extlen. XXX: is the variable really necessary?? */
 	if (extlen == 0 || (extlen % 8))
 		return(-1);
-	lim = (u_int8_t *)extbuf + extlen;
+	lim = (uint8_t *)extbuf + extlen;
 
 	/*
 	 * If this is the first time this function called for this options
@@ -514,10 +514,10 @@ inet6_opt_next(void *extbuf, socklen_t extlen, int offset, u_int8_t *typep,
 	 * Otherwise, search the option list for the next option.
 	 */
 	if (offset == 0) {
-		optp = (u_int8_t *)((struct ip6_hbh *)extbuf + 1);
+		optp = (uint8_t *)((struct ip6_hbh *)extbuf + 1);
 	}
 	else
-		optp = (u_int8_t *)extbuf + offset;
+		optp = (uint8_t *)extbuf + offset;
 
 	/* Find the next option skipping any padding options. */
 	while(optp < lim) {
@@ -536,7 +536,7 @@ inet6_opt_next(void *extbuf, socklen_t extlen, int offset, u_int8_t *typep,
 			*typep = *optp;
 			*lenp = optlen - 2;
 			*databufp = optp + 2;
-			return(optp + optlen - (u_int8_t *)extbuf);
+			return(optp + optlen - (uint8_t *)extbuf);
 		}
 	}
 
@@ -546,16 +546,16 @@ inet6_opt_next(void *extbuf, socklen_t extlen, int offset, u_int8_t *typep,
 }
 
 int
-inet6_opt_find(void *extbuf, socklen_t extlen, int offset, u_int8_t type,
+inet6_opt_find(void *extbuf, socklen_t extlen, int offset, uint8_t type,
 	       socklen_t *lenp, void **databufp)
 {
-	u_int8_t *optp, *lim;
+	uint8_t *optp, *lim;
 	int optlen;
 
 	/* Validate extlen. XXX: is the variable really necessary?? */
 	if (extlen == 0 || (extlen % 8))
 		return(-1);
-	lim = (u_int8_t *)extbuf + extlen;
+	lim = (uint8_t *)extbuf + extlen;
 
 	/*
 	 * If this is the first time this function called for this options
@@ -563,10 +563,10 @@ inet6_opt_find(void *extbuf, socklen_t extlen, int offset, u_int8_t type,
 	 * Otherwise, search the option list for the next option.
 	 */
 	if (offset == 0) {
-		optp = (u_int8_t *)((struct ip6_hbh *)extbuf + 1);
+		optp = (uint8_t *)((struct ip6_hbh *)extbuf + 1);
 	}
 	else
-		optp = (u_int8_t *)extbuf + offset;
+		optp = (uint8_t *)extbuf + offset;
 
 	/* Find the specified option */
 	while(optp < lim) {
@@ -576,7 +576,7 @@ inet6_opt_find(void *extbuf, socklen_t extlen, int offset, u_int8_t type,
 		if (*optp == type) { /* found */
 			*lenp = optlen - 2;
 			*databufp = optp + 2;
-			return(optp + optlen - (u_int8_t *)extbuf);
+			return(optp + optlen - (uint8_t *)extbuf);
 		}
 
 		optp += optlen;
@@ -592,7 +592,7 @@ inet6_opt_get_val(void *databuf, int offset, void *val, socklen_t vallen)
 {
 
 	/* we can't assume alignment here */
-	memcpy(val, (u_int8_t *)databuf + offset, vallen);
+	memcpy(val, (uint8_t *)databuf + offset, vallen);
 
 	return(offset + vallen);
 }

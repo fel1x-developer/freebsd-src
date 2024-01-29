@@ -128,28 +128,28 @@ typedef void			irqreturn_t;
 #define iowrite32(data, addr)	*(volatile uint32_t *)((char *)addr) = data;
 
 #define	DRM_READ8(map, offset)						\
-	*(volatile u_int8_t *)(((vm_offset_t)(map)->handle) +		\
+	*(volatile uint8_t *)(((vm_offset_t)(map)->handle) +		\
 	    (vm_offset_t)(offset))
 #define	DRM_READ16(map, offset)						\
-	le16toh(*(volatile u_int16_t *)(((vm_offset_t)(map)->handle) +	\
+	le16toh(*(volatile uint16_t *)(((vm_offset_t)(map)->handle) +	\
 	    (vm_offset_t)(offset)))
 #define	DRM_READ32(map, offset)						\
-	le32toh(*(volatile u_int32_t *)(((vm_offset_t)(map)->handle) +	\
+	le32toh(*(volatile uint32_t *)(((vm_offset_t)(map)->handle) +	\
 	    (vm_offset_t)(offset)))
 #define	DRM_READ64(map, offset)						\
-	le64toh(*(volatile u_int64_t *)(((vm_offset_t)(map)->handle) +	\
+	le64toh(*(volatile uint64_t *)(((vm_offset_t)(map)->handle) +	\
 	    (vm_offset_t)(offset)))
 #define	DRM_WRITE8(map, offset, val)					\
-	*(volatile u_int8_t *)(((vm_offset_t)(map)->handle) +		\
+	*(volatile uint8_t *)(((vm_offset_t)(map)->handle) +		\
 	    (vm_offset_t)(offset)) = val
 #define	DRM_WRITE16(map, offset, val)					\
-	*(volatile u_int16_t *)(((vm_offset_t)(map)->handle) +		\
+	*(volatile uint16_t *)(((vm_offset_t)(map)->handle) +		\
 	    (vm_offset_t)(offset)) = htole16(val)
 #define	DRM_WRITE32(map, offset, val)					\
-	*(volatile u_int32_t *)(((vm_offset_t)(map)->handle) +		\
+	*(volatile uint32_t *)(((vm_offset_t)(map)->handle) +		\
 	    (vm_offset_t)(offset)) = htole32(val)
 #define	DRM_WRITE64(map, offset, val)					\
-	*(volatile u_int64_t *)(((vm_offset_t)(map)->handle) +		\
+	*(volatile uint64_t *)(((vm_offset_t)(map)->handle) +		\
 	    (vm_offset_t)(offset)) = htole64(val)
 
 #if !defined(__arm__)

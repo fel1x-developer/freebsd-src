@@ -73,7 +73,7 @@ dtrace_nfsclient_attrcache_load_probe_func_t
 uint32_t	nfscl_attrcache_load_done_id;
 #endif /* !KDTRACE_HOOKS */
 
-extern u_int32_t newnfs_true, newnfs_false, newnfs_xdrneg1;
+extern uint32_t newnfs_true, newnfs_false, newnfs_xdrneg1;
 extern struct vop_vector newnfs_vnodeops;
 extern struct vop_vector newnfs_fifoops;
 extern uma_zone_t newnfsnode_zone;
@@ -323,7 +323,7 @@ nfscl_nget(struct mount *mntp, struct vnode *dvp, struct nfsfh *nfhp,
  * caller of this function.
  */
 int
-nfscl_ngetreopen(struct mount *mntp, u_int8_t *fhp, int fhsize,
+nfscl_ngetreopen(struct mount *mntp, uint8_t *fhp, int fhsize,
     struct thread *td, struct nfsnode **npp)
 {
 	struct vnode *nvp;
@@ -668,17 +668,17 @@ ncl_pager_setsize(struct vnode *vp, u_quad_t *nsizep)
  * isn't set, random junk.
  */
 void
-nfscl_fillclid(u_int64_t clval, char *uuid, u_int8_t *cp, u_int16_t idlen)
+nfscl_fillclid(uint64_t clval, char *uuid, uint8_t *cp, uint16_t idlen)
 {
 	int uuidlen;
 
 	/*
 	 * First, put in the 64bit mount point identifier.
 	 */
-	if (idlen >= sizeof (u_int64_t)) {
-		NFSBCOPY((caddr_t)&clval, cp, sizeof (u_int64_t));
-		cp += sizeof (u_int64_t);
-		idlen -= sizeof (u_int64_t);
+	if (idlen >= sizeof (uint64_t)) {
+		NFSBCOPY((caddr_t)&clval, cp, sizeof (uint64_t));
+		cp += sizeof (uint64_t);
+		idlen -= sizeof (uint64_t);
 	}
 
 	/*
@@ -695,7 +695,7 @@ nfscl_fillclid(u_int64_t clval, char *uuid, u_int8_t *cp, u_int16_t idlen)
 	 * This only normally happens if the uuid isn't set.
 	 */
 	while (idlen > 0) {
-		*cp++ = (u_int8_t)(arc4random() % 256);
+		*cp++ = (uint8_t)(arc4random() % 256);
 		idlen--;
 	}
 }
@@ -704,11 +704,11 @@ nfscl_fillclid(u_int64_t clval, char *uuid, u_int8_t *cp, u_int16_t idlen)
  * Fill in a lock owner name. For now, pid + the process's creation time.
  */
 void
-nfscl_filllockowner(void *id, u_int8_t *cp, int flags)
+nfscl_filllockowner(void *id, uint8_t *cp, int flags)
 {
 	union {
-		u_int32_t	lval;
-		u_int8_t	cval[4];
+		uint32_t	lval;
+		uint8_t	cval[4];
 	} tl;
 	struct proc *p;
 
@@ -800,7 +800,7 @@ int
 nfscl_wcc_data(struct nfsrv_descript *nd, struct vnode *vp,
     struct nfsvattr *nap, int *flagp, int *wccflagp, uint64_t *repsizep)
 {
-	u_int32_t *tl;
+	uint32_t *tl;
 	struct nfsnode *np = VTONFS(vp);
 	struct nfsvattr nfsva;
 	int error = 0;
@@ -809,15 +809,15 @@ nfscl_wcc_data(struct nfsrv_descript *nd, struct vnode *vp,
 		*wccflagp = 0;
 	if (nd->nd_flag & ND_NFSV3) {
 		*flagp = 0;
-		NFSM_DISSECT(tl, u_int32_t *, NFSX_UNSIGNED);
+		NFSM_DISSECT(tl, uint32_t *, NFSX_UNSIGNED);
 		if (*tl == newnfs_true) {
-			NFSM_DISSECT(tl, u_int32_t *, 6 * NFSX_UNSIGNED);
+			NFSM_DISSECT(tl, uint32_t *, 6 * NFSX_UNSIGNED);
 			if (wccflagp != NULL) {
 				NFSLOCKNODE(np);
 				*wccflagp = (np->n_mtime.tv_sec ==
-				    fxdr_unsigned(u_int32_t, *(tl + 2)) &&
+				    fxdr_unsigned(uint32_t, *(tl + 2)) &&
 				    np->n_mtime.tv_nsec ==
-				    fxdr_unsigned(u_int32_t, *(tl + 3)));
+				    fxdr_unsigned(uint32_t, *(tl + 3)));
 				NFSUNLOCKNODE(np);
 			}
 		}
@@ -834,7 +834,7 @@ nfscl_wcc_data(struct nfsrv_descript *nd, struct vnode *vp,
 		/*
 		 * Get rid of Op# and status for next op.
 		 */
-		NFSM_DISSECT(tl, u_int32_t *, 2 * NFSX_UNSIGNED);
+		NFSM_DISSECT(tl, uint32_t *, 2 * NFSX_UNSIGNED);
 		if (*++tl)
 			nd->nd_flag |= ND_NOMOREDATA;
 		if (repsizep != NULL)
@@ -859,14 +859,14 @@ nfsmout:
 int
 nfscl_postop_attr(struct nfsrv_descript *nd, struct nfsvattr *nap, int *retp)
 {
-	u_int32_t *tl;
+	uint32_t *tl;
 	int error = 0;
 
 	*retp = 0;
 	if (nd->nd_flag & ND_NOMOREDATA)
 		return (error);
 	if (nd->nd_flag & ND_NFSV3) {
-		NFSM_DISSECT(tl, u_int32_t *, NFSX_UNSIGNED);
+		NFSM_DISSECT(tl, uint32_t *, NFSX_UNSIGNED);
 		*retp = fxdr_unsigned(int, *tl);
 	} else if (nd->nd_flag & ND_NFSV4) {
 		/*
@@ -874,7 +874,7 @@ nfscl_postop_attr(struct nfsrv_descript *nd, struct nfsvattr *nap, int *retp)
 		 * in looking if nd_repstat != 0.
 		 */
 		if (!nd->nd_repstat) {
-			NFSM_DISSECT(tl, u_int32_t *, 2 * NFSX_UNSIGNED);
+			NFSM_DISSECT(tl, uint32_t *, 2 * NFSX_UNSIGNED);
 			if (*(tl + 1))
 				/* should never happen since nd_repstat != 0 */
 				nd->nd_flag |= ND_NOMOREDATA;
@@ -1012,7 +1012,7 @@ nfscl_loadfsinfo(struct nfsmount *nmp, struct nfsfsinfo *fsp)
  *
  * Returns 0 on success.
  */
-u_int8_t *
+uint8_t *
 nfscl_getmyip(struct nfsmount *nmp, struct in6_addr *paddr, int *isinet6p)
 {
 #if defined(INET6) || defined(INET)
@@ -1046,7 +1046,7 @@ nfscl_getmyip(struct nfsmount *nmp, struct in6_addr *paddr, int *isinet6p)
 		*isinet6p = 0;
 		*((struct in_addr *)paddr) = addr;
 
-		return (u_int8_t *)paddr;
+		return (uint8_t *)paddr;
 	}
 #endif
 #ifdef INET6
@@ -1072,7 +1072,7 @@ nfscl_getmyip(struct nfsmount *nmp, struct in6_addr *paddr, int *isinet6p)
 		/* Scope is embedded in */
 		*isinet6p = 1;
 
-		return (u_int8_t *)paddr;
+		return (uint8_t *)paddr;
 	}
 #endif
 	return (NULL);
@@ -1225,11 +1225,11 @@ nfscl_maperr(struct thread *td, int error, uid_t uid, gid_t gid)
  * and 0 otherwise.
  */
 int
-nfscl_procdoesntexist(u_int8_t *own)
+nfscl_procdoesntexist(uint8_t *own)
 {
 	union {
-		u_int32_t	lval;
-		u_int8_t	cval[4];
+		uint32_t	lval;
+		uint8_t	cval[4];
 	} tl;
 	struct proc *p;
 	pid_t pid;

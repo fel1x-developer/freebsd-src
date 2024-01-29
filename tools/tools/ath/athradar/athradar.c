@@ -76,7 +76,7 @@ radar_closedev(struct radarhandler *radar)
 }
 
 void
-radarset(struct radarhandler *radar, int op, u_int32_t param)
+radarset(struct radarhandler *radar, int op, uint32_t param)
 {
 	HAL_PHYERR_PARAM pe;
 

@@ -66,17 +66,17 @@ static struct cdevsw mlx_cdevsw = {
  * Per-interface accessor methods
  */
 static int			mlx_v3_tryqueue(struct mlx_softc *sc, struct mlx_command *mc);
-static int			mlx_v3_findcomplete(struct mlx_softc *sc, u_int8_t *slot, u_int16_t *status);
+static int			mlx_v3_findcomplete(struct mlx_softc *sc, uint8_t *slot, uint16_t *status);
 static void			mlx_v3_intaction(struct mlx_softc *sc, int action);
 static int			mlx_v3_fw_handshake(struct mlx_softc *sc, int *error, int *param1, int *param2, int first);
 
 static int			mlx_v4_tryqueue(struct mlx_softc *sc, struct mlx_command *mc);
-static int			mlx_v4_findcomplete(struct mlx_softc *sc, u_int8_t *slot, u_int16_t *status);
+static int			mlx_v4_findcomplete(struct mlx_softc *sc, uint8_t *slot, uint16_t *status);
 static void			mlx_v4_intaction(struct mlx_softc *sc, int action);
 static int			mlx_v4_fw_handshake(struct mlx_softc *sc, int *error, int *param1, int *param2, int first);
 
 static int			mlx_v5_tryqueue(struct mlx_softc *sc, struct mlx_command *mc);
-static int			mlx_v5_findcomplete(struct mlx_softc *sc, u_int8_t *slot, u_int16_t *status);
+static int			mlx_v5_findcomplete(struct mlx_softc *sc, uint8_t *slot, uint16_t *status);
 static void			mlx_v5_intaction(struct mlx_softc *sc, int action);
 static int			mlx_v5_fw_handshake(struct mlx_softc *sc, int *error, int *param1, int *param2, int first);
 
@@ -2093,7 +2093,7 @@ mlx_user_command(struct mlx_softc *sc, struct mlx_usercommand *mu)
 
 	/* range check the pointer to physical buffer address */
 	if ((mu->mu_bufptr < 0) || (mu->mu_bufptr > (sizeof(mu->mu_command) -
-						     sizeof(u_int32_t)))) {
+						     sizeof(uint32_t)))) {
 	    error = EINVAL;
 	    goto out;
 	}
@@ -2297,8 +2297,8 @@ mlx_done(struct mlx_softc *sc, int startio)
 {
     struct mlx_command	*mc;
     int			result;
-    u_int8_t		slot;
-    u_int16_t		status;
+    uint8_t		slot;
+    uint16_t		status;
     
     debug_called(2);
     MLX_IO_ASSERT_LOCKED(sc);
@@ -2500,7 +2500,7 @@ mlx_v3_tryqueue(struct mlx_softc *sc, struct mlx_command *mc)
  * and recover the slot number and status code.
  */
 static int
-mlx_v3_findcomplete(struct mlx_softc *sc, u_int8_t *slot, u_int16_t *status)
+mlx_v3_findcomplete(struct mlx_softc *sc, uint8_t *slot, uint16_t *status)
 {
 
     debug_called(2);
@@ -2549,7 +2549,7 @@ static int
 mlx_v3_fw_handshake(struct mlx_softc *sc, int *error, int *param1, int *param2,
     int first)
 {
-    u_int8_t	fwerror;
+    uint8_t	fwerror;
 
     debug_called(2);
 
@@ -2619,7 +2619,7 @@ mlx_v4_tryqueue(struct mlx_softc *sc, struct mlx_command *mc)
  * and recover the slot number and status code.
  */
 static int
-mlx_v4_findcomplete(struct mlx_softc *sc, u_int8_t *slot, u_int16_t *status)
+mlx_v4_findcomplete(struct mlx_softc *sc, uint8_t *slot, uint16_t *status)
 {
 
     debug_called(2);
@@ -2668,7 +2668,7 @@ static int
 mlx_v4_fw_handshake(struct mlx_softc *sc, int *error, int *param1, int *param2,
     int first)
 {
-    u_int8_t	fwerror;
+    uint8_t	fwerror;
 
     debug_called(2);
 
@@ -2734,7 +2734,7 @@ mlx_v5_tryqueue(struct mlx_softc *sc, struct mlx_command *mc)
  * and recover the slot number and status code.
  */
 static int
-mlx_v5_findcomplete(struct mlx_softc *sc, u_int8_t *slot, u_int16_t *status)
+mlx_v5_findcomplete(struct mlx_softc *sc, uint8_t *slot, uint16_t *status)
 {
 
     debug_called(2);
@@ -2783,7 +2783,7 @@ static int
 mlx_v5_fw_handshake(struct mlx_softc *sc, int *error, int *param1, int *param2,
     int first)
 {
-    u_int8_t	fwerror;
+    uint8_t	fwerror;
 
     debug_called(2);
 
@@ -2849,7 +2849,7 @@ static char *mlx_status_messages[] = {
 static struct
 {
     int		command;
-    u_int16_t	status;
+    uint16_t	status;
     int		msg;
 } mlx_messages[] = {
     {MLX_CMD_READSG,		0x0001,	 1},

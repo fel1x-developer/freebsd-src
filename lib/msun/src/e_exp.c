@@ -102,7 +102,7 @@ exp(double x)	/* default IEEE double exp */
 {
 	double y,hi=0.0,lo=0.0,c,t,twopk;
 	int32_t k=0,xsb;
-	u_int32_t hx;
+	uint32_t hx;
 
 	GET_HIGH_WORD(hx,x);
 	xsb = (hx>>31)&1;		/* sign bit of x */
@@ -111,7 +111,7 @@ exp(double x)	/* default IEEE double exp */
     /* filter out non-finite argument */
 	if(hx >= 0x40862E42) {			/* if |x|>=709.78... */
             if(hx>=0x7ff00000) {
-	        u_int32_t lx;
+	        uint32_t lx;
 		GET_LOW_WORD(lx,x);
 		if(((hx&0xfffff)|lx)!=0)
 		     return x+x; 		/* NaN */
@@ -141,9 +141,9 @@ exp(double x)	/* default IEEE double exp */
     /* x is now in primary range */
 	t  = x*x;
 	if(k >= -1021)
-	    INSERT_WORDS(twopk,((u_int32_t)(0x3ff+k))<<20, 0);
+	    INSERT_WORDS(twopk,((uint32_t)(0x3ff+k))<<20, 0);
 	else
-	    INSERT_WORDS(twopk,((u_int32_t)(0x3ff+(k+1000)))<<20, 0);
+	    INSERT_WORDS(twopk,((uint32_t)(0x3ff+(k+1000)))<<20, 0);
 	c  = x - t*(P1+t*(P2+t*(P3+t*(P4+t*P5))));
 	if(k==0) 	return one-((x*c)/(c-2.0)-x); 
 	else 		y = one-((lo-(x*c)/(2.0-c))-hi);

@@ -5863,7 +5863,7 @@ __CONCAT(PMTYPE, activate)(struct thread *td)
 {
 	pmap_t	pmap, oldpmap;
 	u_int	cpuid;
-	u_int32_t  cr3;
+	uint32_t  cr3;
 
 	critical_enter();
 	pmap = vmspace_pmap(td->td_proc->p_vmspace);

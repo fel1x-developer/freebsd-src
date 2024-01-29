@@ -96,23 +96,23 @@ static void	handle_channel(struct sbni_softc *);
 static void	card_start(struct sbni_softc *);
 static int	recv_frame(struct sbni_softc *);
 static void	send_frame(struct sbni_softc *);
-static int	upload_data(struct sbni_softc *, u_int, u_int, u_int, u_int32_t);
-static int	skip_tail(struct sbni_softc *, u_int, u_int32_t);
+static int	upload_data(struct sbni_softc *, u_int, u_int, u_int, uint32_t);
+static int	skip_tail(struct sbni_softc *, u_int, uint32_t);
 static void	interpret_ack(struct sbni_softc *, u_int);
-static void	download_data(struct sbni_softc *, u_int32_t *);
+static void	download_data(struct sbni_softc *, uint32_t *);
 static void	prepare_to_send(struct sbni_softc *);
 static void	drop_xmit_queue(struct sbni_softc *);
 static int	get_rx_buf(struct sbni_softc *);
 static void	indicate_pkt(struct sbni_softc *);
 static void	change_level(struct sbni_softc *);
 static int	check_fhdr(struct sbni_softc *, u_int *, u_int *,
-			   u_int *, u_int *, u_int32_t *); 
-static int	append_frame_to_pkt(struct sbni_softc *, u_int, u_int32_t);
+			   u_int *, u_int *, uint32_t *); 
+static int	append_frame_to_pkt(struct sbni_softc *, u_int, uint32_t);
 static void	timeout_change_level(struct sbni_softc *);
-static void	send_frame_header(struct sbni_softc *, u_int32_t *);
+static void	send_frame_header(struct sbni_softc *, uint32_t *);
 static void	set_initial_values(struct sbni_softc *, struct sbni_flags);
 
-static u_int32_t	calc_crc32(u_int32_t, caddr_t, u_int);
+static uint32_t	calc_crc32(uint32_t, caddr_t, u_int);
 static callout_func_t	sbni_timeout;
 
 static __inline u_char	sbni_inb(struct sbni_softc *, enum sbni_reg);
@@ -120,7 +120,7 @@ static __inline void	sbni_outb(struct sbni_softc *, enum sbni_reg, u_char);
 static __inline void	sbni_insb(struct sbni_softc *, u_char *, u_int);
 static __inline void	sbni_outsb(struct sbni_softc *, u_char *, u_int);
 
-static u_int32_t crc32tab[];
+static uint32_t crc32tab[];
 
 #ifdef SBNI_DUAL_COMPOUND
 static struct mtx headlist_lock;
@@ -443,7 +443,7 @@ handle_channel(struct sbni_softc *sc)
 static int
 recv_frame(struct sbni_softc *sc)
 {
-	u_int32_t crc;
+	uint32_t crc;
 	u_int framelen, frameno, ack;
 	u_int is_first, frame_ok;
 
@@ -477,7 +477,7 @@ recv_frame(struct sbni_softc *sc)
 static void
 send_frame(struct sbni_softc *sc)
 {
-	u_int32_t crc;
+	uint32_t crc;
 	u_char csr0;
 
 	crc = CRC32_INITIAL;
@@ -521,7 +521,7 @@ do_send:
 }
 
 static void
-download_data(struct sbni_softc *sc, u_int32_t *crc_p)
+download_data(struct sbni_softc *sc, uint32_t *crc_p)
 {
 	struct mbuf *m;
 	caddr_t	data_p;
@@ -578,7 +578,7 @@ do_copy:
 
 static int
 upload_data(struct sbni_softc *sc, u_int framelen, u_int frameno,
-	    u_int is_first, u_int32_t crc)
+	    u_int is_first, uint32_t crc)
 {
 	int frame_ok;
 
@@ -654,7 +654,7 @@ interpret_ack(struct sbni_softc *sc, u_int ack)
  */
 
 static int
-append_frame_to_pkt(struct sbni_softc *sc, u_int framelen, u_int32_t crc)
+append_frame_to_pkt(struct sbni_softc *sc, u_int framelen, uint32_t crc)
 {
 	caddr_t p;
 
@@ -755,9 +755,9 @@ drop_xmit_queue(struct sbni_softc *sc)
 }
 
 static void
-send_frame_header(struct sbni_softc *sc, u_int32_t *crc_p)
+send_frame_header(struct sbni_softc *sc, uint32_t *crc_p)
 {
-	u_int32_t crc;
+	uint32_t crc;
 	u_int len_field;
 	u_char value;
 
@@ -793,7 +793,7 @@ send_frame_header(struct sbni_softc *sc, u_int32_t *crc_p)
  */
 
 static int
-skip_tail(struct sbni_softc *sc, u_int tail_len, u_int32_t crc)
+skip_tail(struct sbni_softc *sc, u_int tail_len, uint32_t crc)
 {
 	while (tail_len--)
 		crc = CRC32(sbni_inb(sc, DAT), crc);
@@ -803,9 +803,9 @@ skip_tail(struct sbni_softc *sc, u_int tail_len, u_int32_t crc)
 
 static int
 check_fhdr(struct sbni_softc *sc, u_int *framelen, u_int *frameno,
-	   u_int *ack, u_int *is_first, u_int32_t *crc_p)
+	   u_int *ack, u_int *is_first, uint32_t *crc_p)
 {
-	u_int32_t crc;
+	uint32_t crc;
 	u_char value;
 
 	crc = *crc_p;
@@ -970,9 +970,9 @@ set_initial_values(struct sbni_softc *sc, struct sbni_flags flags)
 	/*
 	 * generate Ethernet address (0x00ff01xxxxxx)
 	 */
-	*(u_int16_t *) sc->enaddr = htons(0x00ff);
+	*(uint16_t *) sc->enaddr = htons(0x00ff);
 	if (flags.mac_addr) {
-		*(u_int32_t *) (sc->enaddr + 2) =
+		*(uint32_t *) (sc->enaddr + 2) =
 		    htonl(flags.mac_addr | 0x01000000);
 	} else {
 		*(u_char *) (sc->enaddr + 2) = 0x01;
@@ -1172,8 +1172,8 @@ sbni_ioctl(if_t ifp, u_long command, caddr_t data)
 
 /* -------------------------------------------------------------------------- */
 
-static u_int32_t
-calc_crc32(u_int32_t crc, caddr_t p, u_int len)
+static uint32_t
+calc_crc32(uint32_t crc, caddr_t p, u_int len)
 {
 	while (len--)
 		crc = CRC32(*p++, crc);
@@ -1181,7 +1181,7 @@ calc_crc32(u_int32_t crc, caddr_t p, u_int len)
 	return (crc);
 }
 
-static u_int32_t crc32tab[] __aligned(8) = {
+static uint32_t crc32tab[] __aligned(8) = {
 	0xD202EF8D,  0xA505DF1B,  0x3C0C8EA1,  0x4B0BBE37,
 	0xD56F2B94,  0xA2681B02,  0x3B614AB8,  0x4C667A2E,
 	0xDCD967BF,  0xABDE5729,  0x32D70693,  0x45D03605,

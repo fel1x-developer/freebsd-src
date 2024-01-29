@@ -23,7 +23,7 @@ struct ber_element {
 	unsigned long		 be_encoding;
 	size_t			 be_len;
 	int			 be_free;
-	u_int8_t		 be_class;
+	uint8_t		 be_class;
 	union {
 		struct ber_element	*bv_sub;
 		void			*bv_val;
@@ -73,7 +73,7 @@ struct ber {
 #define BER_MAX_OID_LEN		32	/* OBJECT */
 
 struct ber_oid {
-	u_int32_t	bo_id[BER_MAX_OID_LEN + 1];
+	uint32_t	bo_id[BER_MAX_OID_LEN + 1];
 	size_t		bo_n;
 };
 
@@ -112,7 +112,7 @@ struct ber_element	*ber_add_oid(struct ber_element *, struct ber_oid *);
 struct ber_element	*ber_add_noid(struct ber_element *, struct ber_oid *, int);
 struct ber_element	*ber_add_oidstring(struct ber_element *, const char *);
 int			 ber_get_oid(struct ber_element *, struct ber_oid *);
-size_t			 ber_oid2ber(struct ber_oid *, u_int8_t *, size_t);
+size_t			 ber_oid2ber(struct ber_oid *, uint8_t *, size_t);
 int			 ber_string2oid(const char *, struct ber_oid *);
 struct ber_element	*ber_printf_elements(struct ber_element *, char *, ...);
 int			 ber_scanf_elements(struct ber_element *, char *, ...);

@@ -445,7 +445,7 @@ ng_hci_con_untimeout(ng_hci_unit_con_p con)
  */
 
 char const * const
-ng_hci_str_error(u_int16_t code)
+ng_hci_str_error(uint16_t code)
 {
 #define	LAST_ERROR_CODE			((sizeof(s)/sizeof(s[0]))-1)
 	static char const * const	s[] = {

@@ -551,30 +551,30 @@ typedef enum {
 
 /* XXX this is duplicate information! */
 typedef struct {
-	u_int32_t	cyclecnt_diff;		/* delta cycle count */
-	u_int32_t	rxclr_cnt;		/* rx clear count */
-	u_int32_t	extrxclr_cnt;		/* ext chan rx clear count */
-	u_int32_t	txframecnt_diff;	/* delta tx frame count */
-	u_int32_t	rxframecnt_diff;	/* delta rx frame count */
-	u_int32_t	listen_time;		/* listen time in msec - time for which ch is free */
-	u_int32_t	ofdmphyerr_cnt;		/* OFDM err count since last reset */
-	u_int32_t	cckphyerr_cnt;		/* CCK err count since last reset */
-	u_int32_t	ofdmphyerrcnt_diff;	/* delta OFDM Phy Error Count */
+	uint32_t	cyclecnt_diff;		/* delta cycle count */
+	uint32_t	rxclr_cnt;		/* rx clear count */
+	uint32_t	extrxclr_cnt;		/* ext chan rx clear count */
+	uint32_t	txframecnt_diff;	/* delta tx frame count */
+	uint32_t	rxframecnt_diff;	/* delta rx frame count */
+	uint32_t	listen_time;		/* listen time in msec - time for which ch is free */
+	uint32_t	ofdmphyerr_cnt;		/* OFDM err count since last reset */
+	uint32_t	cckphyerr_cnt;		/* CCK err count since last reset */
+	uint32_t	ofdmphyerrcnt_diff;	/* delta OFDM Phy Error Count */
 	HAL_BOOL	valid;			/* if the stats are valid*/
 } HAL_ANISTATS;
 
 typedef struct {
-	u_int8_t	txctl_offset;
-	u_int8_t	txctl_numwords;
-	u_int8_t	txstatus_offset;
-	u_int8_t	txstatus_numwords;
+	uint8_t	txctl_offset;
+	uint8_t	txctl_numwords;
+	uint8_t	txstatus_offset;
+	uint8_t	txstatus_numwords;
 
-	u_int8_t	rxctl_offset;
-	u_int8_t	rxctl_numwords;
-	u_int8_t	rxstatus_offset;
-	u_int8_t	rxstatus_numwords;
+	uint8_t	rxctl_offset;
+	uint8_t	rxctl_numwords;
+	uint8_t	rxstatus_offset;
+	uint8_t	rxstatus_numwords;
 
-	u_int8_t	macRevision;
+	uint8_t	macRevision;
 } HAL_DESC_INFO;
 
 typedef enum {
@@ -609,12 +609,12 @@ typedef enum {
 } HAL_GPIO_INTR_TYPE;
 
 typedef struct halCounters {
-    u_int32_t   tx_frame_count;
-    u_int32_t   rx_frame_count;
-    u_int32_t   rx_clear_count;
-    u_int32_t   cycle_count;
-    u_int8_t    is_rx_active;     // true (1) or false (0)
-    u_int8_t    is_tx_active;     // true (1) or false (0)
+    uint32_t   tx_frame_count;
+    uint32_t   rx_frame_count;
+    uint32_t   rx_clear_count;
+    uint32_t   cycle_count;
+    uint8_t    is_rx_active;     // true (1) or false (0)
+    uint8_t    is_tx_active;     // true (1) or false (0)
 } HAL_COUNTERS;
 
 typedef enum {
@@ -1003,9 +1003,9 @@ typedef struct {
 	int32_t		pe_inband;	/* Inband thresh */
 
 	/* The following params are only for AR5413 and later */
-	u_int32_t	pe_relpwr;	/* Relative power threshold in 0.5dB steps */
-	u_int32_t	pe_relstep;	/* Pulse Relative step threshold in 0.5dB steps */
-	u_int32_t	pe_maxlen;	/* Max length of radar sign in 0.8us units */
+	uint32_t	pe_relpwr;	/* Relative power threshold in 0.5dB steps */
+	uint32_t	pe_relstep;	/* Pulse Relative step threshold in 0.5dB steps */
+	uint32_t	pe_maxlen;	/* Max length of radar sign in 0.8us units */
 	int32_t		pe_usefir128;	/* Use the average in-band power measured over 128 cycles */
 	int32_t		pe_blockradar;	/*
 					 * Enable to block radar check if pkt detect is done via OFDM
@@ -1025,12 +1025,12 @@ typedef struct {
 #define	HAL_PHYERR_PARAM_NOVAL	65535
 
 typedef struct {
-	u_int16_t	ss_fft_period;	/* Skip interval for FFT reports */
-	u_int16_t	ss_period;	/* Spectral scan period */
-	u_int16_t	ss_count;	/* # of reports to return from ss_active */
-	u_int16_t	ss_short_report;/* Set to report only 1 set of FFT results */
-	u_int8_t	radar_bin_thresh_sel;	/* strong signal radar FFT threshold configuration */
-	u_int16_t	ss_spectral_pri;		/* are we doing a noise power cal ? */
+	uint16_t	ss_fft_period;	/* Skip interval for FFT reports */
+	uint16_t	ss_period;	/* Spectral scan period */
+	uint16_t	ss_count;	/* # of reports to return from ss_active */
+	uint16_t	ss_short_report;/* Set to report only 1 set of FFT results */
+	uint8_t	radar_bin_thresh_sel;	/* strong signal radar FFT threshold configuration */
+	uint16_t	ss_spectral_pri;		/* are we doing a noise power cal ? */
 	int8_t		ss_nf_cal[AH_MAX_CHAINS*2];     /* nf calibrated values for ctl+ext from eeprom */
 	int8_t		ss_nf_pwr[AH_MAX_CHAINS*2];     /* nf pwr values for ctl+ext from eeprom */
 	int32_t		ss_nf_temp_data;	/* temperature data taken during nf scan */
@@ -1068,12 +1068,12 @@ typedef enum {
 } HAL_ANT_DIV_COMB_LNA_CONF;
 
 typedef struct {
-	u_int8_t	main_lna_conf;
-	u_int8_t	alt_lna_conf;
-	u_int8_t	fast_div_bias;
-	u_int8_t	main_gaintb;
-	u_int8_t	alt_gaintb;
-	u_int8_t	antdiv_configgroup;
+	uint8_t	main_lna_conf;
+	uint8_t	alt_lna_conf;
+	uint8_t	fast_div_bias;
+	uint8_t	main_gaintb;
+	uint8_t	alt_gaintb;
+	uint8_t	antdiv_configgroup;
 	int8_t		lna1_lna2_delta;
 } HAL_ANT_COMB_CONFIG;
 
@@ -1121,24 +1121,24 @@ typedef enum {
 #include "ath_hal/ah_btcoex.h"
 
 struct hal_bb_panic_info {
-	u_int32_t	status;
-	u_int32_t	tsf;
-	u_int32_t	phy_panic_wd_ctl1;
-	u_int32_t	phy_panic_wd_ctl2;
-	u_int32_t	phy_gen_ctrl;
-	u_int32_t	rxc_pcnt;
-	u_int32_t	rxf_pcnt;
-	u_int32_t	txf_pcnt;
-	u_int32_t	cycles;
-	u_int32_t	wd;
-	u_int32_t	det;
-	u_int32_t	rdar;
-	u_int32_t	r_odfm;
-	u_int32_t	r_cck;
-	u_int32_t	t_odfm;
-	u_int32_t	t_cck;
-	u_int32_t	agc;
-	u_int32_t	src;
+	uint32_t	status;
+	uint32_t	tsf;
+	uint32_t	phy_panic_wd_ctl1;
+	uint32_t	phy_panic_wd_ctl2;
+	uint32_t	phy_gen_ctrl;
+	uint32_t	rxc_pcnt;
+	uint32_t	rxf_pcnt;
+	uint32_t	txf_pcnt;
+	uint32_t	cycles;
+	uint32_t	wd;
+	uint32_t	det;
+	uint32_t	rdar;
+	uint32_t	r_odfm;
+	uint32_t	r_cck;
+	uint32_t	t_odfm;
+	uint32_t	t_cck;
+	uint32_t	agc;
+	uint32_t	src;
 };
 
 /* Serialize Register Access Mode */
@@ -1315,7 +1315,7 @@ struct ath_hal {
 	void	  __ahdecl(*ah_setupTxStatusRing)(struct ath_hal *,
 				void *ts_start, uint32_t ts_paddr_start,
 				uint16_t size);
-	void	  __ahdecl(*ah_getTxRawTxDesc)(struct ath_hal *, u_int32_t *);
+	void	  __ahdecl(*ah_getTxRawTxDesc)(struct ath_hal *, uint32_t *);
 
 	/* Receive Functions */
 	uint32_t __ahdecl(*ah_getRxDP)(struct ath_hal*, HAL_RX_QUEUE);
@@ -1695,7 +1695,7 @@ HAL_BOOL __ahdecl ath_hal_EepromDataRead(struct ath_hal *ah,
 /*
  * For now, simply pass through MFP frames.
  */
-static inline u_int32_t
+static inline uint32_t
 ath_hal_get_mfp_qos(struct ath_hal *ah)
 {
 	//return AH_PRIVATE(ah)->ah_mfp_qos;

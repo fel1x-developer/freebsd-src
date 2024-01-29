@@ -101,20 +101,20 @@ static void bfe_discard_buf		(struct bfe_softc *, int);
 static int  bfe_list_newbuf			(struct bfe_softc *, int);
 static void bfe_rx_ring_free		(struct bfe_softc *);
 
-static void bfe_pci_setup			(struct bfe_softc *, u_int32_t);
+static void bfe_pci_setup			(struct bfe_softc *, uint32_t);
 static int  bfe_ifmedia_upd			(if_t);
 static void bfe_ifmedia_sts			(if_t, struct ifmediareq *);
 static int  bfe_miibus_readreg		(device_t, int, int);
 static int  bfe_miibus_writereg		(device_t, int, int, int);
 static void bfe_miibus_statchg		(device_t);
-static int  bfe_wait_bit			(struct bfe_softc *, u_int32_t, u_int32_t,
+static int  bfe_wait_bit			(struct bfe_softc *, uint32_t, uint32_t,
 		u_long, const int);
 static void bfe_get_config			(struct bfe_softc *sc);
-static void bfe_read_eeprom			(struct bfe_softc *, u_int8_t *);
+static void bfe_read_eeprom			(struct bfe_softc *, uint8_t *);
 static void bfe_stats_update		(struct bfe_softc *);
 static void bfe_clear_stats			(struct bfe_softc *);
-static int  bfe_readphy				(struct bfe_softc *, u_int32_t, u_int32_t*);
-static int  bfe_writephy			(struct bfe_softc *, u_int32_t, u_int32_t);
+static int  bfe_readphy				(struct bfe_softc *, uint32_t, uint32_t*);
+static int  bfe_writephy			(struct bfe_softc *, uint32_t, uint32_t);
 static int  bfe_resetphy			(struct bfe_softc *);
 static int  bfe_setupphy			(struct bfe_softc *);
 static void bfe_chip_reset			(struct bfe_softc *);
@@ -622,7 +622,7 @@ static int
 bfe_miibus_readreg(device_t dev, int phy, int reg)
 {
 	struct bfe_softc *sc;
-	u_int32_t ret;
+	uint32_t ret;
 
 	sc = device_get_softc(dev);
 	bfe_readphy(sc, reg, &ret);
@@ -646,9 +646,9 @@ bfe_miibus_statchg(device_t dev)
 {
 	struct bfe_softc *sc;
 	struct mii_data *mii;
-	u_int32_t val;
+	uint32_t val;
 #ifdef notyet
-	u_int32_t flow;
+	uint32_t flow;
 #endif
 
 	sc = device_get_softc(dev);
@@ -788,7 +788,7 @@ bfe_list_newbuf(struct bfe_softc *sc, int c)
 	struct mbuf *m;
 	bus_dma_segment_t segs[1];
 	bus_dmamap_t map;
-	u_int32_t ctrl;
+	uint32_t ctrl;
 	int nsegs;
 
 	m = m_getcl(M_NOWAIT, MT_DATA, M_PKTHDR);
@@ -837,7 +837,7 @@ bfe_list_newbuf(struct bfe_softc *sc, int c)
 static void
 bfe_get_config(struct bfe_softc *sc)
 {
-	u_int8_t eeprom[128];
+	uint8_t eeprom[128];
 
 	bfe_read_eeprom(sc, eeprom);
 
@@ -856,9 +856,9 @@ bfe_get_config(struct bfe_softc *sc)
 }
 
 static void
-bfe_pci_setup(struct bfe_softc *sc, u_int32_t cores)
+bfe_pci_setup(struct bfe_softc *sc, uint32_t cores)
 {
-	u_int32_t bar_orig, val;
+	uint32_t bar_orig, val;
 
 	bar_orig = pci_read_config(sc->bfe_dev, BFE_BAR0_WIN, 4);
 	pci_write_config(sc->bfe_dev, BFE_BAR0_WIN, BFE_REG_PCI, 4);
@@ -891,7 +891,7 @@ bfe_clear_stats(struct bfe_softc *sc)
 static int
 bfe_resetphy(struct bfe_softc *sc)
 {
-	u_int32_t val;
+	uint32_t val;
 
 	bfe_writephy(sc, 0, BMCR_RESET);
 	DELAY(100);
@@ -922,7 +922,7 @@ bfe_chip_halt(struct bfe_softc *sc)
 static void
 bfe_chip_reset(struct bfe_softc *sc)
 {
-	u_int32_t val;
+	uint32_t val;
 
 	BFE_LOCK_ASSERT(sc);
 
@@ -1027,7 +1027,7 @@ bfe_core_disable(struct bfe_softc *sc)
 static void
 bfe_core_reset(struct bfe_softc *sc)
 {
-	u_int32_t val;
+	uint32_t val;
 
 	/* Disable the core */
 	bfe_core_disable(sc);
@@ -1058,19 +1058,19 @@ bfe_core_reset(struct bfe_softc *sc)
 static void
 bfe_cam_write(struct bfe_softc *sc, u_char *data, int index)
 {
-	u_int32_t val;
+	uint32_t val;
 
-	val  = ((u_int32_t) data[2]) << 24;
-	val |= ((u_int32_t) data[3]) << 16;
-	val |= ((u_int32_t) data[4]) <<  8;
-	val |= ((u_int32_t) data[5]);
+	val  = ((uint32_t) data[2]) << 24;
+	val |= ((uint32_t) data[3]) << 16;
+	val |= ((uint32_t) data[4]) <<  8;
+	val |= ((uint32_t) data[5]);
 	CSR_WRITE_4(sc, BFE_CAM_DATA_LO, val);
 	val = (BFE_CAM_HI_VALID |
-			(((u_int32_t) data[0]) << 8) |
-			(((u_int32_t) data[1])));
+			(((uint32_t) data[0]) << 8) |
+			(((uint32_t) data[1])));
 	CSR_WRITE_4(sc, BFE_CAM_DATA_HI, val);
 	CSR_WRITE_4(sc, BFE_CAM_CTRL, (BFE_CAM_WRITE |
-				((u_int32_t) index << BFE_CAM_INDEX_SHIFT)));
+				((uint32_t) index << BFE_CAM_INDEX_SHIFT)));
 	bfe_wait_bit(sc, BFE_CAM_CTRL, BFE_CAM_BUSY, 10000, 1);
 }
 
@@ -1088,7 +1088,7 @@ static void
 bfe_set_rx_mode(struct bfe_softc *sc)
 {
 	if_t ifp = sc->bfe_ifp;
-	u_int32_t val;
+	uint32_t val;
 
 	BFE_LOCK_ASSERT(sc);
 
@@ -1151,23 +1151,23 @@ bfe_release_resources(struct bfe_softc *sc)
 }
 
 static void
-bfe_read_eeprom(struct bfe_softc *sc, u_int8_t *data)
+bfe_read_eeprom(struct bfe_softc *sc, uint8_t *data)
 {
 	long i;
-	u_int16_t *ptr = (u_int16_t *)data;
+	uint16_t *ptr = (uint16_t *)data;
 
 	for(i = 0; i < 128; i += 2)
 		ptr[i/2] = CSR_READ_4(sc, 4096 + i);
 }
 
 static int
-bfe_wait_bit(struct bfe_softc *sc, u_int32_t reg, u_int32_t bit,
+bfe_wait_bit(struct bfe_softc *sc, uint32_t reg, uint32_t bit,
 		u_long timeout, const int clear)
 {
 	u_long i;
 
 	for (i = 0; i < timeout; i++) {
-		u_int32_t val = CSR_READ_4(sc, reg);
+		uint32_t val = CSR_READ_4(sc, reg);
 
 		if (clear && !(val & bit))
 			break;
@@ -1185,7 +1185,7 @@ bfe_wait_bit(struct bfe_softc *sc, u_int32_t reg, u_int32_t bit,
 }
 
 static int
-bfe_readphy(struct bfe_softc *sc, u_int32_t reg, u_int32_t *val)
+bfe_readphy(struct bfe_softc *sc, uint32_t reg, uint32_t *val)
 {
 	int err;
 
@@ -1203,7 +1203,7 @@ bfe_readphy(struct bfe_softc *sc, u_int32_t reg, u_int32_t *val)
 }
 
 static int
-bfe_writephy(struct bfe_softc *sc, u_int32_t reg, u_int32_t val)
+bfe_writephy(struct bfe_softc *sc, uint32_t reg, uint32_t val)
 {
 	int status;
 
@@ -1226,7 +1226,7 @@ bfe_writephy(struct bfe_softc *sc, u_int32_t reg, u_int32_t val)
 static int
 bfe_setupphy(struct bfe_softc *sc)
 {
-	u_int32_t val;
+	uint32_t val;
 
 	/* Enable activity LED */
 	bfe_readphy(sc, 26, &val);
@@ -1380,7 +1380,7 @@ bfe_rxeof(struct bfe_softc *sc)
 	struct bfe_rxheader *rxheader;
 	struct bfe_rx_data *r;
 	int cons, prog;
-	u_int32_t status, current, len, flags;
+	uint32_t status, current, len, flags;
 
 	BFE_LOCK_ASSERT(sc);
 	cons = sc->bfe_rx_cons;
@@ -1442,7 +1442,7 @@ bfe_intr(void *xsc)
 {
 	struct bfe_softc *sc = xsc;
 	if_t ifp;
-	u_int32_t istat;
+	uint32_t istat;
 
 	ifp = sc->bfe_ifp;
 

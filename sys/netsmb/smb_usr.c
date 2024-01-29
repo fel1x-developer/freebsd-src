@@ -214,8 +214,8 @@ smb_usr_simplerequest(struct smb_share *ssp, struct smbioc_rq *dp,
 	struct smb_rq *rqp;
 	struct mbchain *mbp;
 	struct mdchain *mdp;
-	u_int8_t wc;
-	u_int16_t bc;
+	uint8_t wc;
+	uint16_t bc;
 	int error;
 
 	switch (dp->ioc_cmd) {

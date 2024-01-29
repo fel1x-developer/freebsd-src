@@ -84,12 +84,12 @@ orm_identify(driver_t* driver, device_t parent)
 	bus_space_handle_t	bh;
 	bus_space_tag_t		bt;
 	device_t		child;
-	u_int32_t		chunk = IOMEM_START;
+	uint32_t		chunk = IOMEM_START;
 	struct resource		*res;
 	int			rid;
-	u_int32_t		rom_size;
+	uint32_t		rom_size;
 	struct orm_softc	*sc;
-	u_int8_t		buf[3];
+	uint8_t		buf[3];
 
 	if (resource_disabled("orm", 0))
 		return;

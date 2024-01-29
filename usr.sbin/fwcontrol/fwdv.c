@@ -96,7 +96,7 @@ dvrecv(int d, const char *filename, char ich, int count)
 	struct ciphdr *ciph;
 	struct fw_pkt *pkt;
 	char *pad, *buf;
-	u_int32_t *ptr;
+	uint32_t *ptr;
 	int len, tlen, npad, fd, k, m, vec, system = -1, nb;
 	int nblocks[] = {250 /* NTSC */, 300 /* PAL */};
 	struct iovec wbuf[NPACKET_R];
@@ -160,7 +160,7 @@ dvrecv(int d, const char *filename, char ich, int count)
 		}
 #endif
 		vec = 0;
-		ptr = (u_int32_t *) buf;
+		ptr = (uint32_t *) buf;
 again:
 		pkt = (struct fw_pkt *) ptr;
 #if DEBUG
@@ -171,7 +171,7 @@ again:
 		ciph = (struct ciphdr *)(ptr + 1);	/* skip iso header */
 		if (ciph->fmt != CIP_FMT_DVCR)
 			errx(1, "unknown format 0x%x", ciph->fmt);
-		ptr = (u_int32_t *) (ciph + 1);		/* skip cip header */
+		ptr = (uint32_t *) (ciph + 1);		/* skip cip header */
 #if DEBUG
 		if (ciph->fdf.dv.cyc != 0xffff && k == 0) {
 			fprintf(stderr, "0x%04x\n", ntohs(ciph->fdf.dv.cyc));
@@ -235,7 +235,7 @@ again:
 				vec = 0;
 			}
 		}
-		ptr = (u_int32_t *)dv;
+		ptr = (uint32_t *)dv;
 next:
 		if ((char *)ptr < buf + tlen)
 			goto again;
@@ -259,7 +259,7 @@ dvsend(int d, const char *filename, char ich, int count)
 	int system=-1, pad_acc, cycle_acc, cycle, f_frac;
 	struct iovec wbuf[TNBUF*2 + NEMPTY];
 	char *pbuf;
-	u_int32_t iso_data, iso_empty, hdr[TNBUF + NEMPTY][3];
+	uint32_t iso_data, iso_empty, hdr[TNBUF + NEMPTY][3];
 	struct ciphdr *ciph;
 	struct timeval start, end;
 	double rtime;

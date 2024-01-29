@@ -108,7 +108,7 @@ struct ct_data {
 	struct rpc_err	ct_error;
 	union {
 		char	ct_mcallc[MCALL_MSG_SIZE];	/* marshalled callmsg */
-		u_int32_t ct_mcalli;
+		uint32_t ct_mcalli;
 	} ct_u;
 	u_int		ct_mpos;	/* pos after marshal */
 	XDR		ct_xdrs;	/* XDR stream */
@@ -204,13 +204,13 @@ clnt_vc_create(int fd, const struct netbuf *raddr, const rpcprog_t prog,
 	struct ct_data *ct = NULL;	/* client handle */
 	struct timeval now;
 	struct rpc_msg call_msg;
-	static u_int32_t disrupt;
+	static uint32_t disrupt;
 	struct sockaddr_storage ss;
 	socklen_t slen;
 	struct __rpc_sockinfo si;
 
 	if (disrupt == 0)
-		disrupt = (u_int32_t)(long)raddr;
+		disrupt = (uint32_t)(long)raddr;
 
 	cl = (CLIENT *)mem_alloc(sizeof (*cl));
 	ct = (struct ct_data *)mem_alloc(sizeof (*ct));
@@ -264,11 +264,11 @@ clnt_vc_create(int fd, const struct netbuf *raddr, const rpcprog_t prog,
 	 * Initialize call message
 	 */
 	(void)gettimeofday(&now, NULL);
-	call_msg.rm_xid = ((u_int32_t)++disrupt) ^ __RPC_GETXID(&now);
+	call_msg.rm_xid = ((uint32_t)++disrupt) ^ __RPC_GETXID(&now);
 	call_msg.rm_direction = CALL;
 	call_msg.rm_call.cb_rpcvers = RPC_MSG_VERSION;
-	call_msg.rm_call.cb_prog = (u_int32_t)prog;
-	call_msg.rm_call.cb_vers = (u_int32_t)vers;
+	call_msg.rm_call.cb_prog = (uint32_t)prog;
+	call_msg.rm_call.cb_vers = (uint32_t)vers;
 
 	/*
 	 * pre-serialize the static part of the call msg and stash it away
@@ -317,8 +317,8 @@ clnt_vc_call(CLIENT *cl, rpcproc_t proc, xdrproc_t xdr_args, void *args_ptr,
 	XDR *xdrs = &(ct->ct_xdrs);
 	struct rpc_msg reply_msg;
 	struct vc_fd *elem;
-	u_int32_t x_id;
-	u_int32_t *msg_x_id = &ct->ct_u.ct_mcalli;    /* yuk */
+	uint32_t x_id;
+	uint32_t *msg_x_id = &ct->ct_u.ct_mcalli;    /* yuk */
 	bool_t shipnow;
 	int refreshes = 2;
 	sigset_t mask, newmask;

@@ -1127,18 +1127,18 @@ sctty_ioctl(struct tty *tp, u_long cmd, caddr_t data, struct thread *td)
 			return EINVAL;
 		}
 
-		lsize = scp->xsize * sizeof(u_int16_t);
-		csize = ptr->xsize * sizeof(u_int16_t);
+		lsize = scp->xsize * sizeof(uint16_t);
+		csize = ptr->xsize * sizeof(uint16_t);
 		/* Pointer to the last line of framebuffer */
 		frbp = scp->vtb.vtb_buffer + scp->ysize * lsize +
-		    ptr->x * sizeof(u_int16_t);
+		    ptr->x * sizeof(uint16_t);
 		/* Pointer to the last line of target buffer */
 		outp = (char *)outp + ptr->ysize * csize;
 		/* Pointer to the last line of history buffer */
 		if (scp->history != NULL)
 			hstp = scp->history->vtb_buffer +
-			    sc_vtb_tail(scp->history) * sizeof(u_int16_t) +
-			    ptr->x * sizeof(u_int16_t);
+			    sc_vtb_tail(scp->history) * sizeof(uint16_t) +
+			    ptr->x * sizeof(uint16_t);
 		else
 			hstp = 0;
 

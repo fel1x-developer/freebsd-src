@@ -46,7 +46,7 @@ CODE {
 #
 # Return the current aperture size.
 #
-METHOD u_int32_t get_aperture {
+METHOD uint32_t get_aperture {
 	device_t	dev;
 };
 
@@ -55,7 +55,7 @@ METHOD u_int32_t get_aperture {
 #
 METHOD int set_aperture {
 	device_t	dev;
-	u_int32_t	aperture;
+	uint32_t	aperture;
 };
 
 #
@@ -91,7 +91,7 @@ METHOD void flush_tlb {
 #
 METHOD int enable {
 	device_t	dev;
-	u_int32_t	mode;
+	uint32_t	mode;
 };
 
 #

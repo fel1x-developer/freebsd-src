@@ -140,7 +140,7 @@ ipsec_common_input(struct mbuf *m, int skip, int protoff, int af, int sproto)
 		return EOPNOTSUPP;
 	}
 
-	if (m->m_pkthdr.len - skip < 2 * sizeof (u_int32_t)) {
+	if (m->m_pkthdr.len - skip < 2 * sizeof (uint32_t)) {
 		m_freem(m);
 		IPSEC_ISTAT(sproto, hdrops);
 		DPRINTF(("%s: packet too small\n", __func__));
@@ -149,13 +149,13 @@ ipsec_common_input(struct mbuf *m, int skip, int protoff, int af, int sproto)
 
 	/* Retrieve the SPI from the relevant IPsec header */
 	if (sproto == IPPROTO_ESP)
-		m_copydata(m, skip, sizeof(u_int32_t), (caddr_t) &spi);
+		m_copydata(m, skip, sizeof(uint32_t), (caddr_t) &spi);
 	else if (sproto == IPPROTO_AH)
-		m_copydata(m, skip + sizeof(u_int32_t), sizeof(u_int32_t),
+		m_copydata(m, skip + sizeof(uint32_t), sizeof(uint32_t),
 		    (caddr_t) &spi);
 	else if (sproto == IPPROTO_IPCOMP) {
-		u_int16_t cpi;
-		m_copydata(m, skip + sizeof(u_int16_t), sizeof(u_int16_t),
+		uint16_t cpi;
+		m_copydata(m, skip + sizeof(uint16_t), sizeof(uint16_t),
 		    (caddr_t) &cpi);
 		spi = ntohl(htons(cpi));
 	}

@@ -88,10 +88,10 @@ MPDU  data
  0d 43 98 e7 ae e3 bf 0e
 ICV  2a 2c a8 f7  
 */
-static const u_int8_t test1_key[] = {		/* TK (w/o IV) */
+static const uint8_t test1_key[] = {		/* TK (w/o IV) */
 	0x30, 0x31, 0x32, 0x33, 0x34, 
 };
-static const u_int8_t test1_plaintext[] = {	/* Plaintext MPDU */
+static const uint8_t test1_plaintext[] = {	/* Plaintext MPDU */
 	0x08, 0x48, 0xc3, 0x2c, 0x0f, 0xd2, 0xe1, 0x28,	/* 802.11 Header */
 	0xa5, 0x7c, 0x50, 0x30, 0xf1, 0x84, 0x44, 0x08,
 	0xab, 0xae, 0xa5, 0xb8, 0xfc, 0xba, 0x80, 0x33, 
@@ -107,7 +107,7 @@ static const u_int8_t test1_plaintext[] = {	/* Plaintext MPDU */
 	0x41, 0x43, 0x41, 0x43, 0x41, 0x43, 0x41, 0x41,
 	0x41, 0x00, 0x00, 0x20, 0x00, 0x01,
 };
-static const u_int8_t test1_encrypted[] = {	/* Encrypted MPDU */
+static const uint8_t test1_encrypted[] = {	/* Encrypted MPDU */
 	0x08, 0x48, 0xc3, 0x2c, 0x0f, 0xd2, 0xe1, 0x28,
 	0xa5, 0x7c, 0x50, 0x30, 0xf1, 0x84, 0x44, 0x08,
 	0xab, 0xae, 0xa5, 0xb8, 0xfc, 0xba, 0x80, 0x33,
@@ -137,12 +137,12 @@ struct ciphertest {
 	const char	*name;
 	int		cipher;
 	int		keyix;
-	u_int8_t	iv[4];
-	const u_int8_t	*key;
+	uint8_t	iv[4];
+	const uint8_t	*key;
 	size_t		key_len;
-	const u_int8_t	*plaintext;
+	const uint8_t	*plaintext;
 	size_t		plaintext_len;
-	const u_int8_t	*encrypted;
+	const uint8_t	*encrypted;
 	size_t		encrypted_len;
 } weptests[] = {
 	TEST(1, "WEP test mpdu 1", WEP, 2, 0xfb, 0x02, 0x9e, 0x80),
@@ -157,7 +157,7 @@ dumpdata(const char *tag, const void *p, size_t len)
 	for (i = 0; i < len; i++) {
 		if ((i % 16) == 0)
 			printf("\n%03d:", i);
-		printf(" %02x", ((const u_int8_t *)p)[i]);
+		printf(" %02x", ((const uint8_t *)p)[i]);
 	}
 	printf("\n");
 }
@@ -168,7 +168,7 @@ cmpfail(const void *gen, size_t genlen, const void *ref, size_t reflen)
 	int i;
 
 	for (i = 0; i < genlen; i++)
-		if (((const u_int8_t *)gen)[i] != ((const u_int8_t *)ref)[i]) {
+		if (((const uint8_t *)gen)[i] != ((const uint8_t *)ref)[i]) {
 			printf("first difference at byte %u\n", i);
 			break;
 		}

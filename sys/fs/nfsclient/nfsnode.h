@@ -72,7 +72,7 @@ struct nfsdmap {
 #define	ndm4_cookies	ndm_un1.ndmu4_cookies
 
 struct nfs_accesscache {
-	u_int32_t		mode;	/* ACCESS mode cache */
+	uint32_t		mode;	/* ACCESS mode cache */
 	uid_t			uid;	/* credentials having mode */
 	time_t			stamp;	/* mode cache timestamp */
 };
@@ -120,10 +120,10 @@ struct nfsnode {
 		LIST_HEAD(, nfsdmap) nd_cook;	/* cookies */
 	} n_un3;
 	short			n_fhsize;	/* size in bytes, of fh */
-	u_int32_t		n_flag;		/* Flag for locking.. */
+	uint32_t		n_flag;		/* Flag for locking.. */
 	int			n_directio_opens;
 	int                     n_directio_asyncwr;
-	u_int64_t		 n_change;	/* old Change attribute */
+	uint64_t		 n_change;	/* old Change attribute */
 	struct nfsv4node	*n_v4;		/* extra V4 stuff */
 	struct ucred		*n_writecred;	/* Cred. for putpages */
 	struct nfsclopen	*n_openstateid;	/* Cached open stateid */
@@ -187,7 +187,7 @@ int	ncl_reclaim(struct vop_reclaim_args *);
 
 /* other stuff */
 int	ncl_removeit(struct sillyrename *, struct vnode *);
-int	ncl_nget(struct mount *, u_int8_t *, int, struct nfsnode **, int);
+int	ncl_nget(struct mount *, uint8_t *, int, struct nfsnode **, int);
 nfsuint64 *ncl_getcookie(struct nfsnode *, off_t, int);
 void	ncl_invaldir(struct vnode *);
 bool	ncl_excl_start(struct vnode *);

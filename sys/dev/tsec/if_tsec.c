@@ -1093,7 +1093,7 @@ tsec_new_rxbuf(bus_dma_tag_t tag, bus_dmamap_t map, struct mbuf **mbufp,
 static void
 tsec_map_dma_addr(void *arg, bus_dma_segment_t *segs, int nseg, int error)
 {
-	u_int32_t *paddr;
+	uint32_t *paddr;
 
 	KASSERT(nseg == 1, ("wrong number of segments, should be 1"));
 	paddr = arg;

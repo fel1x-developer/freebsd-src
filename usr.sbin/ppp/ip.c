@@ -208,9 +208,9 @@ prototxt(int cproto)
 int
 FilterCheck(const unsigned char *packet,
 #ifdef NOINET6
-	    u_int32_t family __unused,
+	    uint32_t family __unused,
 #else
-	    u_int32_t family,
+	    uint32_t family,
 #endif
             const struct filter *filter, unsigned *psecs)
 {
@@ -555,7 +555,7 @@ ip_LogDNS(const struct udphdr *uh, const char *direction)
  * One of pip or pip6 must be set.
  */
 int
-PacketCheck(struct bundle *bundle, u_int32_t family,
+PacketCheck(struct bundle *bundle, uint32_t family,
             const unsigned char *packet, int nb, struct filter *filter,
             const char *prefix, unsigned *psecs)
 {
@@ -792,7 +792,7 @@ PacketCheck(struct bundle *bundle, u_int32_t family,
                "AH: %s ---> ", ncpaddr_ntoa(&srcaddr));
       loglen += strlen(logbuf + loglen);
       snprintf(logbuf + loglen, sizeof logbuf - loglen, "%s, spi %p",
-               ncpaddr_ntoa(&dstaddr), payload + sizeof(u_int32_t));
+               ncpaddr_ntoa(&dstaddr), payload + sizeof(uint32_t));
       loglen += strlen(logbuf + loglen);
     }
     break;
@@ -907,7 +907,7 @@ PacketCheck(struct bundle *bundle, u_int32_t family,
 }
 
 static size_t
-ip_Input(struct bundle *bundle, struct link *l, struct mbuf *bp, u_int32_t af)
+ip_Input(struct bundle *bundle, struct link *l, struct mbuf *bp, uint32_t af)
 {
   ssize_t nw;
   size_t nb;

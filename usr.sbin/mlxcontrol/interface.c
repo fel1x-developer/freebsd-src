@@ -232,7 +232,7 @@ mlx_scsi_inquiry(int unit, int channel, int target, char **vendor, char **device
 	    struct mlx_dcdb		dcdb;
 	    union {
 		struct scsi_inquiry_data	inq;
-		u_int8_t			pad[SHORT_INQUIRY_LENGTH];
+		uint8_t			pad[SHORT_INQUIRY_LENGTH];
 	    } d;
     } __attribute__ ((packed))		dcdb_cmd;
     struct scsi_inquiry		*inq_cmd = (struct scsi_inquiry *)&dcdb_cmd.dcdb.dcdb_cdb[0];

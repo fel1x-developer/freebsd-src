@@ -44,12 +44,12 @@ enum agp_acquire_state {
  * This structure is used to query the state of the AGP system.
  */
 struct agp_info {
-	u_int32_t	ai_mode;
+	uint32_t	ai_mode;
 	vm_offset_t	ai_aperture_base;
 	vm_size_t	ai_aperture_size;
 	vm_size_t	ai_memory_allowed;
 	vm_size_t	ai_memory_used;
-	u_int32_t	ai_devid;
+	uint32_t	ai_devid;
 };
 
 struct agp_memory_info {
@@ -89,7 +89,7 @@ int agp_release(device_t dev);
  * Enable the agp hardware with the relavent mode. The mode bits are
  * defined in <dev/agp/agpreg.h>
  */
-int agp_enable(device_t dev, u_int32_t mode);
+int agp_enable(device_t dev, uint32_t mode);
 
 /*
  * Allocate physical memory suitable for mapping into the AGP

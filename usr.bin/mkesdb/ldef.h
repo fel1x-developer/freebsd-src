@@ -35,6 +35,6 @@ extern int	 yylex(void);
 struct named_csid {
 	STAILQ_ENTRY(named_csid)	 ci_entry;
 	char				*ci_symbol;
-	u_int32_t			 ci_csid;
+	uint32_t			 ci_csid;
 };
 STAILQ_HEAD(named_csid_list, named_csid);

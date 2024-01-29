@@ -2537,10 +2537,10 @@ mwl_ext_free(struct mbuf *m)
 }
 
 struct mwl_frame_bar {
-	u_int8_t	i_fc[2];
-	u_int8_t	i_dur[2];
-	u_int8_t	i_ra[IEEE80211_ADDR_LEN];
-	u_int8_t	i_ta[IEEE80211_ADDR_LEN];
+	uint8_t	i_fc[2];
+	uint8_t	i_dur[2];
+	uint8_t	i_ra[IEEE80211_ADDR_LEN];
+	uint8_t	i_ta[IEEE80211_ADDR_LEN];
 	/* ctl, seq, FCS */
 } __packed;
 
@@ -4592,8 +4592,8 @@ mwl_ioctl_diag(struct mwl_softc *sc, struct mwl_diag *md)
 	u_int id = md->md_id & MWL_DIAG_ID;
 	void *indata = NULL;
 	void *outdata = NULL;
-	u_int32_t insize = md->md_in_size;
-	u_int32_t outsize = md->md_out_size;
+	uint32_t insize = md->md_in_size;
+	uint32_t outsize = md->md_out_size;
 	int error = 0;
 
 	if (md->md_id & MWL_DIAG_IN) {

@@ -95,7 +95,7 @@ Takes the following argument struct:
 .Bd -literal -offset indent
 struct ngm_macfilter_direct_hookid {
     u_char	ether[ETHER_ADDR_LEN];  	/* MAC address */
-    u_int16_t	hookid;		        	/* Upper hook hookid */
+    uint16_t	hookid;		        	/* Upper hook hookid */
 };
 .Ed
 The given ethernet MAC address will be forwarded out the hook at id
@@ -105,14 +105,14 @@ Returns the list of MAC addresses in the node in the following structure:
 .Bd -literal -offset indent
 struct ngm_macfilter_mac {
     u_char	ether[ETHER_ADDR_LEN];  	/* MAC address */
-    u_int16_t	hookid;		        	/* Upper hook hookid */
-    u_int64_t	packets_in;			/* packets in from downstream */
-    u_int64_t	bytes_in;			/* bytes in from upstream */
-    u_int64_t	packets_out;			/* packets out towards downstream */
-    u_int64_t	bytes_out;			/* bytes out towards downstream */
+    uint16_t	hookid;		        	/* Upper hook hookid */
+    uint64_t	packets_in;			/* packets in from downstream */
+    uint64_t	bytes_in;			/* bytes in from upstream */
+    uint64_t	packets_out;			/* packets out towards downstream */
+    uint64_t	bytes_out;			/* bytes out towards downstream */
 };
 struct ngm_macfilter_macs {
-    u_int32_t   n;                              /* Number of entries in macs */
+    uint32_t   n;                              /* Number of entries in macs */
     struct ngm_macfilter_mac macs[];            /* Macs table */
 };
 .Ed
@@ -130,8 +130,8 @@ Will return a list of hooks and their hookids in an array of the following struc
 .Bd -literal -offset indent
 struct ngm_macfilter_hook {
     u_char	hookname[NG_HOOKSIZ];   	/* Upper hook name*/
-    u_int16_t	hookid;		        	/* Upper hook hookid */
-    u_int32_t   maccnt;                         /* Number of mac addresses associated with hook */
+    uint16_t	hookid;		        	/* Upper hook hookid */
+    uint32_t   maccnt;                         /* Number of mac addresses associated with hook */
 };
 .Ed
 .El

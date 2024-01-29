@@ -82,7 +82,7 @@ enum client_state {
  */
 struct idm {
 	TAILQ_ENTRY(idm)		 idm_entry;
-	u_int32_t                        idm_id;
+	uint32_t                        idm_id;
 	char				 idm_name[MAXHOSTNAMELEN];
 #define F_SSL				 0x00100000
 #define F_CONFIGURING			 0x00200000
@@ -90,8 +90,8 @@ struct idm {
 #define F_FIXED_ATTR(n)			 (1<<n)
 #define F_LIST(n)                        (1<<n)
 	enum client_state		 idm_state;
-	u_int32_t			 idm_flags; /* lower 20 reserved */
-	u_int32_t			 idm_list;
+	uint32_t			 idm_flags; /* lower 20 reserved */
+	uint32_t			 idm_list;
 	struct ypldap_addr_list		 idm_addr;
 	in_port_t			 idm_port;
 	char				 idm_binddn[LINE_WIDTH];
@@ -145,7 +145,7 @@ struct imsgev {
 struct env {
 #define YPLDAP_OPT_VERBOSE		 0x01
 #define YPLDAP_OPT_NOACTION		 0x02
-	u_int8_t			 sc_opts;
+	uint8_t			 sc_opts;
 #define YPMAP_PASSWD_BYNAME		 0x00000001
 #define YPMAP_PASSWD_BYUID		 0x00000002
 #define YPMAP_MASTER_PASSWD_BYNAME	 0x00000004
@@ -153,9 +153,9 @@ struct env {
 #define YPMAP_GROUP_BYNAME		 0x00000010
 #define YPMAP_GROUP_BYGID		 0x00000020
 #define YPMAP_NETID_BYNAME		 0x00000040
-	u_int32_t			 sc_flags;
+	uint32_t			 sc_flags;
 
-	u_int32_t			 sc_maxid;
+	uint32_t			 sc_maxid;
 
 	char				 sc_domainname[MAXHOSTNAMELEN];
 	struct timeval			 sc_conf_tv;
@@ -201,8 +201,8 @@ pid_t		 ldapclient(int [2]);
 /* ypldap.c */
 void		 purge_config(struct env *);
 void		 imsg_event_add(struct imsgev *);
-int	 	 imsg_compose_event(struct imsgev *, u_int16_t, u_int32_t,
-		    pid_t, int, void *, u_int16_t);
+int	 	 imsg_compose_event(struct imsgev *, uint16_t, uint32_t,
+		    pid_t, int, void *, uint16_t);
 
 /* entries.c */
 void		 flatten_entries(struct env *);

@@ -90,7 +90,7 @@ ar5416BTCoexSetQcuThresh(struct ath_hal *ah, int qnum)
 }
 
 void
-ar5416BTCoexSetWeights(struct ath_hal *ah, u_int32_t stompType)
+ar5416BTCoexSetWeights(struct ath_hal *ah, uint32_t stompType)
 {
 	struct ath_hal_5416 *ahp = AH5416(ah);
 
@@ -165,7 +165,7 @@ ar5416BTCoexSetWeights(struct ath_hal *ah, u_int32_t stompType)
 }
 
 void
-ar5416BTCoexSetupBmissThresh(struct ath_hal *ah, u_int32_t thresh)
+ar5416BTCoexSetupBmissThresh(struct ath_hal *ah, uint32_t thresh)
 {
 	struct ath_hal_5416 *ahp = AH5416(ah);
 
@@ -183,7 +183,7 @@ ar5416BTCoexAntennaDiversity(struct ath_hal *ah)
 }
 
 void
-ar5416BTCoexSetParameter(struct ath_hal *ah, u_int32_t type, u_int32_t value)
+ar5416BTCoexSetParameter(struct ath_hal *ah, uint32_t type, uint32_t value)
 {
 	struct ath_hal_5416 *ahp = AH5416(ah);
 

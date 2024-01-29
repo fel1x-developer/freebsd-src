@@ -130,7 +130,7 @@ powermac_nvram_attach(device_t dev)
 	struct powermac_nvram_softc *sc;
 	const char	*compatible;
 	phandle_t node;
-	u_int32_t reg[3];
+	uint32_t reg[3];
 	int gen0, gen1, i;
 
 	node = ofw_bus_get_node(dev);

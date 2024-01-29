@@ -74,17 +74,17 @@ struct hfsc_opts_v0 {
 
 struct hfsc_opts_v1 {
 	/* real-time service curve */
-	u_int64_t	rtsc_m1;	/* slope of the 1st segment in bps */
+	uint64_t	rtsc_m1;	/* slope of the 1st segment in bps */
 	u_int		rtsc_d;		/* the x-projection of m1 in msec */
-	u_int64_t	rtsc_m2;	/* slope of the 2nd segment in bps */
+	uint64_t	rtsc_m2;	/* slope of the 2nd segment in bps */
 	/* link-sharing service curve */
-	u_int64_t	lssc_m1;
+	uint64_t	lssc_m1;
 	u_int		lssc_d;
-	u_int64_t	lssc_m2;
+	uint64_t	lssc_m2;
 	/* upper-limit service curve */
-	u_int64_t	ulsc_m1;
+	uint64_t	ulsc_m1;
 	u_int		ulsc_d;
-	u_int64_t	ulsc_m2;
+	uint64_t	ulsc_m2;
 	int		flags;
 };
 

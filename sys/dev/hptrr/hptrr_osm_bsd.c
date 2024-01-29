@@ -407,7 +407,7 @@ static void hpt_do_tasks(PVBUS_EXT vbus_ext, int pending)
 
 static void hpt_action(struct cam_sim *sim, union ccb *ccb);
 static void hpt_poll(struct cam_sim *sim);
-static void hpt_async(void * callback_arg, u_int32_t code, struct cam_path * path, void * arg);
+static void hpt_async(void * callback_arg, uint32_t code, struct cam_path * path, void * arg);
 static void hpt_pci_intr(void *arg);
 
 static __inline POS_CMDEXT cmdext_get(PVBUS_EXT vbus_ext)
@@ -817,7 +817,7 @@ static void hpt_poll(struct cam_sim *sim)
 	ldm_intr((PVBUS)vbus_ext->vbus);
 }
 
-static void hpt_async(void * callback_arg, u_int32_t code, struct cam_path * path, void * arg)
+static void hpt_async(void * callback_arg, uint32_t code, struct cam_path * path, void * arg)
 {
 	KdPrint(("hpt_async"));
 }

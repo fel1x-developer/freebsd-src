@@ -174,10 +174,10 @@ main(int argc, char *argv[])
 	return 0;
 }
 
-static u_int16_t
-eeread(u_int16_t off)
+static uint16_t
+eeread(uint16_t off)
 {
-	u_int16_t eedata;
+	uint16_t eedata;
 
 	atd.ad_id = HAL_DIAG_EEREAD | ATH_DIAG_IN | ATH_DIAG_DYN;
 	atd.ad_in_size = sizeof(off);
@@ -327,14 +327,14 @@ setmode(int mode)
 		/* fetch indirect data*/
 		atd.ad_id = HAL_DIAG_EEPROM_EXP_11A+curmode;
 		atd.ad_out_size = roundup(
-			sizeof(u_int16_t) * exp->numChannels, sizeof(u_int32_t))
+			sizeof(uint16_t) * exp->numChannels, sizeof(uint32_t))
 		    + sizeof(EXPN_DATA_PER_CHANNEL_5112) * exp->numChannels;
 		atd.ad_out_data = (caddr_t) malloc(atd.ad_out_size);
 		if (ioctl(s, SIOCGATHDIAG, &atd) < 0)
 			err(1, "ioctl: %s", atd.ad_name);
 		exp->pChannels = (void *) atd.ad_out_data;
 		exp->pDataPerChannel = (void *)((char *)atd.ad_out_data +
-		   roundup(sizeof(u_int16_t) * exp->numChannels, sizeof(u_int32_t)));
+		   roundup(sizeof(uint16_t) * exp->numChannels, sizeof(uint32_t)));
 		pExpnPower = exp;
 		numChannels = pExpnPower->numChannels;
 		if (exp->xpdMask != 0x9) {

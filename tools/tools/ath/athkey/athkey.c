@@ -47,7 +47,7 @@ toint(int c)
 }
 
 static int
-getdata(const char *arg, u_int8_t *data, size_t maxlen)
+getdata(const char *arg, uint8_t *data, size_t maxlen)
 {
 	const char *cp = arg;
 	int len;
@@ -131,7 +131,7 @@ main(int argc, char *argv[])
 	HAL_DIAG_KEYVAL setkey;
 	const char *cp;
 	int s, c;
-	u_int16_t keyix;
+	uint16_t keyix;
 	int op = HAL_DIAG_SETKEY;
 	int xor = 0;
 
@@ -163,7 +163,7 @@ main(int argc, char *argv[])
 	if (argc < 1)
 		usage();
 
-	keyix = (u_int16_t) atoi(argv[0]);
+	keyix = (uint16_t) atoi(argv[0]);
 	if (keyix > 127)
 		errx(-1, "%s: invalid key index %s, must be [0..127]",
 			progname, argv[0]);
@@ -174,7 +174,7 @@ main(int argc, char *argv[])
 	switch (op) {
 	case HAL_DIAG_RESETKEY:
 		atd.ad_in_data = (caddr_t) &keyix;
-		atd.ad_in_size = sizeof(u_int16_t);
+		atd.ad_in_size = sizeof(uint16_t);
 		if (ioctl(s, SIOCGATHDIAG, &atd) < 0)
 			err(1, "ioctl: %s", atd.ad_name);
 		return 0;

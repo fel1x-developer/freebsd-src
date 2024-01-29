@@ -44,9 +44,9 @@
 #include "debug.h"
 #include "rtld.h"
 
-#define _ppc_ha(x) ((((u_int32_t)(x) & 0x8000) ? \
-                        ((u_int32_t)(x) + 0x10000) : (u_int32_t)(x)) >> 16)
-#define _ppc_la(x) ((u_int32_t)(x) & 0xffff)
+#define _ppc_ha(x) ((((uint32_t)(x) & 0x8000) ? \
+                        ((uint32_t)(x) + 0x10000) : (uint32_t)(x)) >> 16)
+#define _ppc_la(x) ((uint32_t)(x) & 0xffff)
 
 #define min(a,b) (((a) < (b)) ? (a) : (b))
 #define max(a,b) (((a) > (b)) ? (a) : (b))

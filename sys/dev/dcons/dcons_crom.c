@@ -198,7 +198,7 @@ dcons_crom_attach(device_t dev)
 	/* map dcons buffer */
 	error = bus_dma_tag_create(
 		/*parent*/ sc->fd.fc->dmat,
-		/*alignment*/ sizeof(u_int32_t),
+		/*alignment*/ sizeof(uint32_t),
 		/*boundary*/ 0,
 		/*lowaddr*/ BUS_SPACE_MAXADDR,
 		/*highaddr*/ BUS_SPACE_MAXADDR,

@@ -60,10 +60,10 @@ struct ng_pptpgre_conf {
 	u_char		enableDelayedAck;/* enables delayed acks */
 	u_char		enableAlwaysAck;/* always include ack with data */
 	u_char		enableWindowing;/* enable windowing algorithm */
-	u_int16_t	cid;		/* my call id */
-	u_int16_t	peerCid;	/* peer call id */
-	u_int16_t	recvWin;	/* peer recv window size */
-	u_int16_t	peerPpd;	/* peer packet processing delay
+	uint16_t	cid;		/* my call id */
+	uint16_t	peerCid;	/* peer call id */
+	uint16_t	recvWin;	/* peer recv window size */
+	uint16_t	peerPpd;	/* peer packet processing delay
 					   (in units of 1/10 of a second) */
 };
 
@@ -82,25 +82,25 @@ struct ng_pptpgre_conf {
 
 /* Statistics struct */
 struct ng_pptpgre_stats {
-	u_int32_t xmitPackets;		/* number of GRE packets xmit */
-	u_int32_t xmitOctets;		/* number of GRE octets xmit */
-	u_int32_t xmitLoneAcks;		/* ack-only packets transmitted */
-	u_int32_t xmitDrops;		/* xmits dropped due to full window */
-	u_int32_t xmitTooBig;		/* xmits dropped because too big */
-	u_int32_t recvPackets;		/* number of GRE packets rec'd */
-	u_int32_t recvOctets;		/* number of GRE octets rec'd */
-	u_int32_t recvRunts;		/* too short packets rec'd */
-	u_int32_t recvBadGRE;		/* bogus packets rec'd (bad GRE hdr) */
-	u_int32_t recvBadAcks;		/* bogus ack's rec'd in GRE header */
-	u_int32_t recvBadCID;		/* pkts with unknown call ID rec'd */
-	u_int32_t recvOutOfOrder;	/* packets rec'd out of order */
-	u_int32_t recvDuplicates;	/* packets rec'd with duplicate seq # */
-	u_int32_t recvLoneAcks;		/* ack-only packets rec'd */
-	u_int32_t recvAckTimeouts;	/* times peer failed to ack in time */
-	u_int32_t memoryFailures;	/* times we couldn't allocate memory */
-	u_int32_t recvReorderOverflow;	/* times we dropped GRE packet
+	uint32_t xmitPackets;		/* number of GRE packets xmit */
+	uint32_t xmitOctets;		/* number of GRE octets xmit */
+	uint32_t xmitLoneAcks;		/* ack-only packets transmitted */
+	uint32_t xmitDrops;		/* xmits dropped due to full window */
+	uint32_t xmitTooBig;		/* xmits dropped because too big */
+	uint32_t recvPackets;		/* number of GRE packets rec'd */
+	uint32_t recvOctets;		/* number of GRE octets rec'd */
+	uint32_t recvRunts;		/* too short packets rec'd */
+	uint32_t recvBadGRE;		/* bogus packets rec'd (bad GRE hdr) */
+	uint32_t recvBadAcks;		/* bogus ack's rec'd in GRE header */
+	uint32_t recvBadCID;		/* pkts with unknown call ID rec'd */
+	uint32_t recvOutOfOrder;	/* packets rec'd out of order */
+	uint32_t recvDuplicates;	/* packets rec'd with duplicate seq # */
+	uint32_t recvLoneAcks;		/* ack-only packets rec'd */
+	uint32_t recvAckTimeouts;	/* times peer failed to ack in time */
+	uint32_t memoryFailures;	/* times we couldn't allocate memory */
+	uint32_t recvReorderOverflow;	/* times we dropped GRE packet
 					   due to overflow of reorder queue */
-	u_int32_t recvReorderTimeouts;	/* times we flushed reorder queue
+	uint32_t recvReorderTimeouts;	/* times we flushed reorder queue
 					   due to timeout */
 };
 

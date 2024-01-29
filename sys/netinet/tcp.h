@@ -36,7 +36,7 @@
 
 #if __BSD_VISIBLE
 
-typedef	u_int32_t tcp_seq;
+typedef	uint32_t tcp_seq;
 
 #define tcp6_seq	tcp_seq	/* for KAME src sync over BSD*'s */
 #define tcp6hdr		tcphdr	/* for KAME src sync over BSD*'s */
@@ -395,77 +395,77 @@ struct tcp_perf_info {
  * change.
  */
 struct tcp_info {
-	u_int8_t	tcpi_state;		/* TCP FSM state. */
-	u_int8_t	__tcpi_ca_state;
-	u_int8_t	__tcpi_retransmits;
-	u_int8_t	__tcpi_probes;
-	u_int8_t	__tcpi_backoff;
-	u_int8_t	tcpi_options;		/* Options enabled on conn. */
-	u_int8_t	tcpi_snd_wscale:4,	/* RFC1323 send shift value. */
+	uint8_t	tcpi_state;		/* TCP FSM state. */
+	uint8_t	__tcpi_ca_state;
+	uint8_t	__tcpi_retransmits;
+	uint8_t	__tcpi_probes;
+	uint8_t	__tcpi_backoff;
+	uint8_t	tcpi_options;		/* Options enabled on conn. */
+	uint8_t	tcpi_snd_wscale:4,	/* RFC1323 send shift value. */
 			tcpi_rcv_wscale:4;	/* RFC1323 recv shift value. */
 
-	u_int32_t	tcpi_rto;		/* Retransmission timeout (usec). */
-	u_int32_t	__tcpi_ato;
-	u_int32_t	tcpi_snd_mss;		/* Max segment size for send. */
-	u_int32_t	tcpi_rcv_mss;		/* Max segment size for receive. */
+	uint32_t	tcpi_rto;		/* Retransmission timeout (usec). */
+	uint32_t	__tcpi_ato;
+	uint32_t	tcpi_snd_mss;		/* Max segment size for send. */
+	uint32_t	tcpi_rcv_mss;		/* Max segment size for receive. */
 
-	u_int32_t	__tcpi_unacked;
-	u_int32_t	__tcpi_sacked;
-	u_int32_t	__tcpi_lost;
-	u_int32_t	__tcpi_retrans;
-	u_int32_t	__tcpi_fackets;
+	uint32_t	__tcpi_unacked;
+	uint32_t	__tcpi_sacked;
+	uint32_t	__tcpi_lost;
+	uint32_t	__tcpi_retrans;
+	uint32_t	__tcpi_fackets;
 
 	/* Times; measurements in usecs. */
-	u_int32_t	__tcpi_last_data_sent;
-	u_int32_t	__tcpi_last_ack_sent;	/* Also unimpl. on Linux? */
-	u_int32_t	tcpi_last_data_recv;	/* Time since last recv data. */
-	u_int32_t	__tcpi_last_ack_recv;
+	uint32_t	__tcpi_last_data_sent;
+	uint32_t	__tcpi_last_ack_sent;	/* Also unimpl. on Linux? */
+	uint32_t	tcpi_last_data_recv;	/* Time since last recv data. */
+	uint32_t	__tcpi_last_ack_recv;
 
 	/* Metrics; variable units. */
-	u_int32_t	__tcpi_pmtu;
-	u_int32_t	__tcpi_rcv_ssthresh;
-	u_int32_t	tcpi_rtt;		/* Smoothed RTT in usecs. */
-	u_int32_t	tcpi_rttvar;		/* RTT variance in usecs. */
-	u_int32_t	tcpi_snd_ssthresh;	/* Slow start threshold. */
-	u_int32_t	tcpi_snd_cwnd;		/* Send congestion window. */
-	u_int32_t	__tcpi_advmss;
-	u_int32_t	__tcpi_reordering;
+	uint32_t	__tcpi_pmtu;
+	uint32_t	__tcpi_rcv_ssthresh;
+	uint32_t	tcpi_rtt;		/* Smoothed RTT in usecs. */
+	uint32_t	tcpi_rttvar;		/* RTT variance in usecs. */
+	uint32_t	tcpi_snd_ssthresh;	/* Slow start threshold. */
+	uint32_t	tcpi_snd_cwnd;		/* Send congestion window. */
+	uint32_t	__tcpi_advmss;
+	uint32_t	__tcpi_reordering;
 
-	u_int32_t	__tcpi_rcv_rtt;
-	u_int32_t	tcpi_rcv_space;		/* Advertised recv window. */
+	uint32_t	__tcpi_rcv_rtt;
+	uint32_t	tcpi_rcv_space;		/* Advertised recv window. */
 
 	/* FreeBSD extensions to tcp_info. */
-	u_int32_t	tcpi_snd_wnd;		/* Advertised send window. */
-	u_int32_t	tcpi_snd_bwnd;		/* No longer used. */
-	u_int32_t	tcpi_snd_nxt;		/* Next egress seqno */
-	u_int32_t	tcpi_rcv_nxt;		/* Next ingress seqno */
-	u_int32_t	tcpi_toe_tid;		/* HWTID for TOE endpoints */
-	u_int32_t	tcpi_snd_rexmitpack;	/* Retransmitted packets */
-	u_int32_t	tcpi_rcv_ooopack;	/* Out-of-order packets */
-	u_int32_t	tcpi_snd_zerowin;	/* Zero-sized windows sent */
+	uint32_t	tcpi_snd_wnd;		/* Advertised send window. */
+	uint32_t	tcpi_snd_bwnd;		/* No longer used. */
+	uint32_t	tcpi_snd_nxt;		/* Next egress seqno */
+	uint32_t	tcpi_rcv_nxt;		/* Next ingress seqno */
+	uint32_t	tcpi_toe_tid;		/* HWTID for TOE endpoints */
+	uint32_t	tcpi_snd_rexmitpack;	/* Retransmitted packets */
+	uint32_t	tcpi_rcv_ooopack;	/* Out-of-order packets */
+	uint32_t	tcpi_snd_zerowin;	/* Zero-sized windows sent */
 
 	/* Accurate ECN counters. */
-	u_int32_t	tcpi_delivered_ce;
-	u_int32_t	tcpi_received_ce;		/* # of CE marks received */
-	u_int32_t	__tcpi_delivered_e1_bytes;
-	u_int32_t	__tcpi_delivered_e0_bytes;
-	u_int32_t	__tcpi_delivered_ce_bytes;
-	u_int32_t	__tcpi_received_e1_bytes;
-	u_int32_t	__tcpi_received_e0_bytes;
-	u_int32_t	__tcpi_received_ce_bytes;
+	uint32_t	tcpi_delivered_ce;
+	uint32_t	tcpi_received_ce;		/* # of CE marks received */
+	uint32_t	__tcpi_delivered_e1_bytes;
+	uint32_t	__tcpi_delivered_e0_bytes;
+	uint32_t	__tcpi_delivered_ce_bytes;
+	uint32_t	__tcpi_received_e1_bytes;
+	uint32_t	__tcpi_received_e0_bytes;
+	uint32_t	__tcpi_received_ce_bytes;
 
-	u_int32_t	tcpi_total_tlp;		/* tail loss probes sent */
-	u_int64_t	tcpi_total_tlp_bytes;	/* tail loss probe bytes sent */
+	uint32_t	tcpi_total_tlp;		/* tail loss probes sent */
+	uint64_t	tcpi_total_tlp_bytes;	/* tail loss probe bytes sent */
 
-	u_int32_t	tcpi_snd_una;		/* Unacked seqno sent */
-	u_int32_t	tcpi_snd_max;		/* Highest seqno sent */
-	u_int32_t	tcpi_rcv_numsacks;	/* Distinct SACK blks present */
-	u_int32_t	tcpi_rcv_adv;		/* Peer advertised window */
-	u_int32_t	tcpi_dupacks;		/* Consecutive dup ACKs recvd */
+	uint32_t	tcpi_snd_una;		/* Unacked seqno sent */
+	uint32_t	tcpi_snd_max;		/* Highest seqno sent */
+	uint32_t	tcpi_rcv_numsacks;	/* Distinct SACK blks present */
+	uint32_t	tcpi_rcv_adv;		/* Peer advertised window */
+	uint32_t	tcpi_dupacks;		/* Consecutive dup ACKs recvd */
 
 	u_int32_t	tcpi_rttmin;		/* Min observed RTT */
 	/* Padding to grow without breaking ABI. */
-	u_int32_t	__tcpi_pad[14];		/* Padding. */
+	uint32_t	__tcpi_pad[14];		/* Padding. */
 };
 
 /*

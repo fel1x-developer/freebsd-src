@@ -110,7 +110,7 @@ static void iput(union dinode *, ino_t);
 static int makedir(struct direct *, int);
 static void setblock(struct fs *, unsigned char *, int);
 static void wtfs(ufs2_daddr_t, int, char *);
-static u_int32_t newfs_random(void);
+static uint32_t newfs_random(void);
 
 void
 mkfs(struct partition *pp, char *fsys)
@@ -747,16 +747,16 @@ initcg(int cylno, time_t utime)
 		acg.cg_old_boff = acg.cg_old_btotoff +
 		    sblock.fs_old_cpg * sizeof(int32_t);
 		acg.cg_iusedoff = acg.cg_old_boff +
-		    sblock.fs_old_cpg * sizeof(u_int16_t);
+		    sblock.fs_old_cpg * sizeof(uint16_t);
 	}
 	acg.cg_freeoff = acg.cg_iusedoff + howmany(sblock.fs_ipg, CHAR_BIT);
 	acg.cg_nextfreeoff = acg.cg_freeoff + howmany(sblock.fs_fpg, CHAR_BIT);
 	if (sblock.fs_contigsumsize > 0) {
 		acg.cg_clustersumoff =
-		    roundup(acg.cg_nextfreeoff, sizeof(u_int32_t));
-		acg.cg_clustersumoff -= sizeof(u_int32_t);
+		    roundup(acg.cg_nextfreeoff, sizeof(uint32_t));
+		acg.cg_clustersumoff -= sizeof(uint32_t);
 		acg.cg_clusteroff = acg.cg_clustersumoff +
-		    (sblock.fs_contigsumsize + 1) * sizeof(u_int32_t);
+		    (sblock.fs_contigsumsize + 1) * sizeof(uint32_t);
 		acg.cg_nextfreeoff = acg.cg_clusteroff +
 		    howmany(fragstoblks(&sblock, sblock.fs_fpg), CHAR_BIT);
 	}
@@ -1219,10 +1219,10 @@ ilog2(int val)
  * For the regression test, return predictable random values.
  * Otherwise use a true random number generator.
  */
-static u_int32_t
+static uint32_t
 newfs_random(void)
 {
-	static u_int32_t nextnum = 1;
+	static uint32_t nextnum = 1;
 
 	if (Rflag)
 		return (nextnum++);

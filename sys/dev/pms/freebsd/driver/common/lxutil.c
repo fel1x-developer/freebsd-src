@@ -756,8 +756,8 @@ STATIC int agtiapi_ProbeCard( device_t dev,
 			      int thisCard )
 {
   int idx;
-  u_int16_t agtiapi_vendor; // PCI vendor ID
-  u_int16_t agtiapi_dev; // PCI device ID
+  uint16_t agtiapi_vendor; // PCI vendor ID
+  uint16_t agtiapi_dev; // PCI device ID
   AGTIAPI_PRINTK("agtiapi_ProbeCard: start\n");
 
   agtiapi_vendor = pci_get_vendor( dev ); // get PCI vendor ID

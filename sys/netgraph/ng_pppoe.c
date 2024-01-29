@@ -72,7 +72,7 @@ static MALLOC_DEFINE(M_NETGRAPH_PPPOE, "netgraph_pppoe", "netgraph pppoe node");
 
 #define SIGNOFF "session closed"
 
-VNET_DEFINE_STATIC(u_int32_t, ng_pppoe_lcp_pcp) = 0;
+VNET_DEFINE_STATIC(uint32_t, ng_pppoe_lcp_pcp) = 0;
 #define V_ng_pppoe_lcp_pcp	VNET(ng_pppoe_lcp_pcp)
 
 SYSCTL_NODE(_net_graph, OID_AUTO, pppoe, CTLFLAG_RW, 0, "PPPoE");
@@ -1520,7 +1520,7 @@ ng_pppoe_rcvdata(hook_p hook, item_p item)
 		 * Start working out the tags to respond with.
 		 */
 		uniqtag.hdr.tag_type = PTT_AC_COOKIE;
-		uniqtag.hdr.tag_len = htons((u_int16_t)sizeof(sp));
+		uniqtag.hdr.tag_len = htons((uint16_t)sizeof(sp));
 		uniqtag.data.pointer = sp;
 		init_tags(sp);
 		insert_tag(sp, &neg->ac_name.hdr); /* AC_NAME */
@@ -2077,7 +2077,7 @@ ng_pppoe_disconnect(hook_p hook)
 				 */
 				tag = (void *)(&wh->ph + 1);
 				tag->tag_type = PTT_GEN_ERR;
-				tag->tag_len = htons((u_int16_t)msglen);
+				tag->tag_len = htons((uint16_t)msglen);
 				strncpy((char *)(tag + 1), SIGNOFF, msglen);
 				m->m_pkthdr.len = m->m_len = sizeof(*wh) + sizeof(*tag) +
 				    msglen;

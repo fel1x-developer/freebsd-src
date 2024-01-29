@@ -98,8 +98,8 @@ res_nmkupdate(res_state statp, ns_updrec *rrecp_in, u_char *buf, int buflen) {
         char buf2[MAXDNAME];
 	u_char buf3[MAXDNAME];
 	int section, numrrs = 0, counts[ns_s_max];
-	u_int16_t rtype, rclass;
-	u_int32_t n1, rttl;
+	uint16_t rtype, rclass;
+	uint32_t n1, rttl;
 	u_char *dnptrs[20], **dpp, **lastdnptr;
 #ifndef _LIBC
 	int siglen;
@@ -466,7 +466,7 @@ res_nmkupdate(res_state statp, ns_updrec *rrecp_in, u_char *buf, int buflen) {
 #else
 		    {
 			int sig_type, success, dateerror;
-			u_int32_t exptime, timesigned;
+			uint32_t exptime, timesigned;
 
 			/* type */
 			if ((n = getword_str(buf2, sizeof buf2,
@@ -499,7 +499,7 @@ res_nmkupdate(res_state statp, ns_updrec *rrecp_in, u_char *buf, int buflen) {
 			}
 			else {
 				char *ulendp;
-				u_int32_t ottl;
+				uint32_t ottl;
 
 				errno = 0;
 				ottl = strtoul(buf2, &ulendp, 10);
@@ -717,7 +717,7 @@ res_nmkupdate(res_state statp, ns_updrec *rrecp_in, u_char *buf, int buflen) {
 		default:
 			return (-1);
 		} /*switch*/
-		n = (u_int16_t)((cp - sp2) - INT16SZ);
+		n = (uint16_t)((cp - sp2) - INT16SZ);
 		PUTSHORT(n, sp2);
 	} /*for*/
 		
@@ -991,7 +991,7 @@ res_buildservicelist(void) {
 			free(slp);
 			break;
 		}
-		slp->port = ntohs((u_int16_t)sp->s_port);  /*%< host byt order */
+		slp->port = ntohs((uint16_t)sp->s_port);  /*%< host byt order */
 		slp->next = servicelist;
 		slp->prev = NULL;
 		if (servicelist)
@@ -1112,14 +1112,14 @@ res_protocolnumber(const char *p) {
 
 #ifndef _LIBC
 static struct servent *
-cgetservbyport(u_int16_t port, const char *proto) {	/*%< Host byte order. */
+cgetservbyport(uint16_t port, const char *proto) {	/*%< Host byte order. */
 	struct valuelist **list = &servicelist;
 	struct valuelist *lp = *list;
 	static struct servent serv;
 
 	port = ntohs(port);
 	for (; lp != NULL; lp = lp->next) {
-		if (port != (u_int16_t)lp->port)	/*%< Host byte order. */
+		if (port != (uint16_t)lp->port)	/*%< Host byte order. */
 			continue;
 		if (strcasecmp(lp->proto, proto) == 0) {
 			if (lp != *list) {
@@ -1131,7 +1131,7 @@ cgetservbyport(u_int16_t port, const char *proto) {	/*%< Host byte order. */
 				*list = lp;
 			}
 			serv.s_name = lp->name;
-			serv.s_port = htons((u_int16_t)lp->port);
+			serv.s_port = htons((uint16_t)lp->port);
 			serv.s_proto = lp->proto;
 			return (&serv);
 		}
@@ -1178,7 +1178,7 @@ res_protocolname(int num) {
 }
 
 const char *
-res_servicename(u_int16_t port, const char *proto) {	/*%< Host byte order. */
+res_servicename(uint16_t port, const char *proto) {	/*%< Host byte order. */
 	static char number[8];
 	struct servent *ss;
 

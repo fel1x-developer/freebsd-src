@@ -32,19 +32,19 @@
 #define _SYS_DVDIO_H_
 
 struct dvd_layer {
-	u_int8_t book_type	:4;
-	u_int8_t book_version	:4;
-	u_int8_t disc_size	:4;
-	u_int8_t max_rate	:4;
-	u_int8_t nlayers	:2;
-	u_int8_t track_path	:1;
-	u_int8_t layer_type	:4;
-	u_int8_t linear_density	:4;
-	u_int8_t track_density	:4;
-	u_int8_t bca		:1;
-	u_int32_t start_sector;
-	u_int32_t end_sector;
-	u_int32_t end_sector_l0;
+	uint8_t book_type	:4;
+	uint8_t book_version	:4;
+	uint8_t disc_size	:4;
+	uint8_t max_rate	:4;
+	uint8_t nlayers	:2;
+	uint8_t track_path	:1;
+	uint8_t layer_type	:4;
+	uint8_t linear_density	:4;
+	uint8_t track_density	:4;
+	uint8_t bca		:1;
+	uint32_t start_sector;
+	uint32_t end_sector;
+	uint32_t end_sector_l0;
 };
 
 struct dvd_struct {
@@ -52,24 +52,24 @@ struct dvd_struct {
 	u_char layer_num;
 	u_char cpst;
 	u_char rmi;
-	u_int8_t agid		:2;
-	u_int32_t length;
+	uint8_t agid		:2;
+	uint32_t length;
 	u_char data[2048];
 };
 
 struct dvd_authinfo {
 	unsigned char format;
-	u_int8_t agid		:2;
-	u_int8_t asf		:1;
-	u_int8_t cpm		:1;
-	u_int8_t cp_sec		:1;
-	u_int8_t cgms		:2;
-	u_int8_t reg_type	:2;
-	u_int8_t vend_rsts	:3;
-	u_int8_t user_rsts	:3;
-	u_int8_t region;
-	u_int8_t rpc_scheme;
-	u_int32_t lba;
+	uint8_t agid		:2;
+	uint8_t asf		:1;
+	uint8_t cpm		:1;
+	uint8_t cp_sec		:1;
+	uint8_t cgms		:2;
+	uint8_t reg_type	:2;
+	uint8_t vend_rsts	:3;
+	uint8_t user_rsts	:3;
+	uint8_t region;
+	uint8_t rpc_scheme;
+	uint32_t lba;
 	u_char keychal[10];
 };
 

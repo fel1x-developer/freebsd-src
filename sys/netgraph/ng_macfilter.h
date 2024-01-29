@@ -67,7 +67,7 @@ struct ngm_macfilter_direct {
 /* This structure is supplied with the NGM_MACFILTER_DIRECT_HOOKID command */
 struct ngm_macfilter_direct_hookid {
     u_char	ether[ETHER_ADDR_LEN];  	/* MAC address */
-    u_int16_t	hookid;		        	/* Upper hook hookid */
+    uint16_t	hookid;		        	/* Upper hook hookid */
 };
 #define NGM_MACFILTER_DIRECT_NDX_FIELDS {               \
     { "ether",          &ng_parse_enaddr_type },        \
@@ -78,11 +78,11 @@ struct ngm_macfilter_direct_hookid {
 /* This structure is returned in the array by the NGM_MACFILTER_GET(CLR)_MACS commands */
 struct ngm_macfilter_mac {
     u_char	ether[ETHER_ADDR_LEN];  	/* MAC address */
-    u_int16_t	hookid;		        	/* Upper hook hookid */
-    u_int64_t	packets_in;			/* packets in from downstream */
-    u_int64_t	bytes_in;			/* bytes in from upstream */
-    u_int64_t	packets_out;			/* packets out towards downstream */
-    u_int64_t	bytes_out;			/* bytes out towards downstream */
+    uint16_t	hookid;		        	/* Upper hook hookid */
+    uint64_t	packets_in;			/* packets in from downstream */
+    uint64_t	bytes_in;			/* bytes in from upstream */
+    uint64_t	packets_out;			/* packets out towards downstream */
+    uint64_t	bytes_out;			/* bytes out towards downstream */
 };
 #define NGM_MACFILTER_MAC_FIELDS {                      \
     { "ether",          &ng_parse_enaddr_type },        \
@@ -95,7 +95,7 @@ struct ngm_macfilter_mac {
 }
 /* This structure is returned by the NGM_MACFILTER_GET(CLR)_MACS commands */
 struct ngm_macfilter_macs {
-    u_int32_t   n;                              /* Number of entries in macs */
+    uint32_t   n;                              /* Number of entries in macs */
     struct ngm_macfilter_mac macs[];            /* Macs table */
 };
 #define NGM_MACFILTER_MACS_FIELDS {                     \
@@ -107,8 +107,8 @@ struct ngm_macfilter_macs {
 /* This structure is returned in an array by the NGM_MACFILTER_GET_HOOKS command */
 struct ngm_macfilter_hook {
     u_char	hookname[NG_HOOKSIZ];   	/* Upper hook name*/
-    u_int16_t	hookid;		        	/* Upper hook hookid */
-    u_int32_t   maccnt;                         /* Number of mac addresses associated with hook */
+    uint16_t	hookid;		        	/* Upper hook hookid */
+    uint32_t   maccnt;                         /* Number of mac addresses associated with hook */
 };
 #define NGM_MACFILTER_HOOK_FIELDS {                     \
     { "hookname",       &ng_parse_hookbuf_type },       \
@@ -118,7 +118,7 @@ struct ngm_macfilter_hook {
 }
 /* This structure is returned by the NGM_MACFILTER_GET_HOOKS command */
 struct ngm_macfilter_hooks {
-    u_int32_t   n;                              /* Number of entries in hooks */
+    uint32_t   n;                              /* Number of entries in hooks */
     struct ngm_macfilter_hook hooks[];          /* Hooks table */
 };
 #define NGM_MACFILTER_HOOKS_FIELDS {                     \

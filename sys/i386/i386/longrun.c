@@ -70,11 +70,11 @@
 #define LONGRUN_MODE_MAX		0x04
 
 union msrinfo {
-	u_int64_t	msr;
-	u_int32_t	regs[2];
+	uint64_t	msr;
+	uint32_t	regs[2];
 };
 
-static u_int32_t longrun_modes[LONGRUN_MODE_MAX][3] = {
+static uint32_t longrun_modes[LONGRUN_MODE_MAX][3] = {
 	/*  MSR low, MSR high, flags bit0 */
 	{	  0,	  0,		0},	/* LONGRUN_MODE_MINFREQUENCY */
 	{	  0,	100,		0},	/* LONGRUN_MODE_ECONOMY */
@@ -233,11 +233,11 @@ tmx86_status_sysctl(SYSCTL_HANDLER_ARGS)
 static int
 tmx86_longrun_profile_sysctl(SYSCTL_HANDLER_ARGS)
 {
-	u_int32_t *argp;
-	u_int32_t arg;
+	uint32_t *argp;
+	uint32_t arg;
 	int	error;
 
-	argp = (u_int32_t *)oidp->oid_arg1;
+	argp = (uint32_t *)oidp->oid_arg1;
 	arg = *argp;
 	error = sysctl_handle_int(oidp, &arg, 0, req);
 

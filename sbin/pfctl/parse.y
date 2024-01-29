@@ -75,9 +75,9 @@
 static struct pfctl	*pf = NULL;
 static int		 debug = 0;
 static int		 rulestate = 0;
-static u_int16_t	 returnicmpdefault =
+static uint16_t	 returnicmpdefault =
 			    (ICMP_UNREACH << 8) | ICMP_UNREACH_PORT;
-static u_int16_t	 returnicmp6default =
+static uint16_t	 returnicmp6default =
 			    (ICMP6_DST_UNREACH << 8) | ICMP6_DST_UNREACH_NOPORT;
 static int		 blockpolicy = PFRULE_DROP;
 static int		 failpolicy = PFRULE_DROP;
@@ -128,42 +128,42 @@ enum {
 };
 
 struct node_etherproto {
-	u_int16_t		 proto;
+	uint16_t		 proto;
 	struct node_etherproto	*next;
 	struct node_etherproto	*tail;
 };
 
 struct node_proto {
-	u_int8_t		 proto;
+	uint8_t		 proto;
 	struct node_proto	*next;
 	struct node_proto	*tail;
 };
 
 struct node_port {
-	u_int16_t		 port[2];
-	u_int8_t		 op;
+	uint16_t		 port[2];
+	uint8_t		 op;
 	struct node_port	*next;
 	struct node_port	*tail;
 };
 
 struct node_uid {
 	uid_t			 uid[2];
-	u_int8_t		 op;
+	uint8_t		 op;
 	struct node_uid		*next;
 	struct node_uid		*tail;
 };
 
 struct node_gid {
 	gid_t			 gid[2];
-	u_int8_t		 op;
+	uint8_t		 op;
 	struct node_gid		*next;
 	struct node_gid		*tail;
 };
 
 struct node_icmp {
-	u_int8_t		 code;
-	u_int8_t		 type;
-	u_int8_t		 proto;
+	uint8_t		 code;
+	uint8_t		 type;
+	uint8_t		 proto;
 	struct node_icmp	*next;
 	struct node_icmp	*tail;
 };
@@ -180,23 +180,23 @@ enum	{ PF_SRCTRACK_NONE, PF_SRCTRACK, PF_SRCTRACK_GLOBAL, PF_SRCTRACK_RULE };
 struct node_state_opt {
 	int			 type;
 	union {
-		u_int32_t	 max_states;
-		u_int32_t	 max_src_states;
-		u_int32_t	 max_src_conn;
+		uint32_t	 max_states;
+		uint32_t	 max_src_states;
+		uint32_t	 max_src_conn;
 		struct {
-			u_int32_t	limit;
-			u_int32_t	seconds;
+			uint32_t	limit;
+			uint32_t	seconds;
 		}		 max_src_conn_rate;
 		struct {
-			u_int8_t	flush;
+			uint8_t	flush;
 			char		tblname[PF_TABLE_NAME_SIZE];
 		}		 overload;
-		u_int32_t	 max_src_nodes;
-		u_int8_t	 src_track;
-		u_int32_t	 statelock;
+		uint32_t	 max_src_nodes;
+		uint8_t	 src_track;
+		uint32_t	 statelock;
 		struct {
 			int		number;
-			u_int32_t	seconds;
+			uint32_t	seconds;
 		}		 timeout;
 	}			 data;
 	struct node_state_opt	*next;
@@ -242,15 +242,15 @@ static struct filter_opts {
 	struct node_uid		*uid;
 	struct node_gid		*gid;
 	struct {
-		u_int8_t	 b1;
-		u_int8_t	 b2;
-		u_int16_t	 w;
-		u_int16_t	 w2;
+		uint8_t	 b1;
+		uint8_t	 b2;
+		uint16_t	 w;
+		uint16_t	 w2;
 	} flags;
 	struct node_icmp	*icmpspec;
-	u_int32_t		 tos;
-	u_int32_t		 prob;
-	u_int32_t		 ridentifier;
+	uint32_t		 tos;
+	uint32_t		 prob;
+	uint32_t		 ridentifier;
 	struct {
 		int			 action;
 		struct node_state_opt	*options;
@@ -262,16 +262,16 @@ static struct filter_opts {
 	struct node_qassign	 queues;
 	char			*tag;
 	char			*match_tag;
-	u_int8_t		 match_tag_not;
-	u_int16_t		 dnpipe;
-	u_int16_t		 dnrpipe;
-	u_int32_t		 free_flags;
+	uint8_t		 match_tag_not;
+	uint16_t		 dnpipe;
+	uint16_t		 dnrpipe;
+	uint32_t		 free_flags;
 	u_int			 rtableid;
-	u_int8_t		 prio;
-	u_int8_t		 set_prio[2];
+	uint8_t		 prio;
+	uint8_t		 set_prio[2];
 	struct {
 		struct node_host	*addr;
-		u_int16_t		port;
+		uint16_t		port;
 	}			 divert;
 	/* new-style scrub opts */
 	int			 nodf;
@@ -284,7 +284,7 @@ static struct filter_opts {
 static struct antispoof_opts {
 	char			*label[PF_RULE_MAX_LABEL_COUNT];
 	int			 labelcount;
-	u_int32_t		 ridentifier;
+	uint32_t		 ridentifier;
 	u_int			 rtableid;
 } antispoof_opts;
 
@@ -298,7 +298,7 @@ static struct scrub_opts {
 	int			 randomid;
 	int			 reassemble_tcp;
 	char			*match_tag;
-	u_int8_t		 match_tag_not;
+	uint8_t		 match_tag_not;
 	u_int			 rtableid;
 } scrub_opts;
 
@@ -326,7 +326,7 @@ static struct pool_opts {
 	int			 marker;
 #define POM_TYPE		0x01
 #define POM_STICKYADDRESS	0x02
-	u_int8_t		 opts;
+	uint8_t		 opts;
 	int			 type;
 	int			 staticport;
 	struct pf_poolhashkey	*key;
@@ -354,7 +354,7 @@ void		 expand_label_addr(const char *, char *, size_t, sa_family_t,
 		    struct pf_rule_addr *);
 void		 expand_label_port(const char *, char *, size_t,
 		    struct pf_rule_addr *);
-void		 expand_label_proto(const char *, char *, size_t, u_int8_t);
+void		 expand_label_proto(const char *, char *, size_t, uint8_t);
 void		 expand_label_nr(const char *, char *, size_t,
 		    struct pfctl_rule *);
 void		 expand_eth_rule(struct pfctl_eth_rule *,
@@ -386,7 +386,7 @@ void	 mv_eth_rules(struct pfctl_eth_ruleset *, struct pfctl_eth_ruleset *);
 void	 decide_address_family(struct node_host *, sa_family_t *);
 void	 remove_invalid_hosts(struct node_host **, sa_family_t *);
 int	 invalid_redirect(struct node_host *, sa_family_t);
-u_int16_t parseicmpspec(char *, sa_family_t);
+uint16_t parseicmpspec(char *, sa_family_t);
 int	 kw_casecmp(const void *, const void *);
 int	 map_tos(char *string, int *);
 struct node_mac* node_mac_from_string(const char *);
@@ -410,10 +410,10 @@ typedef struct {
 		char			*string;
 		u_int			 rtableid;
 		struct {
-			u_int8_t	 b1;
-			u_int8_t	 b2;
-			u_int16_t	 w;
-			u_int16_t	 w2;
+			uint8_t	 b1;
+			uint8_t	 b2;
+			uint16_t	 w;
+			uint16_t	 w2;
 		}			 b;
 		struct range {
 			int		 a;
@@ -446,8 +446,8 @@ typedef struct {
 		char			*bridge_to;
 		struct {
 			struct node_host	*host;
-			u_int8_t		 rt;
-			u_int8_t		 pool_opts;
+			uint8_t		 rt;
+			uint8_t		 pool_opts;
 			sa_family_t		 af;
 			struct pf_poolhashkey	*key;
 		}			 route;
@@ -460,9 +460,9 @@ typedef struct {
 			struct node_state_opt	*options;
 		}			 keep_state;
 		struct {
-			u_int8_t	 log;
-			u_int8_t	 logif;
-			u_int8_t	 quick;
+			uint8_t	 log;
+			uint8_t	 logif;
+			uint8_t	 quick;
 		}			 logquick;
 		struct {
 			int		 neg;
@@ -2009,7 +2009,7 @@ bandwidth	: STRING {
 				}
 			}
 			free($1);
-			$$.bw_absolute = (u_int64_t)bps;
+			$$.bw_absolute = (uint64_t)bps;
 		}
 		| NUMBER {
 			if ($1 < 0 || $1 >= LLONG_MAX) {
@@ -2944,7 +2944,7 @@ filter_opt	: USER uids {
 				yyerror("invalid probability: %lf", p);
 				YYERROR;
 			}
-			filter_opts.prob = (u_int32_t)p;
+			filter_opts.prob = (uint32_t)p;
 			if (filter_opts.prob == 0)
 				filter_opts.prob = 1;
 		}
@@ -3150,7 +3150,7 @@ reticmpspec	: STRING			{
 			free($1);
 		}
 		| NUMBER			{
-			u_int8_t		icmptype;
+			uint8_t		icmptype;
 
 			if ($1 < 0 || $1 > 255) {
 				yyerror("invalid icmp code %lu", $1);
@@ -3169,7 +3169,7 @@ reticmp6spec	: STRING			{
 			free($1);
 		}
 		| NUMBER			{
-			u_int8_t		icmptype;
+			uint8_t		icmptype;
 
 			if ($1 < 0 || $1 > 255) {
 				yyerror("invalid icmp code %lu", $1);
@@ -3295,9 +3295,9 @@ etherproto_list	: etherproto_item optnl			{ $$ = $1; }
 		;
 
 etherproto_item	: etherprotoval		{
-			u_int16_t	pr;
+			uint16_t	pr;
 
-			pr = (u_int16_t)$1;
+			pr = (uint16_t)$1;
 			if (pr == 0) {
 				yyerror("proto 0 cannot be used");
 				YYERROR;
@@ -3345,9 +3345,9 @@ proto_list	: proto_item optnl		{ $$ = $1; }
 		;
 
 proto_item	: protoval			{
-			u_int8_t	pr;
+			uint8_t	pr;
 
-			pr = (u_int8_t)$1;
+			pr = (uint8_t)$1;
 			if (pr == 0) {
 				yyerror("proto 0 cannot be used");
 				YYERROR;
@@ -5639,7 +5639,7 @@ expand_label_port(const char *name, char *label, size_t len,
 }
 
 void
-expand_label_proto(const char *name, char *label, size_t len, u_int8_t proto)
+expand_label_proto(const char *name, char *label, size_t len, uint8_t proto)
 {
 	const char *protoname;
 	char n[4];
@@ -5799,8 +5799,8 @@ expand_queue(struct pf_altq *a, struct node_if *interfaces,
 {
 	struct node_queue	*n, *nq;
 	struct pf_altq		 pa;
-	u_int8_t		 found = 0;
-	u_int8_t		 errs = 0;
+	uint8_t		 found = 0;
+	uint8_t		 errs = 0;
 
 	if ((pf->loadopt & PFCTL_FLAG_ALTQ) == 0) {
 		FREE_LIST(struct node_queue, nqueues);
@@ -6032,7 +6032,7 @@ expand_rule(struct pfctl_rule *r,
 	char			 match_tagname[PF_TAG_NAME_SIZE];
 	struct pf_pooladdr	*pa;
 	struct node_host	*h, *osrch, *odsth;
-	u_int8_t		 flags, flagset, keep_state;
+	uint8_t		 flags, flagset, keep_state;
 
 	memcpy(label, r->label, sizeof(r->label));
 	assert(sizeof(r->label) == sizeof(label));
@@ -7051,12 +7051,12 @@ eth_rule_label(struct pfctl_eth_rule *r, char *s[PF_RULE_MAX_LABEL_COUNT])
 	return (0);
 }
 
-u_int16_t
+uint16_t
 parseicmpspec(char *w, sa_family_t af)
 {
 	const struct icmpcodeent	*p;
 	u_long				 ulval;
-	u_int8_t			 icmptype;
+	uint8_t			 icmptype;
 
 	if (af == AF_INET)
 		icmptype = returnicmpdefault >> 8;

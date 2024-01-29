@@ -120,14 +120,14 @@ static void
 unmappedaddr(struct sockaddr_in6 *sin6)
 {
 	struct sockaddr_in *sin4;
-	u_int32_t addr;
+	uint32_t addr;
 	int port;
 
 	if (sin6->sin6_family != AF_INET6 ||
 	    !IN6_IS_ADDR_V4MAPPED(&sin6->sin6_addr))
 		return;
 	sin4 = (struct sockaddr_in *)sin6;
-	addr = *(u_int32_t *)(uintptr_t)&sin6->sin6_addr.s6_addr[12];
+	addr = *(uint32_t *)(uintptr_t)&sin6->sin6_addr.s6_addr[12];
 	port = sin6->sin6_port;
 	memset(sin4, 0, sizeof(struct sockaddr_in));
 	sin4->sin_addr.s_addr = addr;
@@ -783,7 +783,7 @@ ftp_transfer(conn_t *conn, const char *oper, const char *file,
 			goto ouch;
 
 	} else {
-		u_int32_t a;
+		uint32_t a;
 		u_short p;
 		int arg, d;
 		char *ap;

@@ -118,7 +118,7 @@ static void
 legacy_pci_cfgregopen(device_t dev)
 {
 	uint64_t pciebar;
-	u_int16_t did, vid;
+	uint16_t did, vid;
 
 	if (cfgmech == CFGMECH_NONE || cfgmech == CFGMECH_PCIE)
 		return;

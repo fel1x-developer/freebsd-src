@@ -1603,7 +1603,7 @@ del_entry(struct ip_fw_chain *chain, uint32_t arg)
 
 /**
  * Reset some or all counters on firewall rules.
- * The argument `arg' is an u_int32_t. The low 16 bit are the rule number,
+ * The argument `arg' is an uint32_t. The low 16 bit are the rule number,
  * the next 8 bits are the set number, the top 8 bits are the command:
  *	0	work with rules from all set's;
  *	1	work with rules only from specified set.
@@ -1611,7 +1611,7 @@ del_entry(struct ip_fw_chain *chain, uint32_t arg)
  * log_only is 1 if we only want to reset logs, zero otherwise.
  */
 static int
-zero_entry(struct ip_fw_chain *chain, u_int32_t arg, int log_only)
+zero_entry(struct ip_fw_chain *chain, uint32_t arg, int log_only)
 {
 	struct ip_fw *rule;
 	char *msg;
@@ -3802,13 +3802,13 @@ ipfw_ctl3(struct sockopt *sopt)
 int
 ipfw_ctl(struct sockopt *sopt)
 {
-#define	RULE_MAXSIZE	(512*sizeof(u_int32_t))
+#define	RULE_MAXSIZE	(512*sizeof(uint32_t))
 	int error;
 	size_t size;
 	struct ip_fw *buf;
 	struct ip_fw_rule0 *rule;
 	struct ip_fw_chain *chain;
-	u_int32_t rulenum[2];
+	uint32_t rulenum[2];
 	uint32_t opt;
 	struct rule_check_info ci;
 	IPFW_RLOCK_TRACKER;
@@ -3928,23 +3928,23 @@ ipfw_ctl(struct sockopt *sopt)
 		 * IP_FW_DEL is used for deleting single rules or sets,
 		 * and (ab)used to atomically manipulate sets. Argument size
 		 * is used to distinguish between the two:
-		 *    sizeof(u_int32_t)
+		 *    sizeof(uint32_t)
 		 *	delete single rule or set of rules,
 		 *	or reassign rules (or sets) to a different set.
-		 *    2*sizeof(u_int32_t)
+		 *    2*sizeof(uint32_t)
 		 *	atomic disable/enable sets.
-		 *	first u_int32_t contains sets to be disabled,
-		 *	second u_int32_t contains sets to be enabled.
+		 *	first uint32_t contains sets to be disabled,
+		 *	second uint32_t contains sets to be enabled.
 		 */
 		error = sooptcopyin(sopt, rulenum,
-			2*sizeof(u_int32_t), sizeof(u_int32_t));
+			2*sizeof(uint32_t), sizeof(uint32_t));
 		if (error)
 			break;
 		size = sopt->sopt_valsize;
-		if (size == sizeof(u_int32_t) && rulenum[0] != 0) {
+		if (size == sizeof(uint32_t) && rulenum[0] != 0) {
 			/* delete or reassign, locking done in del_entry() */
 			error = del_entry(chain, rulenum[0]);
-		} else if (size == 2*sizeof(u_int32_t)) { /* set enable/disable */
+		} else if (size == 2*sizeof(uint32_t)) { /* set enable/disable */
 			IPFW_UH_WLOCK(chain);
 			V_set_disable =
 			    (V_set_disable | rulenum[0]) & ~rulenum[1] &
@@ -3959,7 +3959,7 @@ ipfw_ctl(struct sockopt *sopt)
 		rulenum[0] = 0;
 		if (sopt->sopt_val != 0) {
 		    error = sooptcopyin(sopt, rulenum,
-			    sizeof(u_int32_t), sizeof(u_int32_t));
+			    sizeof(uint32_t), sizeof(uint32_t));
 		    if (error)
 			break;
 		}
@@ -3999,7 +3999,7 @@ ipfw_ctl(struct sockopt *sopt)
 
 	case IP_FW_TABLE_FLUSH:
 		{
-			u_int16_t tbl;
+			uint16_t tbl;
 			struct tid_info ti;
 
 			error = sooptcopyin(sopt, &tbl,
@@ -4014,7 +4014,7 @@ ipfw_ctl(struct sockopt *sopt)
 
 	case IP_FW_TABLE_GETSIZE:
 		{
-			u_int32_t tbl, cnt;
+			uint32_t tbl, cnt;
 			struct tid_info ti;
 
 			if ((error = sooptcopyin(sopt, &tbl, sizeof(tbl),
@@ -4112,7 +4112,7 @@ ipfw_ctl(struct sockopt *sopt)
 	return (error);
 #undef RULE_MAXSIZE
 }
-#define	RULE_MAXSIZE	(256*sizeof(u_int32_t))
+#define	RULE_MAXSIZE	(256*sizeof(uint32_t))
 
 /* Functions to convert rules 7.2 <==> 8.0 */
 static int

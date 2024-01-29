@@ -76,7 +76,7 @@ static int 	hpt_detach(device_t dev);
 static int 	hpt_shutdown(device_t dev);
 static void hpt_poll(struct cam_sim *sim);
 static void hpt_intr(void *arg);
-static void hpt_async(void *callback_arg, u_int32_t code, struct cam_path *path, void *arg);
+static void hpt_async(void *callback_arg, uint32_t code, struct cam_path *path, void *arg);
 static void hpt_action(struct cam_sim *sim, union ccb *ccb);
 
 static device_method_t driver_methods[] = {
@@ -2121,7 +2121,7 @@ hpt_intr_locked(IAL_ADAPTER_T *pAdapter)
 #endif
 
 static void
-hpt_async(void * callback_arg, u_int32_t code, struct cam_path * path,
+hpt_async(void * callback_arg, uint32_t code, struct cam_path * path,
     void * arg)
 {
 	/* debug XXXX */

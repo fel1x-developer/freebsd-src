@@ -330,20 +330,20 @@ fdregrd(struct fdc_data *fdc, int reg)
 }
 
 static void
-fdctl_wr(struct fdc_data *fdc, u_int8_t v)
+fdctl_wr(struct fdc_data *fdc, uint8_t v)
 {
 
 	fdregwr(fdc, FDCTL, v);
 }
 
 static void
-fdout_wr(struct fdc_data *fdc, u_int8_t v)
+fdout_wr(struct fdc_data *fdc, uint8_t v)
 {
 
 	fdregwr(fdc, FDOUT, v);
 }
 
-static u_int8_t
+static uint8_t
 fdsts_rd(struct fdc_data *fdc)
 {
 
@@ -351,27 +351,27 @@ fdsts_rd(struct fdc_data *fdc)
 }
 
 static void
-fddsr_wr(struct fdc_data *fdc, u_int8_t v)
+fddsr_wr(struct fdc_data *fdc, uint8_t v)
 {
 
 	fdregwr(fdc, FDDSR, v);
 }
 
 static void
-fddata_wr(struct fdc_data *fdc, u_int8_t v)
+fddata_wr(struct fdc_data *fdc, uint8_t v)
 {
 
 	fdregwr(fdc, FDDATA, v);
 }
 
-static u_int8_t
+static uint8_t
 fddata_rd(struct fdc_data *fdc)
 {
 
 	return fdregrd(fdc, FDDATA);
 }
 
-static u_int8_t
+static uint8_t
 fdin_rd(struct fdc_data *fdc)
 {
 

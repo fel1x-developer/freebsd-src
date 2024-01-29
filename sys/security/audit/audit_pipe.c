@@ -148,9 +148,9 @@ struct audit_pipe {
 	/*
 	 * Per-pipe operation statistics.
 	 */
-	u_int64_t			 ap_inserts;	/* Records added. */
-	u_int64_t			 ap_reads;	/* Records read. */
-	u_int64_t			 ap_drops;	/* Records dropped. */
+	uint64_t			 ap_inserts;	/* Records added. */
+	uint64_t			 ap_reads;	/* Records read. */
+	uint64_t			 ap_drops;	/* Records dropped. */
 
 	/*
 	 * Fields relating to pipe interest: global masks for unmatched
@@ -249,9 +249,9 @@ static struct filterops audit_pipe_read_filterops = {
  * Some global statistics on audit pipes.
  */
 static int		audit_pipe_count;	/* Current number of pipes. */
-static u_int64_t	audit_pipe_ever;	/* Pipes ever allocated. */
-static u_int64_t	audit_pipe_records;	/* Records seen. */
-static u_int64_t	audit_pipe_drops;	/* Global record drop count. */
+static uint64_t	audit_pipe_ever;	/* Pipes ever allocated. */
+static uint64_t	audit_pipe_records;	/* Records seen. */
+static uint64_t	audit_pipe_drops;	/* Global record drop count. */
 
 /*
  * Free an audit pipe entry.

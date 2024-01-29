@@ -2053,7 +2053,7 @@ mfi_bio_command(struct mfi_softc *sc)
  */
 
 int
-mfi_build_cdb(int readop, uint8_t byte2, u_int64_t lba, u_int32_t block_count, uint8_t *cdb)
+mfi_build_cdb(int readop, uint8_t byte2, uint64_t lba, uint32_t block_count, uint8_t *cdb)
 {
 	int cdb_len;
 

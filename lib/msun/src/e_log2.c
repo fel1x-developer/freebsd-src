@@ -39,7 +39,7 @@ log2(double x)
 {
 	double f,hfsq,hi,lo,r,val_hi,val_lo,w,y;
 	int32_t i,k,hx;
-	u_int32_t lx;
+	uint32_t lx;
 
 	EXTRACT_WORDS(hx,lx,x);
 

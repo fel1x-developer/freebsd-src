@@ -43,14 +43,14 @@ enum {
 
 struct uath_rx_radiotap_header {
 	struct ieee80211_radiotap_header wr_ihdr;
-	u_int64_t	wr_tsf;
-	u_int8_t	wr_flags;
-	u_int8_t	wr_rate;
+	uint64_t	wr_tsf;
+	uint8_t	wr_flags;
+	uint8_t	wr_rate;
 	uint16_t	wr_chan_freq;
 	uint16_t	wr_chan_flags;
 	int8_t		wr_antsignal;
 	int8_t		wr_antnoise;
-	u_int8_t	wr_antenna;
+	uint8_t	wr_antenna;
 } __packed __aligned(8);
 
 #define UATH_RX_RADIOTAP_PRESENT (		\

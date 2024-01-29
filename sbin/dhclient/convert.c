@@ -48,10 +48,10 @@
 #include <sys/cdefs.h>
 #include "dhcpd.h"
 
-u_int32_t
+uint32_t
 getULong(unsigned char *buf)
 {
-	u_int32_t ibuf;
+	uint32_t ibuf;
 
 	memcpy(&ibuf, buf, sizeof(ibuf));
 	return (ntohl(ibuf));
@@ -66,10 +66,10 @@ getLong(unsigned char *(buf))
 	return (ntohl(ibuf));
 }
 
-u_int16_t
+uint16_t
 getUShort(unsigned char *buf)
 {
-	u_int16_t ibuf;
+	uint16_t ibuf;
 
 	memcpy(&ibuf, buf, sizeof(ibuf));
 	return (ntohs(ibuf));
@@ -85,9 +85,9 @@ getShort(unsigned char *buf)
 }
 
 void
-putULong(unsigned char *obuf, u_int32_t val)
+putULong(unsigned char *obuf, uint32_t val)
 {
-	u_int32_t tmp = htonl(val);
+	uint32_t tmp = htonl(val);
 
 	memcpy(obuf, &tmp, sizeof(tmp));
 }
@@ -103,7 +103,7 @@ putLong(unsigned char *obuf, int32_t val)
 void
 putUShort(unsigned char *obuf, unsigned int val)
 {
-	u_int16_t tmp = htons(val);
+	uint16_t tmp = htons(val);
 
 	memcpy(obuf, &tmp, sizeof(tmp));
 }

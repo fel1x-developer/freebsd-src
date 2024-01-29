@@ -180,7 +180,7 @@ static video_info_t *vesa_vmode;
 
 static int vesa_init_done;
 static struct vesa_info *vesa_adp_info;
-static u_int16_t *vesa_vmodetab;
+static uint16_t *vesa_vmodetab;
 static char *vesa_oemstr;
 static char *vesa_venderstr;
 static char *vesa_prodstr;
@@ -219,8 +219,8 @@ static int vesa_bios_get_start(int *x, int *y);
 #endif
 static int vesa_bios_set_start(int x, int y);
 static int vesa_map_gen_mode_num(int type, int color, int mode);
-static int vesa_translate_flags(u_int16_t vflags);
-static int vesa_translate_mmodel(u_int8_t vmodel);
+static int vesa_translate_flags(uint16_t vflags);
+static int vesa_translate_mmodel(uint8_t vmodel);
 static int vesa_get_bpscanline(struct vesa_mode *vmode);
 static int vesa_bios_init(void);
 static void vesa_bios_uninit(void);
@@ -663,10 +663,10 @@ vesa_map_gen_mode_num(int type, int color, int mode)
 }
 
 static int
-vesa_translate_flags(u_int16_t vflags)
+vesa_translate_flags(uint16_t vflags)
 {
 	static struct {
-		u_int16_t mask;
+		uint16_t mask;
 		int set;
 		int reset;
 	} ftable[] = {
@@ -686,10 +686,10 @@ vesa_translate_flags(u_int16_t vflags)
 }
 
 static int
-vesa_translate_mmodel(u_int8_t vmodel)
+vesa_translate_mmodel(uint8_t vmodel)
 {
 	static struct {
-		u_int8_t vmodel;
+		uint8_t vmodel;
 		int mmodel;
 	} mtable[] = {
 		{ V_MMTEXT,	V_INFO_MM_TEXT },

@@ -120,18 +120,18 @@ void		 pfaltq_store(struct pf_altq *);
 char		*rate2str(double);
 
 void	 print_addr(struct pf_addr_wrap *, sa_family_t, int);
-void	 print_host(struct pf_addr *, u_int16_t p, sa_family_t, int);
+void	 print_host(struct pf_addr *, uint16_t p, sa_family_t, int);
 void	 print_seq(struct pfctl_state_peer *);
 void	 print_state(struct pfctl_state *, int);
 int	 unmask(struct pf_addr *, sa_family_t);
 
 int	 pfctl_cmdline_symset(char *);
 int	 pfctl_add_trans(struct pfr_buffer *, int, const char *);
-u_int32_t
+uint32_t
 	 pfctl_get_ticket(struct pfr_buffer *, int, const char *);
 int	 pfctl_trans(int, struct pfr_buffer *, u_long, int);
 
-int	 pf_get_ruleset_number(u_int8_t);
+int	 pf_get_ruleset_number(uint8_t);
 void	 pf_init_ruleset(struct pfctl_ruleset *);
 int	 pfctl_anchor_setup(struct pfctl_rule *,
 	    const struct pfctl_ruleset *, const char *);

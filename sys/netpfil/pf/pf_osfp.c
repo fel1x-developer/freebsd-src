@@ -53,7 +53,7 @@ static struct pf_osfp_enlist	*pf_osfp_fingerprint_hdr(const struct ip *,
 				    const struct ip6_hdr *,
 				    const struct tcphdr *);
 static struct pf_os_fingerprint	*pf_osfp_find(struct pf_osfp_list *,
-				    struct pf_os_fingerprint *, u_int8_t);
+				    struct pf_os_fingerprint *, uint8_t);
 static struct pf_os_fingerprint	*pf_osfp_find_exact(struct pf_osfp_list *,
 				    struct pf_os_fingerprint *);
 static void			 pf_osfp_insert(struct pf_osfp_list *,
@@ -96,7 +96,7 @@ pf_osfp_fingerprint_hdr(const struct ip *ip, const struct ip6_hdr *ip6, const st
 {
 	struct pf_os_fingerprint fp, *fpresult;
 	int cnt, optlen = 0;
-	const u_int8_t *optp;
+	const uint8_t *optp;
 #ifdef INET6
 	char srcname[INET6_ADDRSTRLEN];
 #else
@@ -134,7 +134,7 @@ pf_osfp_fingerprint_hdr(const struct ip *ip, const struct ip6_hdr *ip6, const st
 	fp.fp_wsize = ntohs(tcp->th_win);
 
 	cnt = (tcp->th_off << 2) - sizeof(*tcp);
-	optp = (const u_int8_t *)((const char *)tcp + sizeof(*tcp));
+	optp = (const uint8_t *)((const char *)tcp + sizeof(*tcp));
 	for (; cnt > 0; cnt -= optlen, optp += optlen) {
 		if (*optp == TCPOPT_EOL)
 			break;
@@ -174,7 +174,7 @@ pf_osfp_fingerprint_hdr(const struct ip *ip, const struct ip6_hdr *ip6, const st
 				break;
 			case TCPOPT_TIMESTAMP:
 				if (optlen >= TCPOLEN_TIMESTAMP) {
-					u_int32_t ts;
+					uint32_t ts;
 					memcpy(&ts, &optp[2], sizeof(ts));
 					if (ts == 0)
 						fp.fp_flags |= PF_OSFP_TS0;
@@ -347,7 +347,7 @@ pf_osfp_add(struct pf_osfp_ioctl *fpioc)
 /* Find a fingerprint in the list */
 static struct pf_os_fingerprint *
 pf_osfp_find(struct pf_osfp_list *list, struct pf_os_fingerprint *find,
-    u_int8_t ttldiff)
+    uint8_t ttldiff)
 {
 	struct pf_os_fingerprint *f;
 

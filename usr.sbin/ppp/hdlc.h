@@ -73,17 +73,17 @@ struct hdlc {
     struct pppTimer timer;		/* When to send */
     int method;				/* bit-mask for LQM_* from lqr.h */
 
-    u_int32_t ifOutUniPackets;		/* Packets sent by me */
-    u_int32_t ifOutOctets;		/* Octets sent by me */
-    u_int32_t ifInUniPackets;		/* Packets received from peer */
-    u_int32_t ifInDiscards;		/* Discards */
-    u_int32_t ifInErrors;		/* Errors */
-    u_int32_t ifInOctets;		/* Octets received from peer (unused) */
+    uint32_t ifOutUniPackets;		/* Packets sent by me */
+    uint32_t ifOutOctets;		/* Octets sent by me */
+    uint32_t ifInUniPackets;		/* Packets received from peer */
+    uint32_t ifInDiscards;		/* Discards */
+    uint32_t ifInErrors;		/* Errors */
+    uint32_t ifInOctets;		/* Octets received from peer (unused) */
 
     struct {
-      u_int32_t InGoodOctets;		/* Good octets received from peer */
-      u_int32_t OutLQRs;		/* LQRs sent by me */
-      u_int32_t InLQRs;			/* LQRs received from peer */
+      uint32_t InGoodOctets;		/* Good octets received from peer */
+      uint32_t OutLQRs;		/* LQRs sent by me */
+      uint32_t InLQRs;			/* LQRs received from peer */
 
       struct lqrsavedata Save;		/* Our last LQR */
       struct lqrsavedata prevSave;	/* Our last-but-one LQR (analysis) */
@@ -94,8 +94,8 @@ struct hdlc {
     } lqr;
 
     struct {
-      u_int32_t seq_sent;		/* last echo sent */
-      u_int32_t seq_recv;		/* last echo received */
+      uint32_t seq_sent;		/* last echo sent */
+      uint32_t seq_recv;		/* last echo received */
     } echo;
   } lqm;
 };

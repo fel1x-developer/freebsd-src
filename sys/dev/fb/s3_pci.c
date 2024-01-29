@@ -437,7 +437,7 @@ s3lfb_error(void)
 static int
 s3pci_probe(device_t dev)
 {
-	u_int32_t vendor, class, subclass, device_id;
+	uint32_t vendor, class, subclass, device_id;
 
 	device_id = pci_get_devid(dev);
 	vendor = device_id & 0xffff;

@@ -849,7 +849,7 @@ ng_hci_lp_enc_change(ng_hci_unit_con_p con, int status)
  */
 
 int
-ng_hci_lp_con_ind(ng_hci_unit_con_p con, u_int8_t *uclass)
+ng_hci_lp_con_ind(ng_hci_unit_con_p con, uint8_t *uclass)
 {
 	ng_hci_unit_p		 unit = con->unit;
 	struct ng_mesg		*msg = NULL;

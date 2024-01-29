@@ -121,7 +121,7 @@ pci_docfgregread(int domain, int bus, int slot, int func, int reg, int bytes)
 /* 
  * Read configuration space register
  */
-u_int32_t
+uint32_t
 pci_cfgregread(int domain, int bus, int slot, int func, int reg, int bytes)
 {
 	uint32_t line;

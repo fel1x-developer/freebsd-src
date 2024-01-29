@@ -735,17 +735,17 @@ struct mpi3mr_softc {
 	struct proc *watchdog_thread;
 	void   *watchdog_chan;
 	void   *tm_chan;
-	u_int8_t remove_in_progress;
-	u_int8_t watchdog_thread_active;
-	u_int8_t do_timedout_reset;
+	uint8_t remove_in_progress;
+	uint8_t watchdog_thread_active;
+	uint8_t do_timedout_reset;
 	bool allow_ios;
 	bool secure_ctrl;
 	mpi3mr_atomic_t pend_large_data_sz;
 	
-	u_int32_t io_throttle_data_length;
-	u_int32_t io_throttle_high;
-	u_int32_t io_throttle_low;
-	u_int16_t num_io_throttle_group;
+	uint32_t io_throttle_data_length;
+	uint32_t io_throttle_high;
+	uint32_t io_throttle_low;
+	uint16_t num_io_throttle_group;
 	u_int iot_enable;
 	struct mpi3mr_throttle_group_info *throttle_groups;
 

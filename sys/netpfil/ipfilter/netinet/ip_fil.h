@@ -1795,7 +1795,7 @@ extern	u_32_t		ipf_newisn(fr_info_t *);
 extern	u_int		ipf_pcksum(fr_info_t *, int, u_int);
 #ifdef	USE_INET6
 extern	u_int		ipf_pcksum6(struct mbuf *, ip6_t *,
-						u_int32_t, u_int32_t);
+						uint32_t, uint32_t);
 #endif
 extern	void		ipf_rule_expire(ipf_main_softc_t *);
 extern	int		ipf_scanlist(fr_info_t *, u_32_t);

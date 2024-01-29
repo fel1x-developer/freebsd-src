@@ -35,12 +35,12 @@
 #include <netinet/ip_icmp.h>
 /* router advertisement ICMP packet */
 struct icmp_ad {
-	u_int8_t    icmp_type;		/* type of message */
-	u_int8_t    icmp_code;		/* type sub code */
-	u_int16_t   icmp_cksum;		/* ones complement cksum of struct */
-	u_int8_t    icmp_ad_num;	/* # of following router addresses */
-	u_int8_t    icmp_ad_asize;	/* 2--words in each advertisement */
-	u_int16_t   icmp_ad_life;	/* seconds of validity */
+	uint8_t    icmp_type;		/* type of message */
+	uint8_t    icmp_code;		/* type sub code */
+	uint16_t   icmp_cksum;		/* ones complement cksum of struct */
+	uint8_t    icmp_ad_num;	/* # of following router addresses */
+	uint8_t    icmp_ad_asize;	/* 2--words in each advertisement */
+	uint16_t   icmp_ad_life;	/* seconds of validity */
 	struct icmp_ad_info {
 	    n_long  icmp_ad_addr;
 	    n_long  icmp_ad_pref;
@@ -49,9 +49,9 @@ struct icmp_ad {
 
 /* router solicitation ICMP packet */
 struct icmp_so {
-	u_int8_t    icmp_type;		/* type of message */
-	u_int8_t    icmp_code;		/* type sub code */
-	u_int16_t   icmp_cksum;		/* ones complement cksum of struct */
+	uint8_t    icmp_type;		/* type of message */
+	uint8_t    icmp_code;		/* type sub code */
+	uint16_t   icmp_cksum;		/* ones complement cksum of struct */
 	n_long	    icmp_so_rsvd;
 };
 

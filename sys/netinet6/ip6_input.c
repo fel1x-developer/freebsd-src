@@ -215,7 +215,7 @@ VNET_PCPUSTAT_SYSUNINIT(ip6stat);
 struct rmlock in6_ifaddr_lock;
 RM_SYSINIT(in6_ifaddr_lock, &in6_ifaddr_lock, "in6_ifaddr_lock");
 
-static int ip6_hopopts_input(u_int32_t *, u_int32_t *, struct mbuf **, int *);
+static int ip6_hopopts_input(uint32_t *, uint32_t *, struct mbuf **, int *);
 
 /*
  * IP6 initialization: fill in IP6 protocol switch table.
@@ -526,8 +526,8 @@ ip6_input(struct mbuf *m)
 	struct ip6_hdr *ip6;
 	struct in6_ifaddr *ia;
 	struct ifnet *rcvif;
-	u_int32_t plen;
-	u_int32_t rtalert = ~0;
+	uint32_t plen;
+	uint32_t rtalert = ~0;
 	int off = sizeof(struct ip6_hdr), nest;
 	int nxt, ours = 0;
 	int srcrt = 0;
@@ -827,7 +827,7 @@ passin:
 	 * m may be modified in ip6_hopopts_input().
 	 * If a JumboPayload option is included, plen will also be modified.
 	 */
-	plen = (u_int32_t)ntohs(ip6->ip6_plen);
+	plen = (uint32_t)ntohs(ip6->ip6_plen);
 	if (ip6->ip6_nxt == IPPROTO_HOPOPTS) {
 		if (ip6_input_hbh(&m, &plen, &rtalert, &off, &nxt, &ours) != 0)
 			return;
@@ -943,7 +943,7 @@ bad:
  * rtalertp - XXX: should be stored more smart way
  */
 static int
-ip6_hopopts_input(u_int32_t *plenp, u_int32_t *rtalertp,
+ip6_hopopts_input(uint32_t *plenp, uint32_t *rtalertp,
     struct mbuf **mp, int *offp)
 {
 	struct mbuf *m = *mp;
@@ -973,7 +973,7 @@ ip6_hopopts_input(u_int32_t *plenp, u_int32_t *rtalertp,
 	hbh = (struct ip6_hbh *)(mtod(m, caddr_t) + off);
 	off += hbhlen;
 	hbhlen -= sizeof(struct ip6_hbh);
-	if (ip6_process_hopopts(m, (u_int8_t *)hbh + sizeof(struct ip6_hbh),
+	if (ip6_process_hopopts(m, (uint8_t *)hbh + sizeof(struct ip6_hbh),
 				hbhlen, rtalertp, plenp) < 0) {
 		*mp = NULL;
 		return (-1);
@@ -995,14 +995,14 @@ ip6_hopopts_input(u_int32_t *plenp, u_int32_t *rtalertp,
  * opthead + hbhlen is located in contiguous memory region.
  */
 int
-ip6_process_hopopts(struct mbuf *m, u_int8_t *opthead, int hbhlen,
-    u_int32_t *rtalertp, u_int32_t *plenp)
+ip6_process_hopopts(struct mbuf *m, uint8_t *opthead, int hbhlen,
+    uint32_t *rtalertp, uint32_t *plenp)
 {
 	struct ip6_hdr *ip6;
 	int optlen = 0;
-	u_int8_t *opt = opthead;
-	u_int16_t rtalert_val;
-	u_int32_t jumboplen;
+	uint8_t *opt = opthead;
+	uint16_t rtalert_val;
+	uint32_t jumboplen;
 	const int erroff = sizeof(struct ip6_hdr) + sizeof(struct ip6_hbh);
 
 	for (; hbhlen > 0; hbhlen -= optlen, opt += optlen) {
@@ -1067,7 +1067,7 @@ ip6_process_hopopts(struct mbuf *m, u_int8_t *opthead, int hbhlen,
 			 * we'd need to perform bcopy().
 			 */
 			bcopy(opt + 2, &jumboplen, sizeof(jumboplen));
-			jumboplen = (u_int32_t)htonl(jumboplen);
+			jumboplen = (uint32_t)htonl(jumboplen);
 
 #if 1
 			/*
@@ -1128,7 +1128,7 @@ ip6_process_hopopts(struct mbuf *m, u_int8_t *opthead, int hbhlen,
  * is not contiguous in order to return an ICMPv6 error.
  */
 int
-ip6_unknown_opt(u_int8_t *optp, struct mbuf *m, int off)
+ip6_unknown_opt(uint8_t *optp, struct mbuf *m, int off)
 {
 	struct ip6_hdr *ip6;
 
@@ -1348,9 +1348,9 @@ ip6_savecontrol_v4(struct inpcb *inp, struct mbuf *m, struct mbuf **mp,
 			tclass = 0;
 #endif
 		} else {
-			u_int32_t flowinfo;
+			uint32_t flowinfo;
 
-			flowinfo = (u_int32_t)ntohl(ip6->ip6_flow & IPV6_FLOWINFO_MASK);
+			flowinfo = (uint32_t)ntohl(ip6->ip6_flow & IPV6_FLOWINFO_MASK);
 			flowinfo >>= 20;
 			tclass = flowinfo & 0xff;
 		}
@@ -1542,7 +1542,7 @@ ip6_savecontrol(struct inpcb *inp, struct mbuf *m, struct mbuf **mp)
 #undef IS2292
 
 void
-ip6_notify_pmtu(struct inpcb *inp, struct sockaddr_in6 *dst, u_int32_t mtu)
+ip6_notify_pmtu(struct inpcb *inp, struct sockaddr_in6 *dst, uint32_t mtu)
 {
 	struct socket *so;
 	struct mbuf *m_mtu;

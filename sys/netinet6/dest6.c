@@ -65,7 +65,7 @@ dest6_input(struct mbuf **mp, int *offp, int proto)
 	struct mbuf *m;
 	int off, dstoptlen, optlen;
 	struct ip6_dest *dstopts;
-	u_int8_t *opt;
+	uint8_t *opt;
 
 	m = *mp;
 	off = *offp;
@@ -93,7 +93,7 @@ dest6_input(struct mbuf **mp, int *offp, int proto)
 	dstopts = (struct ip6_dest *)(mtod(m, caddr_t) + off);
 	off += dstoptlen;
 	dstoptlen -= sizeof(struct ip6_dest);
-	opt = (u_int8_t *)dstopts + sizeof(struct ip6_dest);
+	opt = (uint8_t *)dstopts + sizeof(struct ip6_dest);
 
 	/* search header for all options. */
 	for (; dstoptlen > 0; dstoptlen -= optlen, opt += optlen) {
@@ -112,7 +112,7 @@ dest6_input(struct mbuf **mp, int *offp, int proto)
 			break;
 		default:		/* unknown option */
 			optlen = ip6_unknown_opt(opt, m,
-			    opt - mtod(m, u_int8_t *));
+			    opt - mtod(m, uint8_t *));
 			if (optlen == -1) {
 				*mp = NULL;
 				return (IPPROTO_DONE);

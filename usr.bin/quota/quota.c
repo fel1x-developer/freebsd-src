@@ -249,7 +249,7 @@ showgrpname(char *name)
 }
 
 static void
-prthumanval(int len, u_int64_t bytes)
+prthumanval(int len, uint64_t bytes)
 {
 	char buf[len + 1];
 

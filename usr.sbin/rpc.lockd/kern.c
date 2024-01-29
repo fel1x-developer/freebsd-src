@@ -570,11 +570,11 @@ show(LOCKD_MSG *mp)
 {
 	static char hex[] = "0123456789abcdef";
 	size_t len;
-	u_int8_t *p, *t, buf[NFS_SMALLFH*3+1];
+	uint8_t *p, *t, buf[NFS_SMALLFH*3+1];
 
 	syslog(LOG_DEBUG, "process ID: %lu\n", (long)mp->lm_msg_ident.pid);
 
-	for (t = buf, p = (u_int8_t *)mp->lm_fh,
+	for (t = buf, p = (uint8_t *)mp->lm_fh,
 	    len = mp->lm_fh_len;
 	    len > 0; ++p, --len) {
 		*t++ = '\\';

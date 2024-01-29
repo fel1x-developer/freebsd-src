@@ -32,7 +32,7 @@
 
 extern int nfsrv_useacl;
 
-static int nfsrv_acemasktoperm(u_int32_t acetype, u_int32_t mask, int owner,
+static int nfsrv_acemasktoperm(uint32_t acetype, uint32_t mask, int owner,
     __enum_uint8(vtype) type, acl_perm_t *permp);
 
 /*
@@ -42,19 +42,19 @@ int
 nfsrv_dissectace(struct nfsrv_descript *nd, struct acl_entry *acep,
     bool server, int *aceerrp, int *acesizep, NFSPROC_T *p)
 {
-	u_int32_t *tl;
+	uint32_t *tl;
 	int len, gotid = 0, owner = 0, error = 0, aceerr = 0;
 	u_char *name, namestr[NFSV4_SMALLSTR + 1];
-	u_int32_t flag, mask, acetype;
+	uint32_t flag, mask, acetype;
 	gid_t gid;
 	uid_t uid;
 
 	*aceerrp = 0;
 	acep->ae_flags = 0;
-	NFSM_DISSECT(tl, u_int32_t *, 4 * NFSX_UNSIGNED);
-	acetype = fxdr_unsigned(u_int32_t, *tl++);
-	flag = fxdr_unsigned(u_int32_t, *tl++);
-	mask = fxdr_unsigned(u_int32_t, *tl++);
+	NFSM_DISSECT(tl, uint32_t *, 4 * NFSX_UNSIGNED);
+	acetype = fxdr_unsigned(uint32_t, *tl++);
+	flag = fxdr_unsigned(uint32_t, *tl++);
+	mask = fxdr_unsigned(uint32_t, *tl++);
 	len = fxdr_unsigned(int, *tl);
 	/*
 	 * The RFCs do not specify a limit to the length of the "who", but
@@ -185,7 +185,7 @@ nfsmout:
  * Turn an NFSv4 ace mask into R/W/X flag bits.
  */
 static int
-nfsrv_acemasktoperm(u_int32_t acetype, u_int32_t mask, int owner,
+nfsrv_acemasktoperm(uint32_t acetype, uint32_t mask, int owner,
     __enum_uint8(vtype) type, acl_perm_t *permp)
 {
 	acl_perm_t perm = 0x0;
@@ -285,11 +285,11 @@ static int
 nfsrv_buildace(struct nfsrv_descript *nd, u_char *name, int namelen,
     __enum_uint8(vtype) type, int group, int owner, struct acl_entry *ace)
 {
-	u_int32_t *tl, aceflag = 0x0, acemask = 0x0, acetype;
+	uint32_t *tl, aceflag = 0x0, acemask = 0x0, acetype;
 	int full_len;
 
 	full_len = NFSM_RNDUP(namelen);
-	NFSM_BUILD(tl, u_int32_t *, 4 * NFSX_UNSIGNED + full_len);
+	NFSM_BUILD(tl, uint32_t *, 4 * NFSX_UNSIGNED + full_len);
 
 	/*
 	 * Fill in the ace type.
@@ -395,11 +395,11 @@ nfsrv_buildacl(struct nfsrv_descript *nd, NFSACL_T *aclp, __enum_uint8(vtype) ty
     NFSPROC_T *p)
 {
 	int i, entrycnt = 0, retlen;
-	u_int32_t *entrycntp;
+	uint32_t *entrycntp;
 	int isowner, isgroup, namelen, malloced;
 	u_char *name, namestr[NFSV4_SMALLSTR];
 
-	NFSM_BUILD(entrycntp, u_int32_t *, NFSX_UNSIGNED);
+	NFSM_BUILD(entrycntp, uint32_t *, NFSX_UNSIGNED);
 	retlen = NFSX_UNSIGNED;
 	/*
 	 * Loop through the acl entries, building each one.

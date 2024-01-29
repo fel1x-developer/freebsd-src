@@ -995,9 +995,9 @@ ifinfo(char *ifname, int argc, char **argv)
 {
 	struct in6_ndireq nd;
 	int i, sock;
-	u_int32_t newflags;
+	uint32_t newflags;
 #ifdef IPV6CTL_USETEMPADDR
-	u_int8_t nullbuf[8];
+	uint8_t nullbuf[8];
 #endif
 
 	if ((sock = socket(AF_INET6, SOCK_DGRAM, 0)) < 0) {
@@ -1097,7 +1097,7 @@ ifinfo(char *ifname, int argc, char **argv)
 	memset(nullbuf, 0, sizeof(nullbuf));
 	if (memcmp(nullbuf, ND.randomid, sizeof(nullbuf)) != 0) {
 		int j;
-		u_int8_t *rbuf;
+		uint8_t *rbuf;
 
 		for (i = 0; i < 3; i++) {
 			const char *txt, *field;
@@ -1551,7 +1551,7 @@ ts_print(const struct timeval *tvp)
 	sec = (tvp->tv_sec + thiszone) % 86400;
 	xo_emit("{e:tv_sec/%lld}{e:tv_usec/%lld}{d:/%02d:%02d:%02d.%06u} ",
 	    tvp->tv_sec, tvp->tv_usec,
-	    sec / 3600, (sec % 3600) / 60, sec % 60, (u_int32_t)tvp->tv_usec);
+	    sec / 3600, (sec % 3600) / 60, sec % 60, (uint32_t)tvp->tv_usec);
 }
 
 #undef NEXTADDR

@@ -75,7 +75,7 @@ struct ng_async_private {
 	hook_p  	async;		/* Asynchronous side */
 	hook_p  	sync;		/* Synchronous side */
 	u_char  	amode;		/* Async hunt/esape mode */
-	u_int16_t	fcs;		/* Decoded async FCS (so far) */
+	uint16_t	fcs;		/* Decoded async FCS (so far) */
 	u_char	       *abuf;		/* Buffer to encode sync into */
 	u_char	       *sbuf;		/* Buffer to decode async into */
 	u_int		slen;		/* Length of data in sbuf */
@@ -166,7 +166,7 @@ static struct ng_type typestruct = {
 NETGRAPH_INIT(async, &typestruct);
 
 /* CRC table */
-static const u_int16_t fcstab[];
+static const uint16_t fcstab[];
 
 /******************************************************************
 		    NETGRAPH NODE METHODS
@@ -379,7 +379,7 @@ nga_disconnect(hook_p hook)
  * Encode a byte into the async buffer
  */
 static __inline void
-nga_async_add(const sc_p sc, u_int16_t *fcs, u_int32_t accm, int *len, u_char x)
+nga_async_add(const sc_p sc, uint16_t *fcs, uint32_t accm, int *len, u_char x)
 {
 	*fcs = PPP_FCS(*fcs, x);
 	if ((x < 32 && ((1 << x) & accm))
@@ -400,8 +400,8 @@ nga_rcv_sync(const sc_p sc, item_p item)
 	struct ifnet *rcvif;
 	int alen, error = 0;
 	struct timeval time;
-	u_int16_t fcs, fcs0;
-	u_int32_t accm;
+	uint16_t fcs, fcs0;
+	uint32_t accm;
 	struct mbuf *m;
 
 #define ADD_BYTE(x)	nga_async_add(sc, &fcs, accm, &alen, (x))
@@ -590,7 +590,7 @@ reset:
  *
  * Taken from RFC 1171 Appendix B
  */
-static const u_int16_t fcstab[256] = {
+static const uint16_t fcstab[256] = {
 	 0x0000, 0x1189, 0x2312, 0x329b, 0x4624, 0x57ad, 0x6536, 0x74bf,
 	 0x8c48, 0x9dc1, 0xaf5a, 0xbed3, 0xca6c, 0xdbe5, 0xe97e, 0xf8f7,
 	 0x1081, 0x0108, 0x3393, 0x221a, 0x56a5, 0x472c, 0x75b7, 0x643e,

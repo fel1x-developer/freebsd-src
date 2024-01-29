@@ -187,7 +187,7 @@ static inthand_t *ioint_pti_handlers[] = {
 	IDTVEC(apic_isr7_pti),	/* 224 - 255 */
 };
 
-static u_int32_t lapic_timer_divisors[] = {
+static uint32_t lapic_timer_divisors[] = {
 	APIC_TDCR_1, APIC_TDCR_2, APIC_TDCR_4, APIC_TDCR_8, APIC_TDCR_16,
 	APIC_TDCR_32, APIC_TDCR_64, APIC_TDCR_128
 };
@@ -861,7 +861,7 @@ int
 lapic_enable_pmc(void)
 {
 #ifdef HWPMC_HOOKS
-	u_int32_t maxlvt;
+	uint32_t maxlvt;
 
 #ifdef DEV_ATPIC
 	/* Fail if the local APIC is not present. */
@@ -888,7 +888,7 @@ void
 lapic_disable_pmc(void)
 {
 #ifdef HWPMC_HOOKS
-	u_int32_t maxlvt;
+	uint32_t maxlvt;
 
 #ifdef DEV_ATPIC
 	/* Fail if the local APIC is not present. */
@@ -1141,7 +1141,7 @@ lapic_set_lvt_mask(u_int apic_id, u_int pin, u_char masked)
 }
 
 int
-lapic_set_lvt_mode(u_int apic_id, u_int pin, u_int32_t mode)
+lapic_set_lvt_mode(u_int apic_id, u_int pin, uint32_t mode)
 {
 	struct lvt *lvt;
 

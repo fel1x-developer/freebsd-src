@@ -231,7 +231,7 @@ void ips_insert_free_cmd(ips_softc_t *sc, ips_command_t *command)
 		sc->state &= ~IPS_STATIC_BUSY;
 	}
 }
-static const char* ips_diskdev_statename(u_int8_t state)
+static const char* ips_diskdev_statename(uint8_t state)
 {
 	static char statebuf[20];
 	switch(state){
@@ -434,7 +434,7 @@ error:
 /* see if we should reinitialize the card and wait for it to timeout or complete initialization */
 int ips_morpheus_reinit(ips_softc_t *sc, int force)
 {
-        u_int32_t tmp;
+        uint32_t tmp;
 	int i;
 
 	tmp = ips_read_4(sc, MORPHEUS_REG_OISR);
@@ -515,7 +515,7 @@ static __inline int ips_morpheus_check_intr(ips_softc_t *sc)
 	ips_cmd_status_t status;
 	ips_command_t *command;
 	int found = 0;
-	u_int32_t oisr;
+	uint32_t oisr;
 
 	oisr = ips_read_4(sc, MORPHEUS_REG_OISR);
 	PRINTF(9, "interrupt registers out:%x\n", oisr);
@@ -639,7 +639,7 @@ exit:
 int ips_copperhead_reinit(ips_softc_t *sc, int force)
 {
 	int i, j;
-	u_int32_t configstatus = 0;
+	uint32_t configstatus = 0;
 	ips_write_1(sc, COPPER_REG_SCPR, 0x80);
 	ips_write_1(sc, COPPER_REG_SCPR, 0);
 	device_printf(sc->dev, "reinitializing adapter, this could take several minutes.\n");
@@ -693,9 +693,9 @@ int ips_copperhead_reinit(ips_softc_t *sc, int force)
 	}
 	return 0;
 }
-static u_int32_t ips_copperhead_cmd_status(ips_softc_t *sc)
+static uint32_t ips_copperhead_cmd_status(ips_softc_t *sc)
 {
-	u_int32_t value;
+	uint32_t value;
 	int statnum = sc->copper_queue->nextstatus++;
 	if(sc->copper_queue->nextstatus == IPS_MAX_CMD_NUM)
 		sc->copper_queue->nextstatus = 0;

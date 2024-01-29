@@ -86,10 +86,10 @@ MODULE_DEPEND(aac, pci, 1, 1, 1);
 
 static const struct aac_ident
 {
-	u_int16_t		vendor;
-	u_int16_t		device;
-	u_int16_t		subvendor;
-	u_int16_t		subdevice;
+	uint16_t		vendor;
+	uint16_t		device;
+	uint16_t		subvendor;
+	uint16_t		subdevice;
 	int			hwif;
 	int			quirks;
 	const char		*desc;
@@ -290,7 +290,7 @@ static const struct aac_ident *
 aac_find_ident(device_t dev)
 {
 	const struct aac_ident *m;
-	u_int16_t vendid, devid, sub_vendid, sub_devid;
+	uint16_t vendid, devid, sub_vendid, sub_devid;
 
 	vendid = pci_get_vendor(dev);
 	devid = pci_get_device(dev);

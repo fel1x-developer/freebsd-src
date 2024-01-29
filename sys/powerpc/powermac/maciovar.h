@@ -59,8 +59,8 @@
  * Format of a macio reg property entry.
  */
 struct macio_reg {
-	u_int32_t	mr_base;
-	u_int32_t	mr_size;
+	uint32_t	mr_base;
+	uint32_t	mr_size;
 };
 
 /*

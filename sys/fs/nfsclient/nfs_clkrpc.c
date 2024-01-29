@@ -48,7 +48,7 @@ NFSDLOCKMUTEX;
 
 extern SVCPOOL	*nfscbd_pool;
 
-static int nfs_cbproc(struct nfsrv_descript *, u_int32_t);
+static int nfs_cbproc(struct nfsrv_descript *, uint32_t);
 
 extern u_long sb_max_adj;
 extern int nfs_numnfscbd;
@@ -158,7 +158,7 @@ nfscb_program(struct svc_req *rqst, SVCXPRT *xprt)
  * Return the appropriate cache response.
  */
 static int
-nfs_cbproc(struct nfsrv_descript *nd, u_int32_t xid)
+nfs_cbproc(struct nfsrv_descript *nd, uint32_t xid)
 {
 	struct thread *td = curthread;
 	int cacherep;

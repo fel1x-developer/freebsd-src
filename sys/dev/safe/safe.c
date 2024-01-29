@@ -220,8 +220,8 @@ static int
 safe_attach(device_t dev)
 {
 	struct safe_softc *sc = device_get_softc(dev);
-	u_int32_t raddr;
-	u_int32_t i;
+	uint32_t raddr;
+	uint32_t i;
 	int rid;
 
 	bzero(sc, sizeof (*sc));
@@ -523,7 +523,7 @@ static void
 safe_intr(void *arg)
 {
 	struct safe_softc *sc = arg;
-	volatile u_int32_t stat;
+	volatile uint32_t stat;
 
 	stat = READ_REG(sc, SAFE_HM_STAT);
 	if (stat == 0)			/* shared irq, not for us */
@@ -773,7 +773,7 @@ safe_process(device_t dev, struct cryptop *crp, int hint)
 	struct safe_ringentry *re;
 	struct safe_sarec *sa;
 	struct safe_pdesc *pd;
-	u_int32_t cmd0, cmd1, staterec;
+	uint32_t cmd0, cmd1, staterec;
 
 	mtx_lock(&sc->sc_ringmtx);
 	if (sc->sc_front == sc->sc_back && sc->sc_nqchip != 0) {
@@ -1391,7 +1391,7 @@ safe_mcopy(struct mbuf *srcm, struct mbuf *dstm, u_int offset)
 static void
 safe_rng_init(struct safe_softc *sc)
 {
-	u_int32_t w, v;
+	uint32_t w, v;
 	int i;
 
 	WRITE_REG(sc, SAFE_RNG_CTRL, 0);
@@ -1447,7 +1447,7 @@ safe_rng_enable_short_cycle(struct safe_softc *sc)
 		READ_REG(sc, SAFE_RNG_CTRL) | SAFE_RNG_CTRL_SHORTEN);
 }
 
-static __inline u_int32_t
+static __inline uint32_t
 safe_rng_read(struct safe_softc *sc)
 {
 	int i;
@@ -1462,7 +1462,7 @@ static void
 safe_rng(void *arg)
 {
 	struct safe_softc *sc = arg;
-	u_int32_t buf[SAFE_RNG_MAXBUFSIZ];	/* NB: maybe move to softc */
+	uint32_t buf[SAFE_RNG_MAXBUFSIZ];	/* NB: maybe move to softc */
 	u_int maxwords;
 	int i;
 
@@ -1482,7 +1482,7 @@ retry:
 	 * hardware oscillators resonating with external signals.
 	 */
 	if (READ_REG(sc, SAFE_RNG_ALM_CNT) > safe_rngmaxalarm) {
-		u_int32_t freq_inc, w;
+		uint32_t freq_inc, w;
 
 		DPRINTF(("%s: alarm count %u exceeds threshold %u\n", __func__,
 			READ_REG(sc, SAFE_RNG_ALM_CNT), safe_rngmaxalarm));
@@ -1510,7 +1510,7 @@ retry:
 	} else
 		WRITE_REG(sc, SAFE_RNG_ALM_CNT, 0);
 
-	(*sc->sc_harvest)(sc->sc_rndtest, buf, maxwords*sizeof (u_int32_t));
+	(*sc->sc_harvest)(sc->sc_rndtest, buf, maxwords*sizeof (uint32_t));
 	callout_reset(&sc->sc_rngto,
 		hz * (safe_rnginterval ? safe_rnginterval : 1), safe_rng, sc);
 }
@@ -1534,7 +1534,7 @@ safe_dma_malloc(
 	int r;
 
 	r = bus_dma_tag_create(bus_get_dma_tag(sc->sc_dev),	/* parent */
-			       sizeof(u_int32_t), 0,	/* alignment, bounds */
+			       sizeof(uint32_t), 0,	/* alignment, bounds */
 			       BUS_SPACE_MAXADDR_32BIT,	/* lowaddr */
 			       BUS_SPACE_MAXADDR,	/* highaddr */
 			       NULL, NULL,		/* filter, filterarg */
@@ -1598,7 +1598,7 @@ safe_dma_free(struct safe_softc *sc, struct safe_dma_alloc *dma)
 static void
 safe_reset_board(struct safe_softc *sc)
 {
-	u_int32_t v;
+	uint32_t v;
 	/*
 	 * Reset the device.  The manual says no delay
 	 * is needed between marking and clearing reset.
@@ -1619,7 +1619,7 @@ safe_reset_board(struct safe_softc *sc)
 static void
 safe_init_board(struct safe_softc *sc)
 {
-	u_int32_t v, dwords;
+	uint32_t v, dwords;
 
 	v = READ_REG(sc, SAFE_PE_DMACFG);
 	v &=~ SAFE_PE_DMACFG_PEMODE;
@@ -1657,9 +1657,9 @@ safe_init_board(struct safe_softc *sc)
 	/*
 	 * Configure ring entry size and number of items in the ring.
 	 */
-	KASSERT((sizeof(struct safe_ringentry) % sizeof(u_int32_t)) == 0,
+	KASSERT((sizeof(struct safe_ringentry) % sizeof(uint32_t)) == 0,
 		("PE ring entry not 32-bit aligned!"));
-	dwords = sizeof(struct safe_ringentry) / sizeof(u_int32_t);
+	dwords = sizeof(struct safe_ringentry) / sizeof(uint32_t);
 	WRITE_REG(sc, SAFE_PE_RINGCFG,
 		(dwords << SAFE_PE_RINGCFG_OFFSET_S) | SAFE_MAX_NQUEUE);
 	WRITE_REG(sc, SAFE_PE_RINGPOLL, 0);	/* disable polling */
@@ -1828,7 +1828,7 @@ safe_dump_intrstate(struct safe_softc *sc, const char *tag)
 static void
 safe_dump_ringstate(struct safe_softc *sc, const char *tag)
 {
-	u_int32_t estat = READ_REG(sc, SAFE_PE_ERNGSTAT);
+	uint32_t estat = READ_REG(sc, SAFE_PE_ERNGSTAT);
 
 	/* NB: assume caller has lock on ring */
 	printf("%s: ERNGSTAT %x (next %u) back %lu front %lu\n",

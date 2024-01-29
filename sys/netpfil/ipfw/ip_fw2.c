@@ -163,12 +163,12 @@ static int jump_cached(struct ip_fw_chain *chain, struct ip_fw *f, int num,
  * and CANNOT be disabled.
  * Rules in set RESVD_SET can only be deleted individually.
  */
-VNET_DEFINE(u_int32_t, set_disable);
+VNET_DEFINE(uint32_t, set_disable);
 #define	V_set_disable			VNET(set_disable)
 
 VNET_DEFINE(int, fw_verbose);
 /* counter for ipfw_log(NULL...) */
-VNET_DEFINE(u_int64_t, norule_counter);
+VNET_DEFINE(uint64_t, norule_counter);
 VNET_DEFINE(int, verbose_limit);
 
 /* layer3_chain contains the list of rules for layer 3 */
@@ -249,7 +249,7 @@ SYSEND
  * L3HDR maps an ipv4 pointer into a layer3 header pointer of type T
  * Other macros just cast void * into the appropriate type
  */
-#define	L3HDR(T, ip)	((T *)((u_int32_t *)(ip) + (ip)->ip_hl))
+#define	L3HDR(T, ip)	((T *)((uint32_t *)(ip) + (ip)->ip_hl))
 #define	TCP(p)		((struct tcphdr *)(p))
 #define	SCTP(p)		((struct sctphdr *)(p))
 #define	UDP(p)		((struct udphdr *)(p))
@@ -289,7 +289,7 @@ is_icmp_query(struct icmphdr *icmp)
  */
 
 static int
-flags_match(ipfw_insn *cmd, u_int8_t bits)
+flags_match(ipfw_insn *cmd, uint8_t bits)
 {
 	u_char want_clear;
 	bits = ~bits;
@@ -514,7 +514,7 @@ verify_path(struct in_addr src, struct ifnet *ifp, u_int fib)
  */
 
 static struct mbuf *
-ipfw_send_abort(struct mbuf *replyto, struct ipfw_flow_id *id, u_int32_t vtag,
+ipfw_send_abort(struct mbuf *replyto, struct ipfw_flow_id *id, uint32_t vtag,
     int reflected)
 {
 	struct mbuf *m;
@@ -524,7 +524,7 @@ ipfw_send_abort(struct mbuf *replyto, struct ipfw_flow_id *id, u_int32_t vtag,
 #endif
 	struct sctphdr *sctp;
 	struct sctp_chunkhdr *chunk;
-	u_int16_t hlen, plen, tlen;
+	uint16_t hlen, plen, tlen;
 
 	MGETHDR(m, M_NOWAIT, MT_DATA);
 	if (m == NULL)
@@ -623,8 +623,8 @@ ipfw_send_abort(struct mbuf *replyto, struct ipfw_flow_id *id, u_int32_t vtag,
  * so that MAC can label the reply appropriately.
  */
 struct mbuf *
-ipfw_send_pkt(struct mbuf *replyto, struct ipfw_flow_id *id, u_int32_t seq,
-    u_int32_t ack, int flags)
+ipfw_send_pkt(struct mbuf *replyto, struct ipfw_flow_id *id, uint32_t seq,
+    uint32_t ack, int flags)
 {
 	struct mbuf *m = NULL;		/* stupid compiler */
 	struct ip *h = NULL;		/* stupid compiler */
@@ -907,7 +907,7 @@ send_reject6(struct ip_fw_args *args, int code, u_int hlen, struct ip6_hdr *ip6)
 	    args->f_id.proto == IPPROTO_SCTP) {
 		struct mbuf *m0;
 		struct sctphdr *sctp;
-		u_int32_t v_tag;
+		uint32_t v_tag;
 		int reflected;
 
 		sctp = (struct sctphdr *)((char *)ip6 + hlen);
@@ -1036,7 +1036,7 @@ send_reject(struct ip_fw_args *args, const ipfw_insn *cmd, int iplen,
 		struct sctphdr *sctp;
 		struct sctp_chunkhdr *chunk;
 		struct sctp_init *init;
-		u_int32_t v_tag;
+		uint32_t v_tag;
 		int reflected;
 
 		sctp = L3HDR(struct sctphdr, mtod(args->m, struct ip *));
@@ -1964,11 +1964,11 @@ do {								\
 
 			case O_MACADDR2:
 				if (args->flags & IPFW_ARGS_ETHER) {
-					u_int32_t *want = (u_int32_t *)
+					uint32_t *want = (uint32_t *)
 						((ipfw_insn_mac *)cmd)->addr;
-					u_int32_t *mask = (u_int32_t *)
+					uint32_t *mask = (uint32_t *)
 						((ipfw_insn_mac *)cmd)->mask;
-					u_int32_t *hdr = (u_int32_t *)eh;
+					uint32_t *hdr = (uint32_t *)eh;
 
 					match =
 					    ( want[0] == (hdr[0] & mask[0]) &&
@@ -1979,7 +1979,7 @@ do {								\
 
 			case O_MAC_TYPE:
 				if (args->flags & IPFW_ARGS_ETHER) {
-					u_int16_t *p =
+					uint16_t *p =
 					    ((ipfw_insn_u16 *)cmd)->ports;
 					int i;
 
@@ -2256,8 +2256,8 @@ do {								\
 			case O_IP_DST_SET:
 			case O_IP_SRC_SET:
 				if (is_ipv4) {
-					u_int32_t *d = (u_int32_t *)(cmd+1);
-					u_int32_t addr =
+					uint32_t *d = (uint32_t *)(cmd+1);
+					uint32_t addr =
 					    cmd->opcode == O_IP_DST_SET ?
 						args->f_id.dst_ip :
 						args->f_id.src_ip;
@@ -2301,10 +2301,10 @@ do {								\
 				    proto == IPPROTO_UDPLITE ||
 				    proto == IPPROTO_TCP ||
 				    proto == IPPROTO_SCTP) && offset == 0) {
-					u_int16_t x =
+					uint16_t x =
 					    (cmd->opcode == O_IP_SRCPORT) ?
 						src_port : dst_port ;
-					u_int16_t *p =
+					uint16_t *p =
 					    ((ipfw_insn_u16 *)cmd)->ports;
 					int i;
 

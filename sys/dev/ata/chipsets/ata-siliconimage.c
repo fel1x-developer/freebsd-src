@@ -193,7 +193,7 @@ static int
 ata_cmd_status(device_t dev)
 {
     struct ata_channel *ch = device_get_softc(dev);
-    u_int8_t reg71;
+    uint8_t reg71;
 
     if (((reg71 = pci_read_config(device_get_parent(dev), 0x71, 1)) &
 	 (ch->unit ? 0x08 : 0x04))) {
@@ -222,7 +222,7 @@ ata_cmd_setmode(device_t dev, int target, int mode)
 
 	mode = min(mode, ctlr->chip->max_dma);
 	if (mode >= ATA_UDMA0) {        
-		u_int8_t umode = pci_read_config(parent, ureg, 1);
+		uint8_t umode = pci_read_config(parent, ureg, 1);
 
 	        umode &= ~(target == 0 ? 0x35 : 0xca);
 		umode |= udmatimings[mode & ATA_MODE_MASK][target];
@@ -350,9 +350,9 @@ ata_sii_setmode(device_t dev, int target, int mode)
 	int mask = 0x03 << (target << 2);
 	int mval = pci_read_config(parent, mreg, 1) & ~mask;
 	int piomode;
-	u_int8_t preg = 0xa4 + rego;
-	u_int8_t dreg = 0xa8 + rego;
-	u_int8_t ureg = 0xac + rego;
+	uint8_t preg = 0xa4 + rego;
+	uint8_t dreg = 0xa8 + rego;
+	uint8_t ureg = 0xac + rego;
 	static const uint16_t piotimings[] =
 	    { 0x328a, 0x2283, 0x1104, 0x10c3, 0x10c1 };
 	static const uint16_t dmatimings[] = { 0x2208, 0x10c2, 0x10c1 };

@@ -59,9 +59,9 @@ EOF
 #include <unistd.h>
 
 #define LOOPS 10000
-#define N (128 * 1024 / (int)sizeof(u_int32_t))
+#define N (128 * 1024 / (int)sizeof(uint32_t))
 
-u_int32_t r[N];
+uint32_t r[N];
 
 unsigned long
 makearg(void)

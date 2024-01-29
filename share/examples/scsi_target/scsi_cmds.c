@@ -54,7 +54,7 @@ typedef void targ_done_func(struct ccb_accept_tio *, struct ccb_scsiio *,
 #endif
 
 struct targ_cdb_handlers {
-	u_int8_t	  cmd;
+	uint8_t	  cmd;
 	targ_start_func  *start;
 	targ_done_func	 *done;
 #define ILLEGAL_CDB	  0xFF
@@ -73,10 +73,10 @@ static targ_start_func		tcmd_null_ok;
 static targ_start_func		tcmd_illegal_req;
 static int			start_io(struct ccb_accept_tio *atio,
 					 struct ccb_scsiio *ctio, int dir);
-static int init_inquiry(u_int16_t req_flags, u_int16_t sim_flags);
+static int init_inquiry(uint16_t req_flags, uint16_t sim_flags);
 static struct initiator_state *
 			tcmd_get_istate(u_int init_id);
-static void cdb_debug(u_int8_t *cdb, const char *msg, ...);
+static void cdb_debug(uint8_t *cdb, const char *msg, ...);
 
 static struct targ_cdb_handlers cdb_handlers[] = { 
 	{ READ_10,		tcmd_rdwr,		tcmd_rdwr_done },
@@ -108,7 +108,7 @@ extern u_int		sector_size;
 extern size_t		buf_size;
 
 cam_status
-tcmd_init(u_int16_t req_inq_flags, u_int16_t sim_inq_flags)
+tcmd_init(uint16_t req_inq_flags, uint16_t sim_inq_flags)
 {
 	struct initiator_state *istate;
 	int i, ret;
@@ -238,8 +238,8 @@ tcmd_get_istate(u_int init_id)
 }
 
 void
-tcmd_sense(u_int init_id, struct ccb_scsiio *ctio, u_int8_t flags,
-	       u_int8_t asc, u_int8_t ascq)
+tcmd_sense(u_int init_id, struct ccb_scsiio *ctio, uint8_t flags,
+	       uint8_t asc, uint8_t ascq)
 {
 	struct initiator_state *istate;
 	struct scsi_sense_data_fixed *sense;
@@ -337,7 +337,7 @@ tcmd_inquiry(struct ccb_accept_tio *atio, struct ccb_scsiio *ctio)
 
 /* Initialize the inquiry response structure with the requested flags */
 static int
-init_inquiry(u_int16_t req_flags, u_int16_t sim_flags)
+init_inquiry(uint16_t req_flags, uint16_t sim_flags)
 {
 	struct scsi_inquiry_data *inq;
 
@@ -515,7 +515,7 @@ tcmd_rdwr_decode(struct ccb_accept_tio *atio, struct ccb_scsiio *ctio)
 	uint64_t blkno;
 	uint32_t count;
 	struct atio_descr *a_descr;
-	u_int8_t *cdb;
+	uint8_t *cdb;
 
 	a_descr = (struct atio_descr *)atio->ccb_h.targ_descr;
 	cdb = a_descr->cdb;
@@ -798,7 +798,7 @@ tcmd_illegal_req(struct ccb_accept_tio *atio, struct ccb_scsiio *ctio)
 }
 
 static void
-cdb_debug(u_int8_t *cdb, const char *msg, ...)
+cdb_debug(uint8_t *cdb, const char *msg, ...)
 {
 	char msg_buf[512];
 	int len;

@@ -208,7 +208,7 @@ res_nopt(res_state statp,
 {
 	HEADER *hp;
 	u_char *cp, *ep;
-	u_int16_t flags = 0;
+	uint16_t flags = 0;
 
 #ifdef DEBUG
 	if ((statp->options & RES_DEBUG) != 0U)

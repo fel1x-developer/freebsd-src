@@ -168,7 +168,7 @@ static void
 divert_packet(struct mbuf *m, bool incoming)
 {
 	struct divcb *dcb;
-	u_int16_t nport;
+	uint16_t nport;
 	struct sockaddr_in divsrc;
 	struct m_tag *mtag;
 	uint16_t cookie;

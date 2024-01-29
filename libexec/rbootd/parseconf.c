@@ -75,7 +75,7 @@ ParseConfig(void)
 {
 	FILE *fp;
 	CLIENT *client;
-	u_int8_t *addr;
+	uint8_t *addr;
 	char line[C_LINELEN];
 	char *cp, *bcp;
 	int i, j;
@@ -235,10 +235,10 @@ ParseConfig(void)
 **		- The return value points to a static buffer; it must
 **		  be copied if it's to be saved.
 */
-u_int8_t *
+uint8_t *
 ParseAddr(char *str)
 {
-	static u_int8_t addr[RMP_ADDRLEN];
+	static uint8_t addr[RMP_ADDRLEN];
 	char *cp;
 	unsigned i;
 	int part, subpart;

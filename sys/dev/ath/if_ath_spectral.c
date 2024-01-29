@@ -179,8 +179,8 @@ ath_ioctl_spectral(struct ath_softc *sc, struct ath_diag *ad)
 	unsigned int id = ad->ad_id & ATH_DIAG_ID;
 	void *indata = NULL;
 	void *outdata = NULL;
-	u_int32_t insize = ad->ad_in_size;
-	u_int32_t outsize = ad->ad_out_size;
+	uint32_t insize = ad->ad_in_size;
+	uint32_t outsize = ad->ad_out_size;
 	int error = 0;
 	HAL_SPECTRAL_PARAM peout;
 	HAL_SPECTRAL_PARAM *pe;

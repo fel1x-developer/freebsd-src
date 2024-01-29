@@ -475,7 +475,7 @@ Typically, the following functions will be most generally used:
   the embedded form.
 
 - int in6_setscope(struct in6_addr *in6, struct ifnet *ifp,
-                   u_int32_t *zoneidp);
+                   uint32_t *zoneidp);
   Embed zone ID determined by the address scope type for 'in6' and the
   interface 'ifp' into 'in6'.  If zoneidp is non NULL, *zoneidp will
   also have the zone ID.
@@ -945,7 +945,7 @@ address those, but we need more time to finalize the task.  To name a few:
   jumbogram with len > 2G on 32bit architecture CPUs.  If we would like to
   support jumbogram properly, the field must be expanded to hold 4G +
   IPv6 header + link-layer header.  Therefore, it must be expanded to at least
-  int64_t (u_int32_t is NOT enough).
+  int64_t (uint32_t is NOT enough).
 - We mistakingly use "int" to hold packet length in many places.  We need
   to convert them into larger numeric type.  It needs a great care, as we may
   experience overflow during packet length computation.

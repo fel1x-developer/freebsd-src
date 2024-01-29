@@ -848,7 +848,7 @@ add_smap_entries(struct bios_smap *smapbase, vm_paddr_t *physmap,
     int *physmap_idxp)
 {
 	struct bios_smap *smap, *smapend;
-	u_int32_t smapsize;
+	uint32_t smapsize;
 	/*
 	 * Memory map from INT 15:E820.
 	 *
@@ -856,7 +856,7 @@ add_smap_entries(struct bios_smap *smapbase, vm_paddr_t *physmap,
 	 * "Consumer may safely assume that size value precedes data."
 	 * ie: an int32_t immediately precedes SMAP.
 	 */
-	smapsize = *((u_int32_t *)smapbase - 1);
+	smapsize = *((uint32_t *)smapbase - 1);
 	smapend = (struct bios_smap *)((uintptr_t)smapbase + smapsize);
 
 	for (smap = smapbase; smap < smapend; smap++)
@@ -1748,7 +1748,7 @@ smap_sysctl_handler(SYSCTL_HANDLER_ARGS)
 		return (0);
 	smapattr = (uint32_t *)preload_search_info(kmdp,
 	    MODINFO_METADATA | MODINFOMD_SMAP_XATTR);
-	count = *((u_int32_t *)smapbase - 1) / sizeof(*smapbase);
+	count = *((uint32_t *)smapbase - 1) / sizeof(*smapbase);
 	error = 0;
 	for (i = 0; i < count; i++) {
 		smap.base = smapbase[i].base;

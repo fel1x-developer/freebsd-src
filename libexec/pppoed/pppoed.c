@@ -413,7 +413,7 @@ Spawn(const char *prog, const char *acname, const char *provider,
             break;
           case NGM_PPPOE_SESSIONID:
             msg = "SESSIONID";
-            snprintf(sessionid, sizeof sessionid, "%04x", *(u_int16_t *)sts);
+            snprintf(sessionid, sizeof sessionid, "%04x", *(uint16_t *)sts);
             if (setenv("SESSIONID", sessionid, 1) != 0)
               syslog(LOG_WARNING, "setenv: cannot set SESSIONID=%s: %m",
                      sessionid);

@@ -977,7 +977,7 @@ e82545_buf_checksum(uint8_t *buf, int len)
 
 	/* Checksum all the pairs of bytes first... */
 	for (i = 0; i < (len & ~1); i += 2)
-		sum += *((u_int16_t *)(buf + i));
+		sum += *((uint16_t *)(buf + i));
 
 	/*
 	 * If there's a single byte left over, checksum it, too.

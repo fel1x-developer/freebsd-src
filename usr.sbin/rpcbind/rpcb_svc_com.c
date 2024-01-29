@@ -80,9 +80,9 @@ struct rmtcallfd_list {
 struct finfo {
 	int             flag;
 #define FINFO_ACTIVE    0x1
-	u_int32_t       caller_xid;
+	uint32_t       caller_xid;
         struct netbuf   *caller_addr;
-	u_int32_t       forward_xid;
+	uint32_t       forward_xid;
 	int             forward_fd;
 	char            *uaddr;
 	rpcproc_t       reply_type;
@@ -98,10 +98,10 @@ static bool_t xdr_rmtcall_result(XDR *, struct r_rmtcall_args *);
 static bool_t xdr_opaque_parms(XDR *, struct r_rmtcall_args *);
 static int find_rmtcallfd_by_netid(char *);
 static SVCXPRT *find_rmtcallxprt_by_fd(int);
-static int forward_register(u_int32_t, struct netbuf *, int, char *,
-    rpcproc_t, rpcvers_t, u_int32_t *);
-static struct finfo *forward_find(u_int32_t);
-static int free_slot_by_xid(u_int32_t);
+static int forward_register(uint32_t, struct netbuf *, int, char *,
+    rpcproc_t, rpcvers_t, uint32_t *);
+static struct finfo *forward_find(uint32_t);
+static int free_slot_by_xid(uint32_t);
 static int free_slot_by_index(int);
 static int netbufcmp(struct netbuf *, struct netbuf *);
 static struct netbuf *netbufdup(struct netbuf *);
@@ -608,7 +608,7 @@ rpcbproc_callit_com(struct svc_req *rqstp, SVCXPRT *transp,
 	AUTH *auth;
 	int fd = -1;
 	char *uaddr, *m_uaddr = NULL, *local_uaddr = NULL;
-	u_int32_t *xidp;
+	uint32_t *xidp;
 	struct __rpc_sockinfo si;
 	struct sockaddr *localsa;
 	struct netbuf tbuf;
@@ -816,7 +816,7 @@ rpcbproc_callit_com(struct svc_req *rqstp, SVCXPRT *transp,
 			"rpcbproc_callit_com:  xdr_callhdr failed\n");
 		goto error;
 	}
-	if (!xdr_u_int32_t(&outxdr, &(a.rmt_proc))) {
+	if (!xdr_uint32_t(&outxdr, &(a.rmt_proc))) {
 		if (reply_type == RPCBPROC_INDIRECT)
 			svcerr_systemerr(transp);
 		if (debugging)
@@ -912,14 +912,14 @@ out:
  * *callxidp is set to the xid of the call.
  */
 static int
-forward_register(u_int32_t caller_xid, struct netbuf *caller_addr,
+forward_register(uint32_t caller_xid, struct netbuf *caller_addr,
 		 int forward_fd, char *uaddr, rpcproc_t reply_type,
-		 rpcvers_t versnum, u_int32_t *callxidp)
+		 rpcvers_t versnum, uint32_t *callxidp)
 {
 	int		i;
 	int		j = 0;
 	time_t		min_time, time_now;
-	static u_int32_t	lastxid;
+	static uint32_t	lastxid;
 	int		entry = -1;
 
 	min_time = FINFO[0].time;
@@ -980,7 +980,7 @@ forward_register(u_int32_t caller_xid, struct netbuf *caller_addr,
 	FINFO[j].uaddr = uaddr;
 	lastxid = lastxid + NFORWARD;
 	/* Don't allow a zero xid below. */
-	if ((u_int32_t)(lastxid + NFORWARD) <= NFORWARD)
+	if ((uint32_t)(lastxid + NFORWARD) <= NFORWARD)
 		lastxid = NFORWARD;
 	FINFO[j].forward_xid = lastxid + j;	/* encode slot */
 	*callxidp = FINFO[j].forward_xid;	/* forward on this xid */
@@ -988,11 +988,11 @@ forward_register(u_int32_t caller_xid, struct netbuf *caller_addr,
 }
 
 static struct finfo *
-forward_find(u_int32_t reply_xid)
+forward_find(uint32_t reply_xid)
 {
 	int		i;
 
-	i = reply_xid % (u_int32_t)NFORWARD;
+	i = reply_xid % (uint32_t)NFORWARD;
 	if ((FINFO[i].flag & FINFO_ACTIVE) &&
 	    (FINFO[i].forward_xid == reply_xid)) {
 		return (&FINFO[i]);
@@ -1001,11 +1001,11 @@ forward_find(u_int32_t reply_xid)
 }
 
 static int
-free_slot_by_xid(u_int32_t xid)
+free_slot_by_xid(uint32_t xid)
 {
 	int entry;
 
-	entry = xid % (u_int32_t)NFORWARD;
+	entry = xid % (uint32_t)NFORWARD;
 	return (free_slot_by_index(entry));
 }
 
@@ -1205,7 +1205,7 @@ check_rmtcalls(struct pollfd *pfds, int nfds)
 static void
 xprt_set_caller(SVCXPRT *xprt, struct finfo *fi)
 {
-	u_int32_t *xidp;
+	uint32_t *xidp;
 
 	netbuf_copybuf(svc_getrpccaller(xprt), fi->caller_addr);
 	xidp = __rpcb_get_dg_xidp(xprt);

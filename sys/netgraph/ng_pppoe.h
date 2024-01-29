@@ -127,7 +127,7 @@ struct ngpppoestat {
  */
 struct ngpppoe_init_data {
 	char		hook[NG_HOOKSIZ];	/* hook to monitor on */
-	u_int16_t	data_len;		/* Length of the service name */
+	uint16_t	data_len;		/* Length of the service name */
 	char		data[];			/* init data goes here */
 };
 
@@ -226,16 +226,16 @@ struct ngpppoe_padm {
 #endif
 
 struct pppoe_tag {
-	u_int16_t tag_type;
-	u_int16_t tag_len;
+	uint16_t tag_type;
+	uint16_t tag_len;
 }__packed;
 
 struct pppoe_hdr{
-	u_int8_t ver:4;
-	u_int8_t type:4;
-	u_int8_t code;
-	u_int16_t sid;
-	u_int16_t length;
+	uint8_t ver:4;
+	uint8_t type:4;
+	uint8_t code;
+	uint16_t sid;
+	uint16_t length;
 }__packed;
 
 struct pppoe_full_hdr {
@@ -245,12 +245,12 @@ struct pppoe_full_hdr {
 
 union	packet {
 	struct pppoe_full_hdr	pkt_header;
-	u_int8_t	bytes[2048];
+	uint8_t	bytes[2048];
 };
 
 struct datatag {
         struct pppoe_tag hdr;
-	u_int8_t        data[PPPOE_SERVICE_NAME_SIZE];
+	uint8_t        data[PPPOE_SERVICE_NAME_SIZE];
 };     
 
 struct maxptag {

@@ -206,7 +206,7 @@ ip_reass(struct mbuf *m)
 	struct ifnet *srcifp;
 	struct ipqhead *head;
 	int i, hlen, next, tmpmax;
-	u_int8_t ecn, ecn0;
+	uint8_t ecn, ecn0;
 	uint32_t hash, hashkey[3];
 #ifdef	RSS
 	uint32_t rss_hash, rss_type;

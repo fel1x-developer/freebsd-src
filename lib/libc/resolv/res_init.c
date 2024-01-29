@@ -123,7 +123,7 @@ static void res_setoptions(res_state, const char *, const char *);
 #ifdef RESOLVSORT
 static const char sort_mask[] = "/&";
 #define ISSORTMASK(ch) (strchr(sort_mask, ch) != NULL)
-static u_int32_t net_mask(struct in_addr);
+static uint32_t net_mask(struct in_addr);
 #endif
 
 #if !defined(isascii)	/*%< XXX - could be a function */
@@ -506,9 +506,9 @@ __res_vinit(res_state statp, int preinit) {
 				}
 			    }
 			    statp->sort_list[nsort].addr.s_addr =
-				(u_int32_t)0xffffffff;
+				(uint32_t)0xffffffff;
 			    statp->sort_list[nsort].mask =
-				(u_int32_t)0xffffffff;
+				(uint32_t)0xffffffff;
 			    nsort++;
 			}
 			*cp = n;
@@ -726,10 +726,10 @@ res_setoptions(res_state statp, const char *options, const char *source)
 
 #ifdef RESOLVSORT
 /* XXX - should really support CIDR which means explicit masks always. */
-static u_int32_t
+static uint32_t
 net_mask(struct in_addr in)		/*!< XXX - should really use system's version of this  */
 {
-	u_int32_t i = ntohl(in.s_addr);
+	uint32_t i = ntohl(in.s_addr);
 
 	if (IN_CLASSA(i))
 		return (htonl(IN_CLASSA_NET));
@@ -745,8 +745,8 @@ void
 res_rndinit(res_state statp)
 {
 	struct timeval now;
-	u_int32_t u32;
-	u_int16_t u16;
+	uint32_t u32;
+	uint16_t u16;
 	u_char *rnd = statp->_rnd == NULL ? srnd : statp->_rnd;
 
 	gettimeofday(&now, NULL);
@@ -763,12 +763,12 @@ res_rndinit(res_state statp)
 u_int
 res_nrandomid(res_state statp) {
 	struct timeval now;
-	u_int16_t u16;
+	uint16_t u16;
 	MD5_CTX ctx;
 	u_char *rnd = statp->_rnd == NULL ? srnd : statp->_rnd;
 
 	gettimeofday(&now, NULL);
-	u16 = (u_int16_t) (now.tv_sec ^ now.tv_usec);
+	u16 = (uint16_t) (now.tv_sec ^ now.tv_usec);
 	memcpy(rnd + 14, &u16, 2);
 #ifndef HAVE_MD5
 	MD5_Init(&ctx);
@@ -892,7 +892,7 @@ int
 res_getservers(res_state statp, union res_sockaddr_union *set, int cnt) {
 	int i;
 	size_t size;
-	u_int16_t family;
+	uint16_t family;
 
 	for (i = 0; i < statp->nscount && i < cnt; i++) {
 		if (statp->_u._ext.ext)

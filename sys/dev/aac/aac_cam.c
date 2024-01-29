@@ -82,9 +82,9 @@ static void aac_cam_complete(struct aac_command *);
 static void aac_cam_rescan(struct aac_softc *sc, uint32_t channel,
     uint32_t target_id);
 
-static u_int32_t aac_cam_reset_bus(struct cam_sim *, union ccb *);
-static u_int32_t aac_cam_abort_ccb(struct cam_sim *, union ccb *);
-static u_int32_t aac_cam_term_io(struct cam_sim *, union ccb *);
+static uint32_t aac_cam_reset_bus(struct cam_sim *, union ccb *);
+static uint32_t aac_cam_abort_ccb(struct cam_sim *, union ccb *);
+static uint32_t aac_cam_term_io(struct cam_sim *, union ccb *);
 
 static device_method_t	aac_pass_methods[] = {
 	DEVMETHOD(device_probe,		aac_cam_probe),
@@ -272,8 +272,8 @@ aac_cam_action(struct cam_sim *sim, union ccb *ccb)
 	case XPT_CALC_GEOMETRY:
 	{
 		struct ccb_calc_geometry *ccg;
-		u_int32_t size_mb;
-		u_int32_t secs_per_cylinder;
+		uint32_t size_mb;
+		uint32_t secs_per_cylinder;
 
 		ccg = &ccb->ccg;
 		size_mb = ccg->volume_size /
@@ -431,10 +431,10 @@ aac_cam_action(struct cam_sim *sim, union ccb *ccb)
 		 */
 		srb->cdb_len = csio->cdb_len;
 		if (ccb->ccb_h.flags & CAM_CDB_POINTER)
-			bcopy(csio->cdb_io.cdb_ptr, (u_int8_t *)&srb->cdb[0],
+			bcopy(csio->cdb_io.cdb_ptr, (uint8_t *)&srb->cdb[0],
 			    srb->cdb_len);
 		else
-			bcopy(csio->cdb_io.cdb_bytes, (u_int8_t *)&srb->cdb[0],
+			bcopy(csio->cdb_io.cdb_bytes, (uint8_t *)&srb->cdb[0],
 			    srb->cdb_len);
 
 		/* Set command */
@@ -620,7 +620,7 @@ aac_cam_complete(struct aac_command *cm)
 	xpt_done(ccb);
 }
 
-static u_int32_t
+static uint32_t
 aac_cam_reset_bus(struct cam_sim *sim, union ccb *ccb)
 {
 	struct aac_fib *fib;
@@ -665,13 +665,13 @@ aac_cam_reset_bus(struct cam_sim *sim, union ccb *ccb)
 	return (CAM_REQ_CMP);
 }
 
-static u_int32_t
+static uint32_t
 aac_cam_abort_ccb(struct cam_sim *sim, union ccb *ccb)
 {
 	return (CAM_UA_ABORT);
 }
 
-static u_int32_t
+static uint32_t
 aac_cam_term_io(struct cam_sim *sim, union ccb *ccb)
 {
 	return (CAM_UA_TERMIO);

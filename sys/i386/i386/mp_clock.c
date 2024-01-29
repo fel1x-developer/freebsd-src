@@ -50,7 +50,7 @@
 
 static unsigned piix_get_timecount(struct timecounter *tc);
 
-static u_int32_t piix_timecounter_address;
+static uint32_t piix_timecounter_address;
 static u_int piix_freq = 14318182/4;
 
 static struct timecounter piix_timecounter = {
@@ -101,7 +101,7 @@ piix_get_timecount(struct timecounter *tc)
 static int
 piix_probe(device_t dev)
 {
-	u_int32_t d;
+	uint32_t d;
 
 	if (devclass_get_device(devclass_find("acpi"), 0) != NULL)
 		return (ENXIO);
@@ -124,7 +124,7 @@ piix_probe(device_t dev)
 static int
 piix_attach(device_t dev)
 {
-	u_int32_t d;
+	uint32_t d;
 
 	d = pci_read_config(dev, 0x40, 4);
 	piix_timecounter_address = (d & 0xffc0) + 8;

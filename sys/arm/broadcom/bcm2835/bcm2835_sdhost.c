@@ -213,13 +213,13 @@ struct bcm_sdhost_softc {
 	char			cmdbusy;
 	char			mmc_app_cmd;
 
-	u_int32_t		sdhci_int_status;
-	u_int32_t		sdhci_signal_enable;
-	u_int32_t		sdhci_present_state;
-	u_int32_t		sdhci_blocksize;
-	u_int32_t		sdhci_blockcount;
+	uint32_t		sdhci_int_status;
+	uint32_t		sdhci_signal_enable;
+	uint32_t		sdhci_present_state;
+	uint32_t		sdhci_blocksize;
+	uint32_t		sdhci_blockcount;
 
-	u_int32_t		sdcard_rca;
+	uint32_t		sdcard_rca;
 };
 
 static int bcm_sdhost_probe(device_t);
@@ -341,7 +341,7 @@ static void
 bcm_sdhost_reset(device_t dev, struct sdhci_slot *slot)
 {
 	struct bcm_sdhost_softc *sc = device_get_softc(dev);
-	u_int32_t dbg;
+	uint32_t dbg;
 
 	WR4(sc, HC_POWER, 0);
 
@@ -520,7 +520,7 @@ bcm_sdhost_waitcommand(struct bcm_sdhost_softc *sc)
 static int
 bcm_sdhost_waitcommand_status(struct bcm_sdhost_softc *sc)
 {
-	u_int32_t cdst;
+	uint32_t cdst;
 	int i;
 
 	/* wait for card to change status from
@@ -712,7 +712,7 @@ bcm_sdhost_command(device_t dev, struct sdhci_slot *slot, uint16_t val)
 
 	if (opcode == MMC_READ_MULTIPLE_BLOCK ||
 	    opcode == MMC_WRITE_MULTIPLE_BLOCK) {
-		u_int32_t save_sdarg;
+		uint32_t save_sdarg;
 
 		dprintf("%s: issuing MMC_SET_BLOCK_COUNT: CMD %08x ARG %08x\n",
 		    __func__, MMC_SET_BLOCK_COUNT | HC_CMD_ENABLE,
@@ -740,7 +740,7 @@ bcm_sdhost_command(device_t dev, struct sdhci_slot *slot, uint16_t val)
 	WR4(sc, HC_COMMAND, val2);
 
 	if (val2 & HC_CMD_READ || val2 & HC_CMD_WRITE) {
-		u_int8_t hstcfg;
+		uint8_t hstcfg;
 
 		hstcfg = RD4(sc, HC_HOSTCONFIG);
 		hstcfg |= (HC_HSTCF_INT_BUSY | HC_HSTCF_INT_DATA);

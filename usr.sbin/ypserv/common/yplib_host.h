@@ -39,7 +39,7 @@ int	yp_next_host(CLIENT *client, char *indomain, char *inmap, char *inkey,
 int	yp_master_host(CLIENT *client, char *indomain, char *inmap,
 	    char **outname);
 int	yp_order_host(CLIENT *client, char *indomain, char *inmap,
-	    u_int32_t *outorder);
+	    uint32_t *outorder);
 int	yp_all_host(CLIENT *client, char *indomain, char *inmap,
 	    struct ypall_callback *incallback);
 int	yp_maplist_host(CLIENT *client, char *indomain,

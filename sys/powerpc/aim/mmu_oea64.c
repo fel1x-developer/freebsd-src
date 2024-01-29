@@ -232,7 +232,7 @@ SYSCTL_INT(_machdep, OID_AUTO, moea64_allocated_bpvo_entries, CTLFLAG_RD,
 
 #define	BPVO_POOL_SIZE	327680 /* Sensible historical default value */
 #define	BPVO_POOL_EXPANSION_FACTOR	3
-#define	VSID_NBPW	(sizeof(u_int32_t) * 8)
+#define	VSID_NBPW	(sizeof(uint32_t) * 8)
 #ifdef __powerpc64__
 #define	NVSIDS		(NPMAPS * 16)
 #define VSID_HASHMASK	0xffffffffUL
@@ -3100,7 +3100,7 @@ moea64_query_bit(vm_page_t m, uint64_t ptebit)
 }
 
 static u_int
-moea64_clear_bit(vm_page_t m, u_int64_t ptebit)
+moea64_clear_bit(vm_page_t m, uint64_t ptebit)
 {
 	u_int	count;
 	struct	pvo_entry *pvo;

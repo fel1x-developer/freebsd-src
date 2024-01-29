@@ -121,7 +121,7 @@ pass5(void)
 		newcg->cg_old_boff = newcg->cg_old_btotoff +
 		    fs->fs_old_cpg * sizeof(int32_t);
 		newcg->cg_iusedoff = newcg->cg_old_boff +
-		    fs->fs_old_cpg * fs->fs_old_nrpos * sizeof(u_int16_t);
+		    fs->fs_old_cpg * fs->fs_old_nrpos * sizeof(uint16_t);
 		memset(&newcg[1], 0, newcg->cg_iusedoff - basesize);
 	}
 	inomapsize = howmany(fs->fs_ipg, CHAR_BIT);
@@ -130,11 +130,11 @@ pass5(void)
 	newcg->cg_nextfreeoff = newcg->cg_freeoff + blkmapsize;
 	if (fs->fs_contigsumsize > 0) {
 		newcg->cg_clustersumoff = newcg->cg_nextfreeoff -
-		    sizeof(u_int32_t);
+		    sizeof(uint32_t);
 		newcg->cg_clustersumoff =
-		    roundup(newcg->cg_clustersumoff, sizeof(u_int32_t));
+		    roundup(newcg->cg_clustersumoff, sizeof(uint32_t));
 		newcg->cg_clusteroff = newcg->cg_clustersumoff +
-		    (fs->fs_contigsumsize + 1) * sizeof(u_int32_t);
+		    (fs->fs_contigsumsize + 1) * sizeof(uint32_t);
 		newcg->cg_nextfreeoff = newcg->cg_clusteroff +
 		    howmany(fragstoblks(fs, fs->fs_fpg), CHAR_BIT);
 	}

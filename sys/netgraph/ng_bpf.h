@@ -70,12 +70,12 @@ struct ng_bpf_hookprog {
 
 /* Statistics structure for one hook */
 struct ng_bpf_hookstat {
-	u_int64_t	recvFrames;
-	u_int64_t	recvOctets;
-	u_int64_t	recvMatchFrames;
-	u_int64_t	recvMatchOctets;
-	u_int64_t	xmitFrames;
-	u_int64_t	xmitOctets;
+	uint64_t	recvFrames;
+	uint64_t	recvOctets;
+	uint64_t	recvMatchFrames;
+	uint64_t	recvMatchOctets;
+	uint64_t	xmitFrames;
+	uint64_t	xmitOctets;
 };
 
 /* Keep this in sync with the above structure definition */

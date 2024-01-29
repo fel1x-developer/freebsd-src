@@ -242,7 +242,7 @@ SYSCTL_PROC(_net_inet_ip, IPCTL_INTRQMAXLEN, intr_queue_maxlen,
 static int
 sysctl_netinet_intr_queue_drops(SYSCTL_HANDLER_ARGS)
 {
-	u_int64_t qdrops_long;
+	uint64_t qdrops_long;
 	int error, qdrops;
 
 	netisr_getqdrops(&ip_nh, &qdrops_long);
@@ -283,7 +283,7 @@ SYSCTL_PROC(_net_inet_ip, IPCTL_INTRDQMAXLEN, intr_direct_queue_maxlen,
 static int
 sysctl_netinet_intr_direct_queue_drops(SYSCTL_HANDLER_ARGS)
 {
-	u_int64_t qdrops_long;
+	uint64_t qdrops_long;
 	int error, qdrops;
 
 	netisr_getqdrops(&ip_direct_nh, &qdrops_long);

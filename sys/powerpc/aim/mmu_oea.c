@@ -211,7 +211,7 @@ uma_zone_t	moea_mpvo_zone;	/* zone for pvo entries for managed pages */
 static struct	pvo_entry *moea_bpvo_pool;
 static int	moea_bpvo_pool_index = 0;
 
-#define	VSID_NBPW	(sizeof(u_int32_t) * 8)
+#define	VSID_NBPW	(sizeof(uint32_t) * 8)
 static u_int	moea_vsid_bitmap[NPMAPS / VSID_NBPW];
 
 static bool	moea_initialized = false;
@@ -2623,9 +2623,9 @@ static int
 moea_bat_mapped(int idx, vm_paddr_t pa, vm_size_t size)
 {
 	u_int prot;
-	u_int32_t start;
-	u_int32_t end;
-	u_int32_t bat_ble;
+	uint32_t start;
+	uint32_t end;
+	uint32_t bat_ble;
 
 	/*
 	 * Return immediately if not a valid mapping

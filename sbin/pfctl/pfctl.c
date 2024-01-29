@@ -89,10 +89,10 @@ int	 pfctl_load_limit(struct pfctl *, unsigned int, unsigned int);
 int	 pfctl_load_timeout(struct pfctl *, unsigned int, unsigned int);
 int	 pfctl_load_debug(struct pfctl *, unsigned int);
 int	 pfctl_load_logif(struct pfctl *, char *);
-int	 pfctl_load_hostid(struct pfctl *, u_int32_t);
-int	 pfctl_load_reassembly(struct pfctl *, u_int32_t);
-int	 pfctl_load_syncookies(struct pfctl *, u_int8_t);
-int	 pfctl_get_pool(int, struct pfctl_pool *, u_int32_t, u_int32_t, int,
+int	 pfctl_load_hostid(struct pfctl *, uint32_t);
+int	 pfctl_load_reassembly(struct pfctl *, uint32_t);
+int	 pfctl_load_syncookies(struct pfctl *, uint8_t);
+int	 pfctl_get_pool(int, struct pfctl_pool *, uint32_t, uint32_t, int,
 	    char *);
 void	 pfctl_print_eth_rule_counters(struct pfctl_eth_rule *, int);
 void	 pfctl_print_rule_counters(struct pfctl_rule *, int);
@@ -105,7 +105,7 @@ int	 pfctl_show_status(int, int);
 int	 pfctl_show_running(int);
 int	 pfctl_show_timeouts(int, int);
 int	 pfctl_show_limits(int, int);
-void	 pfctl_debug(int, u_int32_t, int);
+void	 pfctl_debug(int, uint32_t, int);
 int	 pfctl_test_altqsupport(int, int);
 int	 pfctl_show_anchors(int, int, char *);
 int	 pfctl_show_eth_anchors(int, int, char *);
@@ -587,7 +587,7 @@ pfctl_addrprefix(char *addr, struct pf_addr *mask)
 	switch (res->ai_family) {
 	case AF_INET:
 		bzero(&mask->v4, sizeof(mask->v4));
-		mask->v4.s_addr = htonl((u_int32_t)
+		mask->v4.s_addr = htonl((uint32_t)
 		    (0xffffffffffULL << (32 - prefix)));
 		break;
 	case AF_INET6:
@@ -956,12 +956,12 @@ pfctl_id_kill_states(int dev, const char *iface, int opts)
 }
 
 int
-pfctl_get_pool(int dev, struct pfctl_pool *pool, u_int32_t nr,
-    u_int32_t ticket, int r_action, char *anchorname)
+pfctl_get_pool(int dev, struct pfctl_pool *pool, uint32_t nr,
+    uint32_t ticket, int r_action, char *anchorname)
 {
 	struct pfioc_pooladdr pp;
 	struct pf_pooladdr *pa;
-	u_int32_t pnr, mpnr;
+	uint32_t pnr, mpnr;
 
 	memset(&pp, 0, sizeof(pp));
 	memcpy(pp.anchor, anchorname, sizeof(pp.anchor));
@@ -1137,7 +1137,7 @@ pfctl_show_eth_rules(int dev, char *path, int opts, enum pfctl_show format,
 	 */
 	if (wildcard && (opts & PF_OPT_RECURSE)) {
 		struct pfctl_eth_rulesets_info	ri;
-		u_int32_t                mnr, nr;
+		uint32_t                mnr, nr;
 
 		if (pfctl_get_eth_rulesets_info(dev, &ri, npath)) {
 			if (errno == EINVAL) {
@@ -1219,7 +1219,7 @@ pfctl_show_rules(int dev, char *path, int opts, enum pfctl_show format,
 	struct pfctl_rules_info ri;
 	struct pfctl_rule rule;
 	char anchor_call[MAXPATHLEN];
-	u_int32_t nr, header = 0;
+	uint32_t nr, header = 0;
 	int rule_numbers = opts & (PF_OPT_VERBOSE2 | PF_OPT_DEBUG);
 	int numeric = opts & PF_OPT_NUMERIC;
 	int len = strlen(path), ret = 0;
@@ -1253,7 +1253,7 @@ pfctl_show_rules(int dev, char *path, int opts, enum pfctl_show format,
 	 */
 	if (wildcard && (opts & PF_OPT_RECURSE)) {
 		struct pfioc_ruleset     prs;
-		u_int32_t                mnr, nr;
+		uint32_t                mnr, nr;
 
 		memset(&prs, 0, sizeof(prs));
 		memcpy(prs.path, npath, sizeof(prs.path));
@@ -1422,7 +1422,7 @@ pfctl_show_nat(int dev, char *path, int opts, char *anchorname, int depth)
 	struct pfctl_rules_info ri;
 	struct pfctl_rule rule;
 	char anchor_call[MAXPATHLEN];
-	u_int32_t nr;
+	uint32_t nr;
 	static int nattype[3] = { PF_NAT, PF_RDR, PF_BINAT };
 	int i, dotitle = opts & PF_OPT_SHOWALL;
 	int brace, ret;
@@ -1701,7 +1701,7 @@ int
 pfctl_append_rule(struct pfctl *pf, struct pfctl_rule *r,
     const char *anchor_call)
 {
-	u_int8_t		rs_num;
+	uint8_t		rs_num;
 	struct pfctl_rule	*rule;
 	struct pfctl_ruleset	*rs;
 	char 			*p;
@@ -2003,9 +2003,9 @@ pfctl_load_ruleset(struct pfctl *pf, char *path, struct pfctl_ruleset *rs,
 int
 pfctl_load_rule(struct pfctl *pf, char *path, struct pfctl_rule *r, int depth)
 {
-	u_int8_t		rs_num = pf_get_ruleset_number(r->action);
+	uint8_t		rs_num = pf_get_ruleset_number(r->action);
 	char			*name;
-	u_int32_t		ticket;
+	uint32_t		ticket;
 	char			anchor[PF_ANCHOR_NAME_SIZE];
 	int			len = strlen(path);
 	int			error;
@@ -2555,7 +2555,7 @@ pfctl_load_logif(struct pfctl *pf, char *ifname)
 }
 
 int
-pfctl_set_hostid(struct pfctl *pf, u_int32_t hostid)
+pfctl_set_hostid(struct pfctl *pf, uint32_t hostid)
 {
 	if ((loadopt & PFCTL_FLAG_OPTION) == 0)
 		return (0);
@@ -2572,7 +2572,7 @@ pfctl_set_hostid(struct pfctl *pf, u_int32_t hostid)
 }
 
 int
-pfctl_load_hostid(struct pfctl *pf, u_int32_t hostid)
+pfctl_load_hostid(struct pfctl *pf, uint32_t hostid)
 {
 	if (ioctl(dev, DIOCSETHOSTID, &hostid)) {
 		warnx("DIOCSETHOSTID");
@@ -2582,7 +2582,7 @@ pfctl_load_hostid(struct pfctl *pf, u_int32_t hostid)
 }
 
 int
-pfctl_load_reassembly(struct pfctl *pf, u_int32_t reassembly)
+pfctl_load_reassembly(struct pfctl *pf, uint32_t reassembly)
 {
 	if (ioctl(dev, DIOCSETREASS, &reassembly)) {
 		warnx("DIOCSETREASS");
@@ -2592,7 +2592,7 @@ pfctl_load_reassembly(struct pfctl *pf, u_int32_t reassembly)
 }
 
 int
-pfctl_load_syncookies(struct pfctl *pf, u_int8_t val)
+pfctl_load_syncookies(struct pfctl *pf, uint8_t val)
 {
 	struct pfctl_syncookies	cookies;
 
@@ -2655,7 +2655,7 @@ pfctl_cfg_syncookies(struct pfctl *pf, uint8_t val, struct pfctl_watermarks *w)
 int
 pfctl_set_debug(struct pfctl *pf, char *d)
 {
-	u_int32_t	level;
+	uint32_t	level;
 
 	if ((loadopt & PFCTL_FLAG_OPTION) == 0)
 		return (0);
@@ -2733,7 +2733,7 @@ pfctl_set_interface_flags(struct pfctl *pf, char *ifname, int flags, int how)
 }
 
 void
-pfctl_debug(int dev, u_int32_t level, int opts)
+pfctl_debug(int dev, uint32_t level, int opts)
 {
 	if (ioctl(dev, DIOCSETDEBUG, &level))
 		err(1, "DIOCSETDEBUG");
@@ -2782,7 +2782,7 @@ int
 pfctl_show_anchors(int dev, int opts, char *anchorname)
 {
 	struct pfioc_ruleset	 pr;
-	u_int32_t		 mnr, nr;
+	uint32_t		 mnr, nr;
 
 	memset(&pr, 0, sizeof(pr));
 	memcpy(pr.path, anchorname, sizeof(pr.path));

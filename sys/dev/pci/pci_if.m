@@ -68,7 +68,7 @@ HEADER {
 }
 
 
-METHOD u_int32_t read_config {
+METHOD uint32_t read_config {
 	device_t	dev;
 	device_t	child;
 	int		reg;
@@ -79,7 +79,7 @@ METHOD void write_config {
 	device_t	dev;
 	device_t	child;
 	int		reg;
-	u_int32_t	val;
+	uint32_t	val;
 	int		width;
 };
 

@@ -39,12 +39,12 @@
 
 /* Per hook statistics counters */
 struct ng_car_hookstats {
-	u_int64_t passed_pkts;	/* Counter for passed packets */
-	u_int64_t dropped_pkts;	/* Counter for dropped packets */
-	u_int64_t green_pkts;	/* Counter for green packets */
-	u_int64_t yellow_pkts;	/* Counter for yellow packets */
-	u_int64_t red_pkts;	/* Counter for red packets */
-	u_int64_t errors;	/* Counter for operation errors */
+	uint64_t passed_pkts;	/* Counter for passed packets */
+	uint64_t dropped_pkts;	/* Counter for dropped packets */
+	uint64_t green_pkts;	/* Counter for green packets */
+	uint64_t yellow_pkts;	/* Counter for yellow packets */
+	uint64_t red_pkts;	/* Counter for red packets */
+	uint64_t errors;	/* Counter for operation errors */
 };
 #define NG_CAR_HOOKSTATS	{				\
 	  { "passed",		&ng_parse_uint64_type	},	\
@@ -69,15 +69,15 @@ struct ng_car_bulkstats {
 
 /* Per hook configuration */
 struct ng_car_hookconf {
-	u_int64_t cbs;		/* Committed burst size (bytes) */
-	u_int64_t ebs;		/* Exceeded/Peak burst size (bytes) */
-	u_int64_t cir;		/* Committed information rate (bits/s) */
-	u_int64_t pir;		/* Peak information rate (bits/s) */
-	u_int8_t green_action;	/* Action for green packets */
-	u_int8_t yellow_action;	/* Action for yellow packets */
-	u_int8_t red_action;	/* Action for red packets */
-	u_int8_t mode;		/* single/double rate, ... */
-	u_int8_t opt;		/* color-aware or color-blind */
+	uint64_t cbs;		/* Committed burst size (bytes) */
+	uint64_t ebs;		/* Exceeded/Peak burst size (bytes) */
+	uint64_t cir;		/* Committed information rate (bits/s) */
+	uint64_t pir;		/* Peak information rate (bits/s) */
+	uint8_t green_action;	/* Action for green packets */
+	uint8_t yellow_action;	/* Action for yellow packets */
+	uint8_t red_action;	/* Action for red packets */
+	uint8_t mode;		/* single/double rate, ... */
+	uint8_t opt;		/* color-aware or color-blind */
 };
 /* Keep this definition in sync with the above structure */
 #define NG_CAR_HOOKCONF	{					\

@@ -1451,7 +1451,7 @@ superblock_inclusive(struct superblock *block, struct pf_opt_rule *por)
 #ifdef OPT_DEBUG
 	for (i = 0; i < sizeof(por->por_rule); i++) {
 		int closest = -1;
-		if (((u_int8_t *)&a)[i] != ((u_int8_t *)&b)[i]) {
+		if (((uint8_t *)&a)[i] != ((uint8_t *)&b)[i]) {
 			for (j = 0; j < sizeof(pf_rule_desc) /
 			    sizeof(*pf_rule_desc); j++) {
 				if (i >= pf_rule_desc[j].prf_offset &&

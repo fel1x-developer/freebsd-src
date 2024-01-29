@@ -91,33 +91,33 @@ struct pfctl {
 	int eth_nr;
 	struct pfctl_eth_anchor *eanchor, *ealast;
 	struct pfctl_eth_anchor *eastack[PFCTL_ANCHOR_STACK_DEPTH];
-	u_int32_t eth_ticket;
+	uint32_t eth_ticket;
 	const char *ruleset;
 
 	/* 'set foo' options */
-	u_int32_t	 timeout[PFTM_MAX];
-	u_int32_t	 limit[PF_LIMIT_MAX];
-	u_int32_t	 debug;
-	u_int32_t	 hostid;
-	u_int32_t	 reassemble;
+	uint32_t	 timeout[PFTM_MAX];
+	uint32_t	 limit[PF_LIMIT_MAX];
+	uint32_t	 debug;
+	uint32_t	 hostid;
+	uint32_t	 reassemble;
 	char		*ifname;
 	bool		 keep_counters;
-	u_int8_t	 syncookies;
-	u_int8_t	 syncookieswat[2];	/* lowat, highwat, in % */
-	u_int8_t	 syncookieswat_set;
+	uint8_t	 syncookies;
+	uint8_t	 syncookieswat[2];	/* lowat, highwat, in % */
+	uint8_t	 syncookieswat_set;
 
-	u_int8_t	 timeout_set[PFTM_MAX];
-	u_int8_t	 limit_set[PF_LIMIT_MAX];
-	u_int8_t	 debug_set;
-	u_int8_t	 hostid_set;
-	u_int8_t	 ifname_set;
-	u_int8_t	 reass_set;
+	uint8_t	 timeout_set[PFTM_MAX];
+	uint8_t	 limit_set[PF_LIMIT_MAX];
+	uint8_t	 debug_set;
+	uint8_t	 hostid_set;
+	uint8_t	 ifname_set;
+	uint8_t	 reass_set;
 };
 
 struct node_if {
 	char			 ifname[IFNAMSIZ];
-	u_int8_t		 not;
-	u_int8_t		 dynamic; /* antispoof */
+	uint8_t		 not;
+	uint8_t		 dynamic; /* antispoof */
 	u_int			 ifa_flags;
 	struct node_if		*next;
 	struct node_if		*tail;
@@ -128,8 +128,8 @@ struct node_host {
 	struct pf_addr		 bcast;
 	struct pf_addr		 peer;
 	sa_family_t		 af;
-	u_int8_t		 not;
-	u_int32_t		 ifindex;	/* link-local IPv6 addrs */
+	uint8_t		 not;
+	uint32_t		 ifindex;	/* link-local IPv6 addrs */
 	char			*ifname;
 	u_int			 ifa_flags;
 	struct node_host	*next;
@@ -137,8 +137,8 @@ struct node_host {
 };
 
 struct node_mac {
-	u_int8_t	 mac[ETHER_ADDR_LEN];
-	u_int8_t	 mask[ETHER_ADDR_LEN];
+	uint8_t	 mac[ETHER_ADDR_LEN];
+	uint8_t	 mask[ETHER_ADDR_LEN];
 	bool		 neg;
 	bool		 isset;
 	struct node_mac	*next;
@@ -153,15 +153,15 @@ struct node_os {
 };
 
 struct node_queue_bw {
-	u_int64_t	bw_absolute;
-	u_int16_t	bw_percent;
+	uint64_t	bw_absolute;
+	uint16_t	bw_percent;
 };
 
 struct node_hfsc_sc {
 	struct node_queue_bw	m1;	/* slope of 1st segment; bps */
 	u_int			d;	/* x-projection of m1; msec */
 	struct node_queue_bw	m2;	/* slope of 2nd segment; bps */
-	u_int8_t		used;
+	uint8_t		used;
 };
 
 struct node_hfsc_opts {
@@ -175,7 +175,7 @@ struct node_fairq_sc {
 	struct node_queue_bw	m1;	/* slope of 1st segment; bps */
 	u_int			d;	/* x-projection of m1; msec */
 	struct node_queue_bw	m2;	/* slope of 2nd segment; bps */
-	u_int8_t		used;
+	uint8_t		used;
 };
 
 struct node_fairq_opts {
@@ -204,7 +204,7 @@ struct pfctl_altq {
 	struct pf_altq	pa;
 	struct {
 		STAILQ_ENTRY(pfctl_altq)	link;
-		u_int64_t			bwsum;
+		uint64_t			bwsum;
 		struct qpri_bitset		qpris;
 		int				children;
 		int				root_classes;
@@ -266,7 +266,7 @@ struct pf_opt_rule {
 	struct pfctl_rule	 por_rule;
 	struct pf_opt_tbl	*por_src_tbl;
 	struct pf_opt_tbl	*por_dst_tbl;
-	u_int64_t		 por_profile_count;
+	uint64_t		 por_profile_count;
 	TAILQ_ENTRY(pf_opt_rule) por_entry;
 	TAILQ_ENTRY(pf_opt_rule) por_skip_entry[PF_SKIP_COUNT];
 };
@@ -289,7 +289,7 @@ int	pfctl_set_reassembly(struct pfctl *, int, int);
 int	pfctl_set_optimization(struct pfctl *, const char *);
 int	pfctl_set_limit(struct pfctl *, const char *, unsigned int);
 int	pfctl_set_logif(struct pfctl *, char *);
-int	pfctl_set_hostid(struct pfctl *, u_int32_t);
+int	pfctl_set_hostid(struct pfctl *, uint32_t);
 int	pfctl_set_debug(struct pfctl *, char *);
 int	pfctl_set_interface_flags(struct pfctl *, char *, int, int);
 int	pfctl_cfg_syncookies(struct pfctl *, uint8_t, struct pfctl_watermarks *);
@@ -298,7 +298,7 @@ int	parse_config(char *, struct pfctl *);
 int	parse_flags(char *);
 int	pfctl_load_anchors(int, struct pfctl *, struct pfr_buffer *);
 
-void	print_pool(struct pfctl_pool *, u_int16_t, u_int16_t, sa_family_t, int);
+void	print_pool(struct pfctl_pool *, uint16_t, uint16_t, sa_family_t, int);
 void	print_src_node(struct pf_src_node *, int);
 void	print_eth_rule(struct pfctl_eth_rule *, const char *, int);
 void	print_rule(struct pfctl_rule *, const char *, int, int);
@@ -317,7 +317,7 @@ void	 print_queue(const struct pf_altq *, unsigned, struct node_queue_bw *,
 	    int, struct node_queue_opt *);
 
 int	pfctl_define_table(char *, int, int, const char *, struct pfr_buffer *,
-	    u_int32_t);
+	    uint32_t);
 
 void		 pfctl_clear_fingerprints(int, int);
 int		 pfctl_file_fingerprints(int, int, const char *);
@@ -329,18 +329,18 @@ void		 pfctl_show_fingerprints(int);
 
 struct icmptypeent {
 	const char *name;
-	u_int8_t type;
+	uint8_t type;
 };
 
 struct icmpcodeent {
 	const char *name;
-	u_int8_t type;
-	u_int8_t code;
+	uint8_t type;
+	uint8_t code;
 };
 
-const struct icmptypeent *geticmptypebynumber(u_int8_t, sa_family_t);
+const struct icmptypeent *geticmptypebynumber(uint8_t, sa_family_t);
 const struct icmptypeent *geticmptypebyname(char *, sa_family_t);
-const struct icmpcodeent *geticmpcodebynumber(u_int8_t, u_int8_t, sa_family_t);
+const struct icmpcodeent *geticmpcodebynumber(uint8_t, uint8_t, sa_family_t);
 const struct icmpcodeent *geticmpcodebyname(u_long, char *, sa_family_t);
 
 struct pf_timeout {
@@ -357,7 +357,7 @@ struct pf_timeout {
 
 extern const struct pf_timeout pf_timeouts[];
 
-void			 set_ipmask(struct node_host *, u_int8_t);
+void			 set_ipmask(struct node_host *, uint8_t);
 int			 check_netmask(struct node_host *, sa_family_t);
 int			 unmask(struct pf_addr *, sa_family_t);
 struct node_host	*gen_dynnode(struct node_host *, sa_family_t);

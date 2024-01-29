@@ -299,7 +299,7 @@ parse_client_statement(FILE *cfile, struct interface_info *ip,
 }
 
 unsigned
-parse_X(FILE *cfile, u_int8_t *buf, unsigned max)
+parse_X(FILE *cfile, uint8_t *buf, unsigned max)
 {
 	int	 token;
 	char	*val;
@@ -348,7 +348,7 @@ parse_X(FILE *cfile, u_int8_t *buf, unsigned max)
  *		   option_list COMMA option_name
  */
 int
-parse_option_list(FILE *cfile, u_int8_t *list)
+parse_option_list(FILE *cfile, uint8_t *list)
 {
 	int	 ix, i;
 	int	 token;
@@ -685,15 +685,15 @@ parse_option_decl(FILE *cfile, struct option_data *options)
 {
 	char		*val;
 	int		 token;
-	u_int8_t	 buf[4];
-	u_int8_t	 hunkbuf[1024];
+	uint8_t	 buf[4];
+	uint8_t	 hunkbuf[1024];
 	unsigned	 hunkix = 0;
 	char		*vendor;
 	const char	*fmt;
 	struct universe	*universe;
 	struct option	*option;
 	struct iaddr	 ip_addr;
-	u_int8_t	*dp;
+	uint8_t	*dp;
 	unsigned	 len;
 	int		 nul_term = 0;
 

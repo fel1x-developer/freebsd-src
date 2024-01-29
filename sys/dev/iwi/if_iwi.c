@@ -171,7 +171,7 @@ static void	iwi_rx_intr(struct iwi_softc *);
 static void	iwi_tx_intr(struct iwi_softc *, struct iwi_tx_ring *);
 static void	iwi_intr(void *);
 static int	iwi_cmd(struct iwi_softc *, uint8_t, void *, uint8_t);
-static void	iwi_write_ibssnode(struct iwi_softc *, const u_int8_t [IEEE80211_ADDR_LEN], int);
+static void	iwi_write_ibssnode(struct iwi_softc *, const uint8_t [IEEE80211_ADDR_LEN], int);
 static int	iwi_tx_start(struct iwi_softc *, struct mbuf *,
 		    struct ieee80211_node *, int);
 static int	iwi_raw_xmit(struct ieee80211_node *, struct mbuf *,
@@ -1748,7 +1748,7 @@ iwi_cmd(struct iwi_softc *sc, uint8_t type, void *data, uint8_t len)
 
 static void
 iwi_write_ibssnode(struct iwi_softc *sc,
-	const u_int8_t addr[IEEE80211_ADDR_LEN], int entry)
+	const uint8_t addr[IEEE80211_ADDR_LEN], int entry)
 {
 	struct iwi_ibssnode node;
 
@@ -3419,8 +3419,8 @@ iwi_led_event(struct iwi_softc *sc, int event)
 	/* NB: on/off times from the Atheros NDIS driver, w/ permission */
 	static const struct {
 		u_int		rate;		/* tx/rx iwi rate */
-		u_int16_t	timeOn;		/* LED on time (ms) */
-		u_int16_t	timeOff;	/* LED off time (ms) */
+		uint16_t	timeOn;		/* LED on time (ms) */
+		uint16_t	timeOff;	/* LED off time (ms) */
 	} blinkrates[] = {
 		{ IWI_RATE_OFDM54, 40,  10 },
 		{ IWI_RATE_OFDM48, 44,  11 },

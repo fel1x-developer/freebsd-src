@@ -147,7 +147,7 @@ ath_descdma_alloc_desc(struct ath_softc *sc,
 #define	DS2PHYS(_dd, _ds) \
 	((_dd)->dd_desc_paddr + ((caddr_t)(_ds) - (caddr_t)(_dd)->dd_desc))
 #define	ATH_DESC_4KB_BOUND_CHECK(_daddr, _len) \
-	((((u_int32_t)(_daddr) & 0xFFF) > (0x1000 - (_len))) ? 1 : 0)
+	((((uint32_t)(_daddr) & 0xFFF) > (0x1000 - (_len))) ? 1 : 0)
 	int error;
 
 	dd->dd_descsize = ds_size;
@@ -240,7 +240,7 @@ ath_descdma_setup(struct ath_softc *sc,
 #define	DS2PHYS(_dd, _ds) \
 	((_dd)->dd_desc_paddr + ((caddr_t)(_ds) - (caddr_t)(_dd)->dd_desc))
 #define	ATH_DESC_4KB_BOUND_CHECK(_daddr, _len) \
-	((((u_int32_t)(_daddr) & 0xFFF) > (0x1000 - (_len))) ? 1 : 0)
+	((((uint32_t)(_daddr) & 0xFFF) > (0x1000 - (_len))) ? 1 : 0)
 	uint8_t *ds;
 	struct ath_buf *bf;
 	int i, bsize, error;

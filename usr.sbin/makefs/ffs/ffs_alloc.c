@@ -378,7 +378,7 @@ ffs_alloccgblk(struct inode *ip, struct m_buf *bp, daddr_t bpref)
 	int32_t bno;
 	struct fs *fs = ip->i_fs;
 	const int needswap = UFS_FSNEEDSWAP(fs);
-	u_int8_t *blksfree_swap;
+	uint8_t *blksfree_swap;
 
 	cgp = (struct cg *)bp->b_data;
 	blksfree_swap = cg_blksfree_swap(cgp, needswap);

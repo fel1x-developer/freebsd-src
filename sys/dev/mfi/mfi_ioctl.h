@@ -30,7 +30,7 @@
 #include <dev/mfi/mfireg.h>
 
 struct iovec32 {
-	u_int32_t	iov_base;
+	uint32_t	iov_base;
 	int		iov_len;
 };
 

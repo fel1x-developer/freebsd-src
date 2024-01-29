@@ -32,26 +32,26 @@
  *  Structure of LQR packet defined in RFC1989
  */
 struct lqrdata {
-  u_int32_t MagicNumber;
-  u_int32_t LastOutLQRs;	/* most recently received PeerOutLQRs */
-  u_int32_t LastOutPackets;	/* most recently received PeerOutPackets */
-  u_int32_t LastOutOctets;	/* most recently received PeerOutOctets */
-  u_int32_t PeerInLQRs;		/* Peers SaveInLQRs */
-  u_int32_t PeerInPackets;	/* Peers SaveInPackets */
-  u_int32_t PeerInDiscards;	/* Peers SaveInDiscards */
-  u_int32_t PeerInErrors;	/* Peers SaveInErrors */
-  u_int32_t PeerInOctets;	/* Peers SaveInOctets */
-  u_int32_t PeerOutLQRs;	/* Peers OutLQRs (hdlc.h) */
-  u_int32_t PeerOutPackets;	/* Peers OutPackets (hdlc.h) */
-  u_int32_t PeerOutOctets;	/* Peers OutOctets (hdlc.h) */
+  uint32_t MagicNumber;
+  uint32_t LastOutLQRs;	/* most recently received PeerOutLQRs */
+  uint32_t LastOutPackets;	/* most recently received PeerOutPackets */
+  uint32_t LastOutOctets;	/* most recently received PeerOutOctets */
+  uint32_t PeerInLQRs;		/* Peers SaveInLQRs */
+  uint32_t PeerInPackets;	/* Peers SaveInPackets */
+  uint32_t PeerInDiscards;	/* Peers SaveInDiscards */
+  uint32_t PeerInErrors;	/* Peers SaveInErrors */
+  uint32_t PeerInOctets;	/* Peers SaveInOctets */
+  uint32_t PeerOutLQRs;	/* Peers OutLQRs (hdlc.h) */
+  uint32_t PeerOutPackets;	/* Peers OutPackets (hdlc.h) */
+  uint32_t PeerOutOctets;	/* Peers OutOctets (hdlc.h) */
 };
 
 struct lqrsavedata {	/* Saved on receipt of an LQR */
-  u_int32_t InLQRs;	/* From ifInLQRs */
-  u_int32_t InPackets;	/* From ifInPackets */
-  u_int32_t InDiscards;	/* From ifInDiscards */
-  u_int32_t InErrors;	/* From ifInErrors */
-  u_int32_t InOctets;	/* From InGoodOctets ! */
+  uint32_t InLQRs;	/* From ifInLQRs */
+  uint32_t InPackets;	/* From ifInPackets */
+  uint32_t InDiscards;	/* From ifInDiscards */
+  uint32_t InErrors;	/* From ifInErrors */
+  uint32_t InOctets;	/* From InGoodOctets ! */
 };
 
 /*

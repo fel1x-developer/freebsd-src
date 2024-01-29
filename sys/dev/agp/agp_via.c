@@ -51,7 +51,7 @@
 
 struct agp_via_softc {
 	struct agp_softc agp;
-	u_int32_t	initial_aperture; /* aperture size at startup */
+	uint32_t	initial_aperture; /* aperture size at startup */
 	struct agp_gatt *gatt;
 	int		*regs;
 };
@@ -161,8 +161,8 @@ agp_via_attach(device_t dev)
 	struct agp_via_softc *sc = device_get_softc(dev);
 	struct agp_gatt *gatt;
 	int error;
-	u_int32_t agpsel;
-	u_int32_t capid;
+	uint32_t agpsel;
+	uint32_t capid;
 
 	sc->regs = via_v2_regs;
 
@@ -203,7 +203,7 @@ agp_via_attach(device_t dev)
 		/* Enable the aperture. */
 		pci_write_config(dev, sc->regs[REG_GARTCTRL], 0x0f, 4);
 	} else {
-		u_int32_t gartctrl;
+		uint32_t gartctrl;
 
 		/* Install the gatt. */
 		pci_write_config(dev, sc->regs[REG_ATTBASE], gatt->ag_physical, 4);
@@ -235,11 +235,11 @@ agp_via_detach(device_t dev)
 	return 0;
 }
 
-static u_int32_t
+static uint32_t
 agp_via_get_aperture(device_t dev)
 {
 	struct agp_via_softc *sc = device_get_softc(dev);
-	u_int32_t apsize;
+	uint32_t apsize;
 
 	if (sc->regs == via_v2_regs) {
 		apsize = pci_read_config(dev, sc->regs[REG_APSIZE], 1);
@@ -284,10 +284,10 @@ agp_via_get_aperture(device_t dev)
 }
 
 static int
-agp_via_set_aperture(device_t dev, u_int32_t aperture)
+agp_via_set_aperture(device_t dev, uint32_t aperture)
 {
 	struct agp_via_softc *sc = device_get_softc(dev);
-	u_int32_t apsize, key, val;
+	uint32_t apsize, key, val;
 
 	if (sc->regs == via_v2_regs) {
 		/*
@@ -374,7 +374,7 @@ static void
 agp_via_flush_tlb(device_t dev)
 {
 	struct agp_via_softc *sc = device_get_softc(dev);
-	u_int32_t gartctrl;
+	uint32_t gartctrl;
 
 	if (sc->regs == via_v2_regs) {
 		pci_write_config(dev, sc->regs[REG_GARTCTRL], 0x8f, 4);

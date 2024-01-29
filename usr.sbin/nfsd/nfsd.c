@@ -853,7 +853,7 @@ static int
 setbindhost(struct addrinfo **ai, const char *bindhost, struct addrinfo hints)
 {
 	int ecode;
-	u_int32_t host_addr[4];  /* IPv4 or IPv6 */
+	uint32_t host_addr[4];  /* IPv4 or IPv6 */
 	const char *hostptr;
 
 	if (bindhost == NULL || strcmp("*", bindhost) == 0)

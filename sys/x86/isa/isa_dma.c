@@ -65,10 +65,10 @@ static int isa_dmarangecheck(caddr_t va, u_int length, int chan);
 
 static caddr_t	dma_bouncebuf[8];
 static u_int	dma_bouncebufsize[8];
-static u_int8_t	dma_bounced = 0;
-static u_int8_t	dma_busy = 0;		/* Used in isa_dmastart() */
-static u_int8_t	dma_inuse = 0;		/* User for acquire/release */
-static u_int8_t dma_auto_mode = 0;
+static uint8_t	dma_bounced = 0;
+static uint8_t	dma_busy = 0;		/* Used in isa_dmastart() */
+static uint8_t	dma_inuse = 0;		/* User for acquire/release */
+static uint8_t dma_auto_mode = 0;
 static struct mtx isa_dma_lock;
 MTX_SYSINIT(isa_dma_lock, &isa_dma_lock, "isa DMA lock", MTX_DEF);
 

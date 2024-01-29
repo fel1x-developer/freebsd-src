@@ -50,7 +50,7 @@
 
 struct iop_request {
     struct i2o_single_reply *reply;
-    u_int32_t mfa;
+    uint32_t mfa;
 };
 
 /* local vars */
@@ -167,7 +167,7 @@ iop_intr(void *data)
 {
     struct iop_softc *sc = (struct iop_softc *)data;
     struct i2o_single_reply *reply;
-    u_int32_t mfa;
+    uint32_t mfa;
 
     /* we might get more than one finished request pr interrupt */
     mtx_lock(&sc->mtx);
@@ -193,7 +193,7 @@ iop_intr(void *data)
 	    iop_free_mfa(sc,((struct i2o_fault_reply *)(reply))->preserved_mfa);
 
 	/* reply->initiator_context points to the service routine */
-	((void (*)(struct iop_softc *, u_int32_t, struct i2o_single_reply *))
+	((void (*)(struct iop_softc *, uint32_t, struct i2o_single_reply *))
 	    (reply->initiator_context))(sc, mfa, reply);
     }
     mtx_unlock(&sc->mtx);
@@ -204,7 +204,7 @@ iop_reset(struct iop_softc *sc)
 {
     struct i2o_exec_iop_reset_message *msg;
     int mfa, timeout = 5000;
-    volatile u_int32_t reply = 0;
+    volatile uint32_t reply = 0;
 
     mfa = iop_get_mfa(sc);
     msg = (struct i2o_exec_iop_reset_message *)(sc->ibase + mfa);
@@ -237,7 +237,7 @@ iop_init_outqueue(struct iop_softc *sc)
 {
     struct i2o_exec_init_outqueue_message *msg;
     int i, mfa, timeout = 5000;
-    volatile u_int32_t reply = 0;
+    volatile uint32_t reply = 0;
 
     if (!(sc->obase = contigmalloc(I2O_IOP_OUTBOUND_FRAME_COUNT *
 				   I2O_IOP_OUTBOUND_FRAME_SIZE,
@@ -259,7 +259,7 @@ iop_init_outqueue(struct iop_softc *sc)
     msg->function = I2O_EXEC_OUTBOUND_INIT;
     msg->host_pagesize = PAGE_SIZE;
     msg->init_code = 0x00; /* SOS XXX should be 0x80 == OS */
-    msg->queue_framesize = I2O_IOP_OUTBOUND_FRAME_SIZE / sizeof(u_int32_t);
+    msg->queue_framesize = I2O_IOP_OUTBOUND_FRAME_SIZE / sizeof(uint32_t);
     msg->sgl[0].flags = I2O_SGL_SIMPLE | I2O_SGL_END | I2O_SGL_EOB;
     msg->sgl[0].count = sizeof(reply);
     msg->sgl[0].phys_addr[0] = vtophys(&reply);
@@ -381,10 +381,10 @@ iop_get_util_params(struct iop_softc *sc, int target, int operation, int group)
     return reply;
 }
 
-u_int32_t
+uint32_t
 iop_get_mfa(struct iop_softc *sc)
 {
-    u_int32_t mfa;
+    uint32_t mfa;
     int timeout = 10000;
 
     while ((mfa = sc->reg->iqueue) == 0xffffffff && timeout) {
@@ -412,7 +412,7 @@ iop_free_mfa(struct iop_softc *sc, int mfa)
 }
 
 static void
-iop_done(struct iop_softc *sc, u_int32_t mfa, struct i2o_single_reply *reply)
+iop_done(struct iop_softc *sc, uint32_t mfa, struct i2o_single_reply *reply)
 {
     struct iop_request *request =
         (struct iop_request *)reply->transaction_context;
@@ -427,13 +427,13 @@ iop_queue_wait_msg(struct iop_softc *sc, int mfa, struct i2o_basic_message *msg)
 {
     struct i2o_single_reply *reply;
     struct iop_request request;
-    u_int32_t out_mfa;
+    uint32_t out_mfa;
     int status, timeout = 10000;
 
     mtx_lock(&sc->mtx);
     if ((sc->reg->oqueue_intr_mask & I2O_OUT_INTR_QUEUE) == 0) {
-        msg->transaction_context = (u_int32_t)&request;
-        msg->initiator_context = (u_int32_t)iop_done;
+        msg->transaction_context = (uint32_t)&request;
+        msg->initiator_context = (uint32_t)iop_done;
         sc->reg->iqueue = mfa;
         if (msleep(&request, &sc->mtx, PRIBIO, "pstwt", 10 * hz)) {
 	    printf("pstiop: timeout waiting for message response\n");
@@ -466,7 +466,7 @@ int
 iop_create_sgl(struct i2o_basic_message *msg, caddr_t data, int count, int dir)
 {
     struct i2o_sgl *sgl = (struct i2o_sgl *)((int32_t *)msg + msg->offset);
-    u_int32_t sgl_count, sgl_phys;
+    uint32_t sgl_count, sgl_phys;
     int i = 0;
 
     if (((uintptr_t)data & 3) || (count & 3)) {

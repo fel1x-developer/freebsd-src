@@ -41,7 +41,7 @@
 fp_except_t
 fpgetsticky()
 {
-	u_int64_t fpscr;
+	uint64_t fpscr;
 
 	__asm__ __volatile("mffs %0" : "=f"(fpscr));
 	return ((fp_except_t)((fpscr >> 25) & 0x1f));

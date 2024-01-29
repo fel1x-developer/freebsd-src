@@ -79,7 +79,7 @@ extern	void ath_hal_printf(struct ath_hal *, const char*, ...)
 		__printflike(2,3);
 extern	void ath_hal_vprintf(struct ath_hal *, const char*, __va_list)
 		__printflike(2, 0);
-extern	const char* ath_hal_ether_sprintf(const u_int8_t *mac);
+extern	const char* ath_hal_ether_sprintf(const uint8_t *mac);
 extern	void *ath_hal_malloc(size_t);
 extern	void ath_hal_free(void *);
 #ifdef AH_ASSERT
@@ -132,7 +132,7 @@ ath_hal_printf(struct ath_hal *ah, const char* fmt, ...)
 }
 
 const char*
-ath_hal_ether_sprintf(const u_int8_t *mac)
+ath_hal_ether_sprintf(const uint8_t *mac)
 {
 	return ether_sprintf(mac);
 }
@@ -269,7 +269,7 @@ ath_hal_alq_get(struct ath_hal *ah)
 }
 
 void
-ath_hal_reg_write(struct ath_hal *ah, u_int32_t reg, u_int32_t val)
+ath_hal_reg_write(struct ath_hal *ah, uint32_t reg, uint32_t val)
 {
 	bus_space_tag_t tag = BUSTAG(ah);
 	bus_space_handle_t h = ah->ah_sh;
@@ -302,12 +302,12 @@ ath_hal_reg_write(struct ath_hal *ah, u_int32_t reg, u_int32_t val)
 		mtx_unlock_spin(&ah_regser_mtx);
 }
 
-u_int32_t
-ath_hal_reg_read(struct ath_hal *ah, u_int32_t reg)
+uint32_t
+ath_hal_reg_read(struct ath_hal *ah, uint32_t reg)
 {
 	bus_space_tag_t tag = BUSTAG(ah);
 	bus_space_handle_t h = ah->ah_sh;
-	u_int32_t val;
+	uint32_t val;
 
 #ifdef	AH_DEBUG
 	/* Debug - complain if we haven't fully waken things up */
@@ -339,7 +339,7 @@ ath_hal_reg_read(struct ath_hal *ah, u_int32_t reg)
 }
 
 void
-OS_MARK(struct ath_hal *ah, u_int id, u_int32_t v)
+OS_MARK(struct ath_hal *ah, u_int id, uint32_t v)
 {
 	if (ath_hal_alq) {
 		struct ale *ale = ath_hal_alq_get(ah);
@@ -367,7 +367,7 @@ OS_MARK(struct ath_hal *ah, u_int id, u_int32_t v)
  */
 
 void
-ath_hal_reg_write(struct ath_hal *ah, u_int32_t reg, u_int32_t val)
+ath_hal_reg_write(struct ath_hal *ah, uint32_t reg, uint32_t val)
 {
 	bus_space_tag_t tag = BUSTAG(ah);
 	bus_space_handle_t h = ah->ah_sh;
@@ -389,12 +389,12 @@ ath_hal_reg_write(struct ath_hal *ah, u_int32_t reg, u_int32_t val)
 		mtx_unlock_spin(&ah_regser_mtx);
 }
 
-u_int32_t
-ath_hal_reg_read(struct ath_hal *ah, u_int32_t reg)
+uint32_t
+ath_hal_reg_read(struct ath_hal *ah, uint32_t reg)
 {
 	bus_space_tag_t tag = BUSTAG(ah);
 	bus_space_handle_t h = ah->ah_sh;
-	u_int32_t val;
+	uint32_t val;
 
 #ifdef	AH_DEBUG
 	/* Debug - complain if we haven't fully waken things up */

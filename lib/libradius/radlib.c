@@ -925,10 +925,10 @@ rad_cvt_addr6(const void *data)
 	return value;
 }
 
-u_int32_t
+uint32_t
 rad_cvt_int(const void *data)
 {
-	u_int32_t value;
+	uint32_t value;
 
 	memcpy(&value, data, sizeof value);
 	return ntohl(value);
@@ -1186,9 +1186,9 @@ rad_put_attr(struct rad_handle *h, int type, const void *value, size_t len)
 }
 
 int
-rad_put_int(struct rad_handle *h, int type, u_int32_t value)
+rad_put_int(struct rad_handle *h, int type, uint32_t value)
 {
-	u_int32_t nvalue;
+	uint32_t nvalue;
 
 	nvalue = htonl(value);
 	return rad_put_attr(h, type, &nvalue, sizeof nvalue);
@@ -1362,7 +1362,7 @@ split(char *str, char *fields[], int maxfields, char *msg, size_t msglen)
 }
 
 int
-rad_get_vendor_attr(u_int32_t *vendor, const void **data, size_t *len)
+rad_get_vendor_attr(uint32_t *vendor, const void **data, size_t *len)
 {
 	struct vendor_attribute *attr;
 
@@ -1425,9 +1425,9 @@ rad_put_vendor_attr(struct rad_handle *h, int vendor, int type,
 }
 
 int
-rad_put_vendor_int(struct rad_handle *h, int vendor, int type, u_int32_t i)
+rad_put_vendor_int(struct rad_handle *h, int vendor, int type, uint32_t i)
 {
-	u_int32_t value;
+	uint32_t value;
 
 	value = htonl(i);
 	return (rad_put_vendor_attr(h, vendor, type, &value, sizeof value));

@@ -106,8 +106,8 @@ peerid_Equal(const struct peerid *p1, const struct peerid *p2)
          !memcmp(p1->enddisc.address, p2->enddisc.address, p1->enddisc.len);
 }
 
-static u_int32_t
-inc_seq(unsigned is12bit, u_int32_t seq)
+static uint32_t
+inc_seq(unsigned is12bit, uint32_t seq)
 {
   seq++;
   if (is12bit) {
@@ -119,9 +119,9 @@ inc_seq(unsigned is12bit, u_int32_t seq)
 }
 
 static int
-isbefore(unsigned is12bit, u_int32_t seq1, u_int32_t seq2)
+isbefore(unsigned is12bit, uint32_t seq1, uint32_t seq2)
 {
-  u_int32_t max = (is12bit ? 0xfff : 0xffffff) - 0x200;
+  uint32_t max = (is12bit ? 0xfff : 0xffffff) - 0x200;
 
   if (seq1 > max) {
     if (seq2 < 0x200 || seq2 > seq1)
@@ -136,7 +136,7 @@ static int
 mp_ReadHeader(struct mp *mp, struct mbuf *m, struct mp_header *header)
 {
   if (mp->local_is12bit) {
-    u_int16_t val;
+    uint16_t val;
 
     ua_ntohs(MBUF_CTOP(m), &val);
     if (val & 0x3000) {
@@ -416,7 +416,7 @@ mp_Assemble(struct mp *mp, struct mbuf *m, struct physical *p)
 {
   struct mp_header mh, h;
   struct mbuf *q, *last;
-  u_int32_t seq;
+  uint32_t seq;
 
   /*
    * When `m' and `p' are NULL, it means our oldest link has gone down.
@@ -442,10 +442,10 @@ mp_Assemble(struct mp *mp, struct mbuf *m, struct physical *p)
      */
     struct datalink *dl;
 
-    mp->seq.min_in = (u_int32_t)-1;
+    mp->seq.min_in = (uint32_t)-1;
     for (dl = mp->bundle->links; dl; dl = dl->next)
       if (dl->state == DATALINK_OPEN &&
-          (mp->seq.min_in == (u_int32_t)-1 ||
+          (mp->seq.min_in == (uint32_t)-1 ||
            isbefore(mp->local_is12bit, dl->mp.seq, mp->seq.min_in)))
         mp->seq.min_in = dl->mp.seq;
   }
@@ -630,22 +630,22 @@ mp_Input(struct bundle *bundle, struct link *l, struct mbuf *bp)
 
 static void
 mp_Output(struct mp *mp, struct bundle *bundle, struct link *l,
-          struct mbuf *m, u_int32_t begin, u_int32_t end)
+          struct mbuf *m, uint32_t begin, uint32_t end)
 {
   char prepend[4];
 
   /* Stuff an MP header on the front of our packet and send it */
 
   if (mp->peer_is12bit) {
-    u_int16_t val;
+    uint16_t val;
 
-    val = (begin << 15) | (end << 14) | (u_int16_t)mp->out.seq;
+    val = (begin << 15) | (end << 14) | (uint16_t)mp->out.seq;
     ua_htons(&val, prepend);
     m = m_prepend(m, prepend, 2, 0);
   } else {
-    u_int32_t val;
+    uint32_t val;
 
-    val = (begin << 31) | (end << 30) | (u_int32_t)mp->out.seq;
+    val = (begin << 31) | (end << 30) | (uint32_t)mp->out.seq;
     ua_htonl(&val, prepend);
     m = m_prepend(m, prepend, 4, 0);
   }
@@ -669,7 +669,7 @@ mp_FillPhysicalQueues(struct bundle *bundle)
   struct datalink *dl, *fdl;
   size_t total, add, len;
   int thislink, nlinks, nopenlinks, sendasip;
-  u_int32_t begin, end;
+  uint32_t begin, end;
   struct mbuf *m, *mo;
   struct link *bestlink;
 

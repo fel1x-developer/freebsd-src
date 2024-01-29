@@ -157,7 +157,7 @@ struct ath_hal_rf *ath_hal_rfprobe(struct ath_hal *ah, HAL_STATUS *ecode);
 //#define	ATH_NF_PER_CHAN		1
 
 typedef struct {
-    u_int8_t    curr_index;
+    uint8_t    curr_index;
     int8_t      invalidNFcount; /* TO DO: REMOVE THIS! */
     int16_t     priv_nf[HAL_NUM_NF_READINGS];
 } HAL_NFCAL_BASE;
@@ -402,7 +402,7 @@ struct ath_hal_private {
 	int16_t		ah_powerLimit;		/* tx power cap */
 	uint16_t	ah_maxPowerLevel;	/* calculated max tx power */
 	u_int		ah_tpScale;		/* tx power scale factor */
-	u_int16_t	ah_extraTxPow;		/* low rates extra-txpower */
+	uint16_t	ah_extraTxPow;		/* low rates extra-txpower */
 	uint32_t	ah_11nCompat;		/* 11n compat controls */
 
 	/*

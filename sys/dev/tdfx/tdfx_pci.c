@@ -364,7 +364,7 @@ tdfx_setmtrr(device_t dev) {
 		 */
 #ifdef DEBUG
 		device_printf(dev, "MTRR Set Type Uncacheable %x\n",
-		    (u_int32_t)tdfx_info->mrdesc.mr_base);
+		    (uint32_t)tdfx_info->mrdesc.mr_base);
 #endif
 	}
 #ifdef DEBUG
@@ -484,9 +484,9 @@ tdfx_query_fetch(u_int cmd, struct tdfx_pio_data *piod)
 {
 	/* XXX Comment this later, after careful inspection and spring cleaning :) */
 	/* Various return values 8bit-32bit */
-	u_int8_t  ret_byte;
-	u_int16_t ret_word;
-	u_int32_t ret_dword;
+	uint8_t  ret_byte;
+	uint16_t ret_word;
+	uint32_t ret_dword;
 	struct tdfx_softc* tdfx_info = NULL;	
 
 	/* This one depend on the tdfx_* structs being properly initialized */
@@ -567,13 +567,13 @@ tdfx_query_update(u_int cmd, struct tdfx_pio_data *piod)
 {
 	/* XXX Comment this later, after careful inspection and spring cleaning :) */
 	/* Return vals */
-	u_int8_t  ret_byte;
-	u_int16_t ret_word;
-	u_int32_t ret_dword;
+	uint8_t  ret_byte;
+	uint16_t ret_word;
+	uint32_t ret_dword;
 	int error;
 
 	/* Port vals, mask */
-	u_int32_t retval, preval, mask;
+	uint32_t retval, preval, mask;
 	struct tdfx_softc* tdfx_info = NULL;
 			
 
@@ -658,7 +658,7 @@ static int
 tdfx_do_pio_rd(struct tdfx_pio_data *piod)
 {
 	/* Return val */
-	u_int8_t  ret_byte;
+	uint8_t  ret_byte;
 	u_int 	 workport;
 	struct tdfx_softc *tdfx_info = 
 		(struct tdfx_softc*)devclass_get_softc(tdfx_devclass, piod->device);
@@ -677,14 +677,14 @@ tdfx_do_pio_rd(struct tdfx_pio_data *piod)
 	/* Write the data to the intended port */
 	workport = piod->port;
 	ret_byte = inb(workport);
-	return copyout(&ret_byte, piod->value, sizeof(u_int8_t));
+	return copyout(&ret_byte, piod->value, sizeof(uint8_t));
 }
 
 static int
 tdfx_do_pio_wt(struct tdfx_pio_data *piod) 
 {
 	/* return val */
-	u_int8_t  ret_byte;
+	uint8_t  ret_byte;
 	u_int		 workport;
 	struct tdfx_softc *tdfx_info = (struct
 			tdfx_softc*)devclass_get_softc(tdfx_devclass, piod->device);
@@ -701,7 +701,7 @@ tdfx_do_pio_wt(struct tdfx_pio_data *piod)
 	}
 
 	/* Write the data to the intended port */
-	int error = -copyin(piod->value, &ret_byte, sizeof(u_int8_t));
+	int error = -copyin(piod->value, &ret_byte, sizeof(uint8_t));
 	if (error == 0) {
 		workport = piod->port;
 		outb(workport, ret_byte);
@@ -770,7 +770,7 @@ tdfx_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int flag, struct thread *
 	int retval = 0;
 	struct tdfx_pio_data *piod = (struct tdfx_pio_data*)data;
 #ifdef	DEBUG
-	printf("IOCTL'd by #%d, cmd: 0x%x, data: %p\n", td->td_proc->p_pid, (u_int32_t)cmd,
+	printf("IOCTL'd by #%d, cmd: 0x%x, data: %p\n", td->td_proc->p_pid, (uint32_t)cmd,
 			piod);
 #endif
 	switch(_IOC_TYPE(cmd)) {

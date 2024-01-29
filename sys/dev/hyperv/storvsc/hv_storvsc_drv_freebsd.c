@@ -1973,7 +1973,7 @@ create_storvsc_request(union ccb *ccb, struct hv_storvsc_request *reqp)
 
 		bus_dma_segment_t *storvsc_sglist =
 		    (bus_dma_segment_t *)ccb->csio.data_ptr;
-		u_int16_t storvsc_sg_count = ccb->csio.sglist_cnt;
+		uint16_t storvsc_sg_count = ccb->csio.sglist_cnt;
 
 		prplist = &reqp->prp_list;
 		prplist->gpa_range.gpa_len = csio->dxfer_len;
@@ -2095,7 +2095,7 @@ create_storvsc_request(union ccb *ccb, struct hv_storvsc_request *reqp)
 static uint32_t
 is_scsi_valid(const struct scsi_inquiry_data *inq_data)
 {
-	u_int8_t type;
+	uint8_t type;
 
 	type = SID_TYPE(inq_data);
 	if (type == T_NODEVICE)

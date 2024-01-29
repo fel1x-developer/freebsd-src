@@ -275,7 +275,7 @@ ath_beacon_setup(struct ath_softc *sc, struct ath_buf *bf)
 	struct ath_desc *ds;
 	int flags, antenna;
 	const HAL_RATE_TABLE *rt;
-	u_int8_t rix, rate;
+	uint8_t rix, rate;
 	HAL_DMA_ADDR bufAddrList[4];
 	uint32_t segLenList[4];
 	HAL_11N_RATE_SERIES rc[4];
@@ -925,15 +925,15 @@ void
 ath_beacon_config(struct ath_softc *sc, struct ieee80211vap *vap)
 {
 #define	TSF_TO_TU(_h,_l) \
-	((((u_int32_t)(_h)) << 22) | (((u_int32_t)(_l)) >> 10))
+	((((uint32_t)(_h)) << 22) | (((uint32_t)(_l)) >> 10))
 #define	FUDGE	2
 	struct ath_hal *ah = sc->sc_ah;
 	struct ath_vap *avp;
 	struct ieee80211com *ic = &sc->sc_ic;
 	struct ieee80211_node *ni;
-	u_int32_t nexttbtt, intval, tsftu;
-	u_int32_t nexttbtt_u8, intval_u8;
-	u_int64_t tsf, tsf_beacon;
+	uint32_t nexttbtt, intval, tsftu;
+	uint32_t nexttbtt_u8, intval_u8;
+	uint64_t tsf, tsf_beacon;
 
 	/*
 	 * Find the first VAP that we /can/ use a beacon configuration for.

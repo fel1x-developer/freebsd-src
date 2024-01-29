@@ -580,7 +580,7 @@ __rpc_taddr2uaddr_af(int af, const struct netbuf *nbuf)
 	struct sockaddr_in6 *sin6;
 	char namebuf6[INET6_ADDRSTRLEN];
 #endif
-	u_int16_t port;
+	uint16_t port;
 
 	switch (af) {
 	case AF_INET:
@@ -591,7 +591,7 @@ __rpc_taddr2uaddr_af(int af, const struct netbuf *nbuf)
 		    == NULL)
 			return NULL;
 		port = ntohs(sin->sin_port);
-		if (asprintf(&ret, "%s.%u.%u", namebuf, ((u_int32_t)port) >> 8,
+		if (asprintf(&ret, "%s.%u.%u", namebuf, ((uint32_t)port) >> 8,
 		    port & 0xff) < 0)
 			return NULL;
 		break;
@@ -604,7 +604,7 @@ __rpc_taddr2uaddr_af(int af, const struct netbuf *nbuf)
 		    == NULL)
 			return NULL;
 		port = ntohs(sin6->sin6_port);
-		if (asprintf(&ret, "%s.%u.%u", namebuf6, ((u_int32_t)port) >> 8,
+		if (asprintf(&ret, "%s.%u.%u", namebuf6, ((uint32_t)port) >> 8,
 		    port & 0xff) < 0)
 			return NULL;
 		break;

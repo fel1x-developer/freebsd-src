@@ -669,7 +669,7 @@ initcg(uint32_t cylno, time_t utime, const fsinfo_t *fsopts)
 		acg.cg_old_boff = acg.cg_old_btotoff +
 		    sblock.fs_old_cpg * sizeof(int32_t);
 		acg.cg_iusedoff = acg.cg_old_boff +
-		    sblock.fs_old_cpg * sizeof(u_int16_t);
+		    sblock.fs_old_cpg * sizeof(uint16_t);
 	}
 	acg.cg_freeoff = acg.cg_iusedoff + howmany(sblock.fs_ipg, CHAR_BIT);
 	if (sblock.fs_contigsumsize <= 0) {

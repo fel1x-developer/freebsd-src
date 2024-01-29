@@ -80,7 +80,7 @@ static struct in_addr
 bits2mask4(int bits)
 {
   struct in_addr result;
-  u_int32_t bit = 0x80000000;
+  uint32_t bit = 0x80000000;
 
   result.s_addr = 0;
 
@@ -97,8 +97,8 @@ bits2mask4(int bits)
 static int
 mask42bits(struct in_addr mask)
 {
-  u_int32_t msk = ntohl(mask.s_addr);
-  u_int32_t tst;
+  uint32_t msk = ntohl(mask.s_addr);
+  uint32_t tst;
   int ret;
 
   for (ret = 32, tst = 1; tst; ret--, tst <<= 1)
@@ -117,7 +117,7 @@ static struct in6_addr
 bits2mask6(int bits)
 {
   struct in6_addr result;
-  u_int32_t bit = 0x80;
+  uint32_t bit = 0x80;
   u_char *c = result.s6_addr;
 
   memset(&result, '\0', sizeof result);
@@ -252,14 +252,14 @@ ncpaddr_copy(struct ncpaddr *addr, const struct ncpaddr *from)
 }
 
 void
-ncpaddr_setip4addr(struct ncpaddr *addr, u_int32_t ip)
+ncpaddr_setip4addr(struct ncpaddr *addr, uint32_t ip)
 {
   addr->ncpaddr_family = AF_INET;
   addr->ncpaddr_ip4addr.s_addr = ip;
 }
 
 int
-ncpaddr_getip4addr(const struct ncpaddr *addr, u_int32_t *ip)
+ncpaddr_getip4addr(const struct ncpaddr *addr, uint32_t *ip)
 {
   if (addr->ncpaddr_family != AF_INET)
     return 0;
@@ -351,7 +351,7 @@ ncpaddr_setsa(struct ncpaddr *addr, const struct sockaddr *host)
     if (IN6_IS_ADDR_V4MAPPED(&host6->sin6_addr)) {
       addr->ncpaddr_family = AF_INET;
       addr->ncpaddr_ip4addr.s_addr =
-        *(const u_int32_t *)(host6->sin6_addr.s6_addr + 12);
+        *(const uint32_t *)(host6->sin6_addr.s6_addr + 12);
     } else {
       addr->ncpaddr_family = AF_INET6;
       addr->ncpaddr_ip6addr = host6->sin6_addr;

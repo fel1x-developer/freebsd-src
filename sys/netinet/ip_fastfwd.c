@@ -362,7 +362,7 @@ passin:
 	 * doing it right here.
 	 */
 	ip->ip_ttl -= IPTTLDEC;
-	if (ip->ip_sum >= (u_int16_t) ~htons(IPTTLDEC << 8))
+	if (ip->ip_sum >= (uint16_t) ~htons(IPTTLDEC << 8))
 		ip->ip_sum -= ~htons(IPTTLDEC << 8);
 	else
 		ip->ip_sum += htons(IPTTLDEC << 8);

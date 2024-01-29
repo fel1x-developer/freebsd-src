@@ -288,10 +288,10 @@ scope6_get_default(struct scope6_id *idlist)
 	return (0);
 }
 
-u_int32_t
+uint32_t
 scope6_addr2default(struct in6_addr *addr)
 {
-	u_int32_t id;
+	uint32_t id;
 
 	/*
 	 * special case: The loopback address should be considered as
@@ -321,7 +321,7 @@ scope6_addr2default(struct in6_addr *addr)
 int
 sa6_embedscope(struct sockaddr_in6 *sin6, int defaultok)
 {
-	u_int32_t zoneid;
+	uint32_t zoneid;
 
 	if ((zoneid = sin6->sin6_scope_id) == 0 && defaultok)
 		zoneid = scope6_addr2default(&sin6->sin6_addr);
@@ -359,7 +359,7 @@ int
 sa6_recoverscope(struct sockaddr_in6 *sin6)
 {
 	char ip6buf[INET6_ADDRSTRLEN];
-	u_int32_t zoneid;
+	uint32_t zoneid;
 
 	if (IN6_IS_SCOPE_LINKLOCAL(&sin6->sin6_addr) ||
 	    IN6_IS_ADDR_MC_INTFACELOCAL(&sin6->sin6_addr)) {
@@ -401,10 +401,10 @@ sa6_recoverscope(struct sockaddr_in6 *sin6)
  * ret_id - unnecessary?
  */
 int
-in6_setscope(struct in6_addr *in6, struct ifnet *ifp, u_int32_t *ret_id)
+in6_setscope(struct in6_addr *in6, struct ifnet *ifp, uint32_t *ret_id)
 {
 	int scope;
-	u_int32_t zoneid = 0;
+	uint32_t zoneid = 0;
 	struct scope6_id *sid;
 
 	/*

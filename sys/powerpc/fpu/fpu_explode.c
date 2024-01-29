@@ -104,7 +104,7 @@ fpu_itof(struct fpn *fp, u_int i)
  * 64-bit int -> fpn.
  */
 int
-fpu_xtof(struct fpn *fp, u_int64_t i)
+fpu_xtof(struct fpn *fp, uint64_t i)
 {
 
 	if (i == 0)
@@ -206,9 +206,9 @@ void
 fpu_explode(struct fpemu *fe, struct fpn *fp, int type, int reg)
 {
 	u_int s, *space;
-	u_int64_t l, *xspace;
+	uint64_t l, *xspace;
 
-	xspace = (u_int64_t *)&fe->fe_fpstate->fpr[reg].fpr;
+	xspace = (uint64_t *)&fe->fe_fpstate->fpr[reg].fpr;
 	l = xspace[0];
 	space = (u_int *)&fe->fe_fpstate->fpr[reg].fpr;
 	s = space[0];

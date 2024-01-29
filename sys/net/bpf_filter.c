@@ -48,18 +48,18 @@
 #endif
 
 #ifndef BPF_ALIGN
-#define EXTRACT_SHORT(p)	((u_int16_t)ntohs(*(u_int16_t *)p))
-#define EXTRACT_LONG(p)		(ntohl(*(u_int32_t *)p))
+#define EXTRACT_SHORT(p)	((uint16_t)ntohs(*(uint16_t *)p))
+#define EXTRACT_LONG(p)		(ntohl(*(uint32_t *)p))
 #else
 #define EXTRACT_SHORT(p)\
-	((u_int16_t)\
-		((u_int16_t)*((u_char *)p+0)<<8|\
-		 (u_int16_t)*((u_char *)p+1)<<0))
+	((uint16_t)\
+		((uint16_t)*((u_char *)p+0)<<8|\
+		 (uint16_t)*((u_char *)p+1)<<0))
 #define EXTRACT_LONG(p)\
-		((u_int32_t)*((u_char *)p+0)<<24|\
-		 (u_int32_t)*((u_char *)p+1)<<16|\
-		 (u_int32_t)*((u_char *)p+2)<<8|\
-		 (u_int32_t)*((u_char *)p+3)<<0)
+		((uint32_t)*((u_char *)p+0)<<24|\
+		 (uint32_t)*((u_char *)p+1)<<16|\
+		 (uint32_t)*((u_char *)p+2)<<8|\
+		 (uint32_t)*((u_char *)p+3)<<0)
 #endif
 
 #ifdef _KERNEL
@@ -82,10 +82,10 @@
 	} \
 }
 
-static u_int16_t	m_xhalf(struct mbuf *m, bpf_u_int32 k, int *err);
-static u_int32_t	m_xword(struct mbuf *m, bpf_u_int32 k, int *err);
+static uint16_t	m_xhalf(struct mbuf *m, bpf_u_int32 k, int *err);
+static uint32_t	m_xword(struct mbuf *m, bpf_u_int32 k, int *err);
 
-static u_int32_t
+static uint32_t
 m_xword(struct mbuf *m, bpf_u_int32 k, int *err)
 {
 	size_t len;
@@ -112,29 +112,29 @@ m_xword(struct mbuf *m, bpf_u_int32 k, int *err)
 	np = mtod(m0, u_char *);
 	switch (len - k) {
 	case 1:
-		return (((u_int32_t)cp[0] << 24) |
-		    ((u_int32_t)np[0] << 16) |
-		    ((u_int32_t)np[1] << 8)  |
-		    (u_int32_t)np[2]);
+		return (((uint32_t)cp[0] << 24) |
+		    ((uint32_t)np[0] << 16) |
+		    ((uint32_t)np[1] << 8)  |
+		    (uint32_t)np[2]);
 
 	case 2:
-		return (((u_int32_t)cp[0] << 24) |
-		    ((u_int32_t)cp[1] << 16) |
-		    ((u_int32_t)np[0] << 8) |
-		    (u_int32_t)np[1]);
+		return (((uint32_t)cp[0] << 24) |
+		    ((uint32_t)cp[1] << 16) |
+		    ((uint32_t)np[0] << 8) |
+		    (uint32_t)np[1]);
 
 	default:
-		return (((u_int32_t)cp[0] << 24) |
-		    ((u_int32_t)cp[1] << 16) |
-		    ((u_int32_t)cp[2] << 8) |
-		    (u_int32_t)np[0]);
+		return (((uint32_t)cp[0] << 24) |
+		    ((uint32_t)cp[1] << 16) |
+		    ((uint32_t)cp[2] << 8) |
+		    (uint32_t)np[0]);
 	}
     bad:
 	*err = 1;
 	return (0);
 }
 
-static u_int16_t
+static uint16_t
 m_xhalf(struct mbuf *m, bpf_u_int32 k, int *err)
 {
 	size_t len;
@@ -173,9 +173,9 @@ m_xhalf(struct mbuf *m, bpf_u_int32 k, int *err)
 u_int
 bpf_filter(const struct bpf_insn *pc, u_char *p, u_int wirelen, u_int buflen)
 {
-	u_int32_t A = 0, X = 0;
+	uint32_t A = 0, X = 0;
 	bpf_u_int32 k;
-	u_int32_t mem[BPF_MEMWORDS];
+	uint32_t mem[BPF_MEMWORDS];
 
 	bzero(mem, sizeof(mem));
 

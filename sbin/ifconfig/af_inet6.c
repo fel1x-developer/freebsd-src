@@ -291,7 +291,7 @@ in6_status(if_ctx *ctx, const struct ifaddrs *ifa)
 	struct sockaddr_in6 *sin, null_sin = {};
 	struct in6_ifreq ifr6;
 	int s6;
-	u_int32_t flags6;
+	uint32_t flags6;
 	struct in6_addrlifetime lifetime;
 
 	sin = satosin6(ifa->ifa_addr);

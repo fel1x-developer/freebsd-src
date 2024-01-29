@@ -50,7 +50,7 @@
 ufs2_daddr_t
 cgballoc(struct uufsd *disk)
 {
-	u_int8_t *blksfree;
+	uint8_t *blksfree;
 	struct cg *cgp;
 	struct fs *fs;
 	long bno;
@@ -75,7 +75,7 @@ gotit:
 int
 cgbfree(struct uufsd *disk, ufs2_daddr_t bno, long size)
 {
-	u_int8_t *blksfree;
+	uint8_t *blksfree;
 	struct fs *fs;
 	struct cg *cgp;
 	ufs1_daddr_t fragno, cgbno;
@@ -137,7 +137,7 @@ ino_t
 cgialloc(struct uufsd *disk)
 {
 	struct ufs2_dinode *dp2;
-	u_int8_t *inosused;
+	uint8_t *inosused;
 	struct cg *cgp;
 	struct fs *fs;
 	ino_t ino;

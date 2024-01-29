@@ -58,7 +58,7 @@ extern struct vop_vector smbfs_vnodeops;	/* XXX -> .h file */
 static MALLOC_DEFINE(M_SMBNODE, "smbufs_node", "SMBFS vnode private part");
 static MALLOC_DEFINE(M_SMBNODENAME, "smbufs_nname", "SMBFS node name");
 
-u_int32_t __inline
+uint32_t __inline
 smbfs_hash(const u_char *name, int nmlen)
 {
 	return (fnv_32_buf(name, nmlen, FNV1_32_INIT)); 

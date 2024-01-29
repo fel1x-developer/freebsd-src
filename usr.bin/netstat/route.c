@@ -623,7 +623,7 @@ in6_fillscopeid(struct sockaddr_in6 *sa6)
 	    IN6_IS_ADDR_MC_LINKLOCAL(&sa6->sin6_addr)) {
 		if (sa6->sin6_scope_id == 0)
 			sa6->sin6_scope_id =
-			    ntohs(*(u_int16_t *)&sa6->sin6_addr.s6_addr[2]);
+			    ntohs(*(uint16_t *)&sa6->sin6_addr.s6_addr[2]);
 		sa6->sin6_addr.s6_addr[2] = sa6->sin6_addr.s6_addr[3] = 0;
 	}
 #endif

@@ -222,25 +222,25 @@ do {									\
 /* Build configuration options */
 #define _ng_l2cap_build_cfg_options(_m, _mtu, _flush_timo, _flow)	\
 do {									\
-	u_int8_t	*p = NULL;					\
+	uint8_t	*p = NULL;					\
 									\
 	MGETHDR((_m), M_NOWAIT, MT_DATA);				\
 	if ((_m) == NULL)						\
 		break;							\
 									\
 	(_m)->m_pkthdr.len = (_m)->m_len = 0;				\
-	p = mtod((_m), u_int8_t *);					\
+	p = mtod((_m), uint8_t *);					\
 									\
 	if ((_mtu) != NULL) {						\
 		struct _cfg_opt_mtu {					\
 			ng_l2cap_cfg_opt_t	 hdr;			\
-			u_int16_t		 val;			\
+			uint16_t		 val;			\
 		} __attribute__ ((packed))	*o = NULL;		\
 									\
 		o = (struct _cfg_opt_mtu *) p;				\
 		o->hdr.type = NG_L2CAP_OPT_MTU;				\
 		o->hdr.length = sizeof(o->val);				\
-		o->val = htole16(*(u_int16_t *)(_mtu));			\
+		o->val = htole16(*(uint16_t *)(_mtu));			\
 									\
 		(_m)->m_pkthdr.len += sizeof(*o);			\
 		p += sizeof(*o);					\
@@ -249,13 +249,13 @@ do {									\
 	if ((_flush_timo) != NULL) {					\
 		struct _cfg_opt_flush {					\
 			ng_l2cap_cfg_opt_t	 hdr;			\
-			u_int16_t		 val;			\
+			uint16_t		 val;			\
 		} __attribute__ ((packed))	*o = NULL;		\
 									\
 		o = (struct _cfg_opt_flush *) p;			\
 		o->hdr.type = NG_L2CAP_OPT_FLUSH_TIMO;			\
 		o->hdr.length = sizeof(o->val);				\
-		o->val = htole16(*(u_int16_t *)(_flush_timo));		\
+		o->val = htole16(*(uint16_t *)(_flush_timo));		\
 									\
 		(_m)->m_pkthdr.len += sizeof(*o);			\
 		p += sizeof(*o);					\
@@ -422,7 +422,7 @@ do {									\
 } while (0)
 
 void ng_l2cap_con_wakeup              (ng_l2cap_con_p);
-void ng_l2cap_con_fail                (ng_l2cap_con_p, u_int16_t);
+void ng_l2cap_con_fail                (ng_l2cap_con_p, uint16_t);
 void ng_l2cap_process_command_timeout (node_p, hook_p, void *, int);
 
 #endif /* ndef _NETGRAPH_L2CAP_CMDS_H_ */

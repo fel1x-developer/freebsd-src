@@ -57,13 +57,13 @@
 #define DHCP_MIN_LEN		548
 
 struct dhcp_packet {
-	u_int8_t  op;		/* Message opcode/type */
-	u_int8_t  htype;	/* Hardware addr type (see net/if_types.h) */
-	u_int8_t  hlen;		/* Hardware addr length */
-	u_int8_t  hops;		/* Number of relay agent hops from client */
-	u_int32_t xid;		/* Transaction ID */
-	u_int16_t secs;		/* Seconds since client started looking */
-	u_int16_t flags;	/* Flag bits */
+	uint8_t  op;		/* Message opcode/type */
+	uint8_t  htype;	/* Hardware addr type (see net/if_types.h) */
+	uint8_t  hlen;		/* Hardware addr length */
+	uint8_t  hops;		/* Number of relay agent hops from client */
+	uint32_t xid;		/* Transaction ID */
+	uint16_t secs;		/* Seconds since client started looking */
+	uint16_t flags;	/* Flag bits */
 	struct in_addr ciaddr;	/* Client IP address (if already in use) */
 	struct in_addr yiaddr;	/* Client IP address */
 	struct in_addr siaddr;	/* IP address of next server to talk to */

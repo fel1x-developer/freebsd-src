@@ -8,7 +8,7 @@
  */
 
 #define	int32	int32_t
-#define	u_int32	u_int32_t
+#define	u_int32	uint32_t
 
 /*
  * Nice typedefs. . .

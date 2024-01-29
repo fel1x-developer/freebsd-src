@@ -79,8 +79,8 @@ struct ng_checksum_stats {
 };
 
 struct ng_checksum_vlan_header {
-	u_int16_t tag;
-	u_int16_t etype;
+	uint16_t tag;
+	uint16_t etype;
 };
 
 #endif /* _NETGRAPH_NG_CHECKSUM_H_ */

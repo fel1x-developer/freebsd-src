@@ -202,7 +202,7 @@ static struct ida_board *
 ida_pci_match(device_t dev)
 {
 	int i;
-	u_int32_t id, sub_id;
+	uint32_t id, sub_id;
 
 	id = pci_get_devid(dev);
 	sub_id = pci_get_subdevice(dev) << 16 | pci_get_subvendor(dev);
@@ -233,7 +233,7 @@ static int
 ida_pci_attach(device_t dev)
 {
 	struct ida_board *board = ida_pci_match(dev);
-	u_int32_t id = pci_get_devid(dev);
+	uint32_t id = pci_get_devid(dev);
 	struct ida_softc *ida;
 	int error, rid;
 

@@ -29,7 +29,7 @@ extern int debug;
 extern char hostname[];
 
 int	announce(CTL_MSG *, const char *);
-int	delete_invite(u_int32_t);
+int	delete_invite(uint32_t);
 void	do_announce(CTL_MSG *, CTL_RESPONSE *);
 CTL_MSG	*find_match(CTL_MSG *request);
 CTL_MSG	*find_request(CTL_MSG *request);

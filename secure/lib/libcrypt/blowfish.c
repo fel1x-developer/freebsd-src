@@ -61,12 +61,12 @@
 #define BLFRND(s, p, i, j, n) (i ^= _F(s, j) ^ (p)[n])
 
 static void
-Blowfish_encipher(blf_ctx *c, u_int32_t *xl, u_int32_t *xr)
+Blowfish_encipher(blf_ctx *c, uint32_t *xl, uint32_t *xr)
 {
-	u_int32_t Xl;
-	u_int32_t Xr;
-	u_int32_t *s = c->S[0];
-	u_int32_t *p = c->P;
+	uint32_t Xl;
+	uint32_t Xr;
+	uint32_t *s = c->S[0];
+	uint32_t *p = c->P;
 
 	Xl = *xl;
 	Xr = *xr;
@@ -367,13 +367,13 @@ Blowfish_initstate(blf_ctx *c)
 
 }
 
-u_int32_t
-Blowfish_stream2word(const u_int8_t *data, u_int16_t databytes,
-    u_int16_t *current)
+uint32_t
+Blowfish_stream2word(const uint8_t *data, uint16_t databytes,
+    uint16_t *current)
 {
-	u_int8_t i;
-	u_int16_t j;
-	u_int32_t temp;
+	uint8_t i;
+	uint16_t j;
+	uint32_t temp;
 
 	temp = 0x00000000;
 	j = *current;
@@ -389,14 +389,14 @@ Blowfish_stream2word(const u_int8_t *data, u_int16_t databytes,
 }
 
 void
-Blowfish_expand0state(blf_ctx *c, const u_int8_t *key, u_int16_t keybytes)
+Blowfish_expand0state(blf_ctx *c, const uint8_t *key, uint16_t keybytes)
 {
-	u_int16_t i;
-	u_int16_t j;
-	u_int16_t k;
-	u_int32_t temp;
-	u_int32_t datal;
-	u_int32_t datar;
+	uint16_t i;
+	uint16_t j;
+	uint16_t k;
+	uint32_t temp;
+	uint32_t datal;
+	uint32_t datar;
 
 	j = 0;
 	for (i = 0; i < BLF_N + 2; i++) {
@@ -426,15 +426,15 @@ Blowfish_expand0state(blf_ctx *c, const u_int8_t *key, u_int16_t keybytes)
 }
 
 void
-Blowfish_expandstate(blf_ctx *c, const u_int8_t *data, u_int16_t databytes,
-    const u_int8_t *key, u_int16_t keybytes)
+Blowfish_expandstate(blf_ctx *c, const uint8_t *data, uint16_t databytes,
+    const uint8_t *key, uint16_t keybytes)
 {
-	u_int16_t i;
-	u_int16_t j;
-	u_int16_t k;
-	u_int32_t temp;
-	u_int32_t datal;
-	u_int32_t datar;
+	uint16_t i;
+	uint16_t j;
+	uint16_t k;
+	uint32_t temp;
+	uint32_t datal;
+	uint32_t datar;
 
 	j = 0;
 	for (i = 0; i < BLF_N + 2; i++) {
@@ -469,10 +469,10 @@ Blowfish_expandstate(blf_ctx *c, const u_int8_t *data, u_int16_t databytes,
 }
 
 void
-blf_enc(blf_ctx *c, u_int32_t *data, u_int16_t blocks)
+blf_enc(blf_ctx *c, uint32_t *data, uint16_t blocks)
 {
-	u_int32_t *d;
-	u_int16_t i;
+	uint32_t *d;
+	uint16_t i;
 
 	d = data;
 	for (i = 0; i < blocks; i++) {

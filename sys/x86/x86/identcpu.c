@@ -1882,7 +1882,7 @@ print_AMD_info(void)
 			printf("Write Allocate Disable\n");
 		} else {
 			printf("Write Allocate Enable Limit: %dM bytes\n",
-			    (u_int32_t)((amd_whcr & (0x3ff << 22)) >> 22) * 4);
+			    (uint32_t)((amd_whcr & (0x3ff << 22)) >> 22) * 4);
 			printf("Write Allocate 15-16M bytes: %s\n",
 			    (amd_whcr & (1 << 16)) ? "Enable" : "Disable");
 		}
@@ -1894,7 +1894,7 @@ print_AMD_info(void)
 			printf("Write Allocate Disable\n");
 		} else {
 			printf("Write Allocate Enable Limit: %dM bytes\n",
-			    (u_int32_t)((amd_whcr & (0x7f << 1)) >> 1) * 4);
+			    (uint32_t)((amd_whcr & (0x7f << 1)) >> 1) * 4);
 			printf("Write Allocate 15-16M bytes: %s\n",
 			    (amd_whcr & 0x0001) ? "Enable" : "Disable");
 			printf("Hardware Write Allocate Control: %s\n",

@@ -111,19 +111,19 @@ int
 smb_ntencrypt(const u_char *apwd, u_char *C8, u_char *RN)
 {
 	u_char S21[21];
-	u_int16_t *unipwd;
+	uint16_t *unipwd;
 	MD4_CTX *ctxp;
 	u_int len;
 
 	len = strlen(apwd);
-	unipwd = malloc((len + 1) * sizeof(u_int16_t), M_SMBTEMP, M_WAITOK);
+	unipwd = malloc((len + 1) * sizeof(uint16_t), M_SMBTEMP, M_WAITOK);
 	/*
 	 * S21 = concat(MD4(U(apwd)), zeros(5));
 	 */
 	smb_strtouni(unipwd, apwd);
 	ctxp = malloc(sizeof(MD4_CTX), M_SMBTEMP, M_WAITOK);
 	MD4Init(ctxp);
-	MD4Update(ctxp, (u_char*)unipwd, len * sizeof(u_int16_t));
+	MD4Update(ctxp, (u_char*)unipwd, len * sizeof(uint16_t));
 	free(unipwd, M_SMBTEMP);
 	bzero(S21, 21);
 	MD4Final(S21, ctxp);
@@ -142,7 +142,7 @@ int
 smb_calcmackey(struct smb_vc *vcp)
 {
 	const char *pwd;
-	u_int16_t *unipwd;
+	uint16_t *unipwd;
 	u_int len;
 	MD4_CTX md4;
 	u_char S16[16], S21[21];
@@ -170,10 +170,10 @@ smb_calcmackey(struct smb_vc *vcp)
 	 */
 	pwd = smb_vc_getpass(vcp);
 	len = strlen(pwd);
-	unipwd = malloc((len + 1) * sizeof(u_int16_t), M_SMBTEMP, M_WAITOK);
+	unipwd = malloc((len + 1) * sizeof(uint16_t), M_SMBTEMP, M_WAITOK);
 	smb_strtouni(unipwd, pwd);
 	MD4Init(&md4);
-	MD4Update(&md4, (u_char *)unipwd, len * sizeof(u_int16_t));
+	MD4Update(&md4, (u_char *)unipwd, len * sizeof(uint16_t));
 	MD4Final(S16, &md4);
 	MD4Init(&md4);
 	MD4Update(&md4, S16, 16);
@@ -288,8 +288,8 @@ smb_rq_verify(struct smb_rq *rqp)
 	MD5Init(&md5);
 	MD5Update(&md5, vcp->vc_mackey, vcp->vc_mackeylen);
 	MD5Update(&md5, mtod(mb, void *), 14);
-	*(u_int32_t *)sigbuf = htole32(rqp->sr_rseqno);
-	*(u_int32_t *)(sigbuf + 4) = 0;
+	*(uint32_t *)sigbuf = htole32(rqp->sr_rseqno);
+	*(uint32_t *)(sigbuf + 4) = 0;
 	MD5Update(&md5, sigbuf, 8);
 	MD5Update(&md5, mtod(mb, u_char *) + 22, mb->m_len - 22);
 	for (mb = mb->m_next; mb != NULL; mb = mb->m_next)

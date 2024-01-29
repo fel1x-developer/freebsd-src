@@ -121,7 +121,7 @@ struct aac_container
 {
 	struct aac_mntobj		co_mntobj;
 	int				co_found;
-	u_int32_t		co_uid;       
+	uint32_t		co_uid;       
 	TAILQ_ENTRY(aac_container)	co_link;
 };
 
@@ -155,7 +155,7 @@ struct aac_disk
 	int				ad_cylinders;
 	int				ad_heads;
 	int				ad_sectors;
-	u_int64_t			ad_size;
+	uint64_t			ad_size;
 	int				unit;
 };
 
@@ -170,10 +170,10 @@ struct aac_command
 
 	struct aac_fib		*cm_fib;	/* FIB associated with this
 						 * command */
-	u_int64_t		cm_fibphys;	/* bus address of the FIB */
+	uint64_t		cm_fibphys;	/* bus address of the FIB */
 	struct bio		*cm_data;	/* pointer to data in kernel
 						 * space */
-	u_int32_t		cm_datalen;	/* data length */
+	uint32_t		cm_datalen;	/* data length */
 	bus_dmamap_t		cm_datamap;	/* DMA map for bio data */
 	struct aac_sg_table	*cm_sgtable;	/* pointer to s/g table in
 						 * command */
@@ -238,7 +238,7 @@ struct aac_common {
 	struct aac_fib		ac_sync_fib;
 
 	/* response buffer for SRC (new comm. type1) - must be last element */
-	u_int32_t   ac_host_rrq[0];
+	uint32_t   ac_host_rrq[0];
 };
 
 /*
@@ -250,9 +250,9 @@ struct aac_interface
 	void	(*aif_qnotify)(struct aac_softc *sc, int qbit);
 	int	(*aif_get_istatus)(struct aac_softc *sc);
 	void	(*aif_clr_istatus)(struct aac_softc *sc, int mask);
-	void	(*aif_set_mailbox)(struct aac_softc *sc, u_int32_t command,
-				   u_int32_t arg0, u_int32_t arg1,
-				   u_int32_t arg2, u_int32_t arg3);
+	void	(*aif_set_mailbox)(struct aac_softc *sc, uint32_t command,
+				   uint32_t arg0, uint32_t arg1,
+				   uint32_t arg2, uint32_t arg3);
 	int	(*aif_get_mailbox)(struct aac_softc *sc, int mb);
 	void	(*aif_access_devreg)(struct aac_softc *sc, int enable);
 	int (*aif_send_command)(struct aac_softc *sc, struct aac_command *cm);
@@ -306,7 +306,7 @@ extern struct aac_interface	aacraid_srcv_interface;
 
 /* fib context (IOCTL) */
 struct aac_fib_context {
-	u_int32_t		unique;
+	uint32_t		unique;
 	int			ctx_idx;
 	int			ctx_wrap;
 	struct aac_fib_context *next, *prev;
@@ -358,10 +358,10 @@ struct aac_softc
 	bus_dmamap_t		aac_common_dmamap;	/* common structure
 							 * DMA map */
 	struct aac_common	*aac_common;
-	u_int32_t		aac_common_busaddr;
-	u_int32_t		aac_host_rrq_idx[AAC_MAX_MSIX];
-	u_int32_t		aac_rrq_outstanding[AAC_MAX_MSIX];
-	u_int32_t		aac_fibs_pushed_no;
+	uint32_t		aac_common_busaddr;
+	uint32_t		aac_host_rrq_idx[AAC_MAX_MSIX];
+	uint32_t		aac_rrq_outstanding[AAC_MAX_MSIX];
+	uint32_t		aac_fibs_pushed_no;
 	struct aac_interface	aac_if;
 
 	/* command/fib resources */
@@ -415,7 +415,7 @@ struct aac_softc
 #define	AAC_AIFFLAGS_ALLOCFIBS	(1 << 5)
 #define AAC_AIFFLAGS_PENDING	(AAC_AIFFLAGS_AIF | AAC_AIFFLAGS_PRINTF | \
 				 AAC_AIFFLAGS_ALLOCFIBS)
-	u_int32_t		flags;
+	uint32_t		flags;
 #define AAC_FLAGS_PERC2QC	(1 << 0)
 #define	AAC_FLAGS_ENABLE_CAM	(1 << 1)	/* No SCSI passthrough */
 #define	AAC_FLAGS_CAM_NORESET	(1 << 2)	/* Fake SCSI resets */
@@ -438,34 +438,34 @@ struct aac_softc
 #define AAC_FLAGS_NEW_COMM_TYPE2 (1 << 17)	/* New comm. type2 supported */
 #define AAC_FLAGS_NEW_COMM_TYPE34 (1 << 18)	/* New comm. type3/4 */
 #define AAC_FLAGS_SYNC_MODE (1 << 18)	/* Sync. transfer mode */
-	u_int32_t		hint_flags;		/* driver parameters */
+	uint32_t		hint_flags;		/* driver parameters */
 	int	sim_freezed;				/* flag for sim_freeze/release */		
-	u_int32_t		supported_options;
-	u_int32_t		scsi_method_id;
+	uint32_t		supported_options;
+	uint32_t		scsi_method_id;
 	TAILQ_HEAD(,aac_sim)	aac_sim_tqh;
 
-	u_int32_t	aac_max_fibs;           /* max. FIB count */
-	u_int32_t	aac_max_fibs_alloc;		/* max. alloc. per alloc_commands() */
-	u_int32_t	aac_max_fib_size;		/* max. FIB size */
-	u_int32_t	aac_sg_tablesize;		/* max. sg count from host */
-	u_int32_t	aac_max_sectors;		/* max. I/O size from host (blocks) */
-	u_int32_t	aac_feature_bits;		/* feature bits from suppl. info */
-	u_int32_t	aac_support_opt2;		/* supp. options from suppl. info */
-	u_int32_t	aac_max_aif;			/* max. AIF count */
-	u_int32_t	doorbell_mask;			/* for IOP reset */
-	u_int32_t	aac_max_msix;			/* max. MSI-X vectors */
-	u_int32_t	aac_vector_cap;			/* MSI-X vector capab.*/
+	uint32_t	aac_max_fibs;           /* max. FIB count */
+	uint32_t	aac_max_fibs_alloc;		/* max. alloc. per alloc_commands() */
+	uint32_t	aac_max_fib_size;		/* max. FIB size */
+	uint32_t	aac_sg_tablesize;		/* max. sg count from host */
+	uint32_t	aac_max_sectors;		/* max. I/O size from host (blocks) */
+	uint32_t	aac_feature_bits;		/* feature bits from suppl. info */
+	uint32_t	aac_support_opt2;		/* supp. options from suppl. info */
+	uint32_t	aac_max_aif;			/* max. AIF count */
+	uint32_t	doorbell_mask;			/* for IOP reset */
+	uint32_t	aac_max_msix;			/* max. MSI-X vectors */
+	uint32_t	aac_vector_cap;			/* MSI-X vector capab.*/
 	int		msi_enabled;			/* MSI/MSI-X enabled */
 	int		msi_tupelo;		/* Series 6 support for */
 						/* single MSI interrupt */
 #define AAC_CAM_TARGET_WILDCARD ~0
 	void			(*cam_rescan_cb)(struct aac_softc *, uint32_t,
 				    uint32_t);
-	u_int32_t	DebugFlags;		/* Debug print flags bitmap */
-	u_int32_t	DebugOffset;		/* Offset from DPMEM start */
-	u_int32_t	DebugHeaderSize;	/* Size of debug header */
-	u_int32_t	FwDebugFlags;		/* FW Debug Flags */
-	u_int32_t	FwDebugBufferSize;	/* FW Debug Buffer size */	
+	uint32_t	DebugFlags;		/* Debug print flags bitmap */
+	uint32_t	DebugOffset;		/* Offset from DPMEM start */
+	uint32_t	DebugHeaderSize;	/* Size of debug header */
+	uint32_t	FwDebugFlags;		/* FW Debug Flags */
+	uint32_t	FwDebugBufferSize;	/* FW Debug Buffer size */	
 };
 
 /*
@@ -538,7 +538,7 @@ extern void	aacraid_print_aif(struct aac_softc *sc,
 
 struct aac_code_lookup {
 	char	*string;
-	u_int32_t	code;
+	uint32_t	code;
 };
 
 /*

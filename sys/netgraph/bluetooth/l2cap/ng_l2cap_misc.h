@@ -45,16 +45,16 @@ ng_l2cap_con_p ng_l2cap_new_con       (ng_l2cap_p, bdaddr_p, int);
 void           ng_l2cap_con_ref       (ng_l2cap_con_p);
 void           ng_l2cap_con_unref     (ng_l2cap_con_p);
 ng_l2cap_con_p ng_l2cap_con_by_addr   (ng_l2cap_p, bdaddr_p, unsigned int);
-ng_l2cap_con_p ng_l2cap_con_by_handle (ng_l2cap_p, u_int16_t);
+ng_l2cap_con_p ng_l2cap_con_by_handle (ng_l2cap_p, uint16_t);
 void           ng_l2cap_free_con      (ng_l2cap_con_p);
 
 /*
  * L2CAP channels
  */
 
-ng_l2cap_chan_p ng_l2cap_new_chan     (ng_l2cap_p, ng_l2cap_con_p, u_int16_t, int);
-ng_l2cap_chan_p ng_l2cap_chan_by_scid (ng_l2cap_p, u_int16_t, int);
-ng_l2cap_chan_p ng_l2cap_chan_by_conhandle(ng_l2cap_p , uint16_t , u_int16_t);
+ng_l2cap_chan_p ng_l2cap_new_chan     (ng_l2cap_p, ng_l2cap_con_p, uint16_t, int);
+ng_l2cap_chan_p ng_l2cap_chan_by_scid (ng_l2cap_p, uint16_t, int);
+ng_l2cap_chan_p ng_l2cap_chan_by_conhandle(ng_l2cap_p , uint16_t , uint16_t);
 
 void            ng_l2cap_free_chan    (ng_l2cap_chan_p);
 
@@ -83,9 +83,9 @@ do { \
 } while (0)
 
 ng_l2cap_cmd_p ng_l2cap_new_cmd      (ng_l2cap_con_p, ng_l2cap_chan_p,
-						u_int8_t, u_int8_t, u_int32_t);
-ng_l2cap_cmd_p ng_l2cap_cmd_by_ident (ng_l2cap_con_p, u_int8_t);
-u_int8_t       ng_l2cap_get_ident    (ng_l2cap_con_p);
+						uint8_t, uint8_t, uint32_t);
+ng_l2cap_cmd_p ng_l2cap_cmd_by_ident (ng_l2cap_con_p, uint8_t);
+uint8_t       ng_l2cap_get_ident    (ng_l2cap_con_p);
 
 /*
  * Timeout

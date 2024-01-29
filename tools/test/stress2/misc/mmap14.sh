@@ -86,11 +86,11 @@ EOF
 #include <unistd.h>
 
 #define LOOPS 2
-#define N (128 * 1024 / (int)sizeof(u_int32_t))
+#define N (128 * 1024 / (int)sizeof(uint32_t))
 #define PARALLEL 50
 
 static void *p;
-static u_int32_t r[N];
+static uint32_t r[N];
 
 static unsigned long
 makearg(void)

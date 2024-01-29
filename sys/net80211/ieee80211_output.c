@@ -3308,7 +3308,7 @@ ieee80211_alloc_rts(struct ieee80211com *ic,
 		rts->i_fc[0] = IEEE80211_FC0_VERSION_0 |
 			IEEE80211_FC0_TYPE_CTL | IEEE80211_FC0_SUBTYPE_RTS;
 		rts->i_fc[1] = IEEE80211_FC1_DIR_NODS;
-		*(u_int16_t *)rts->i_dur = htole16(dur);
+		*(uint16_t *)rts->i_dur = htole16(dur);
 		IEEE80211_ADDR_COPY(rts->i_ra, ra);
 		IEEE80211_ADDR_COPY(rts->i_ta, ta);
 
@@ -3334,7 +3334,7 @@ ieee80211_alloc_cts(struct ieee80211com *ic,
 		cts->i_fc[0] = IEEE80211_FC0_VERSION_0 |
 			IEEE80211_FC0_TYPE_CTL | IEEE80211_FC0_SUBTYPE_CTS;
 		cts->i_fc[1] = IEEE80211_FC1_DIR_NODS;
-		*(u_int16_t *)cts->i_dur = htole16(dur);
+		*(uint16_t *)cts->i_dur = htole16(dur);
 		IEEE80211_ADDR_COPY(cts->i_ra, ra);
 
 		m->m_pkthdr.len = m->m_len = sizeof(struct ieee80211_frame_cts);

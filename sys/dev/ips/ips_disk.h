@@ -59,7 +59,7 @@ typedef struct ipsdisk_softc {
 	device_t 	dev;
 	int		unit;
 	int		disk_number;
-	u_int32_t 	state;
+	uint32_t 	state;
 	struct disk 	*ipsd_disk;
 	ips_softc_t	*sc;
 }ipsdisk_softc_t;

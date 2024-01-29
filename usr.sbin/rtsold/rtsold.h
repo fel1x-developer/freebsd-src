@@ -42,7 +42,7 @@ TAILQ_HEAD(script_msg_head_t, script_msg);
 struct ra_opt {
 	TAILQ_ENTRY(ra_opt)	rao_next;
 
-	u_int8_t	rao_type;
+	uint8_t	rao_type;
 	struct timespec	rao_expire;
 	size_t		rao_len;
 	void		*rao_msg;

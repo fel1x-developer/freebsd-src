@@ -56,9 +56,9 @@
 struct aac_softc;
 extern int aacraid_get_fw_debug_buffer(struct aac_softc *);
 extern void aacraid_fw_printf(struct aac_softc *, unsigned long, const char *, ...);
-extern void aacraid_fw_print_mem(struct aac_softc *, unsigned long, u_int8_t *,int);
-extern int aacraid_sync_command(struct aac_softc *sc, u_int32_t command,
-				 u_int32_t arg0, u_int32_t arg1, u_int32_t arg2,
-				 u_int32_t arg3, u_int32_t *sp, u_int32_t *r1);
+extern void aacraid_fw_print_mem(struct aac_softc *, unsigned long, uint8_t *,int);
+extern int aacraid_sync_command(struct aac_softc *sc, uint32_t command,
+				 uint32_t arg0, uint32_t arg1, uint32_t arg2,
+				 uint32_t arg3, uint32_t *sp, uint32_t *r1);
 
 #endif

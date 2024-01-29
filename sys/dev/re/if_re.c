@@ -296,7 +296,7 @@ static int re_ifmedia_upd	(if_t);
 static void re_ifmedia_sts	(if_t, struct ifmediareq *);
 
 static void re_eeprom_putbyte	(struct rl_softc *, int);
-static void re_eeprom_getword	(struct rl_softc *, int, u_int16_t *);
+static void re_eeprom_getword	(struct rl_softc *, int, uint16_t *);
 static void re_read_eeprom	(struct rl_softc *, caddr_t, int, int);
 static int re_gmii_readreg	(device_t, int, int);
 static int re_gmii_writereg	(device_t, int, int, int);
@@ -394,10 +394,10 @@ re_eeprom_putbyte(struct rl_softc *sc, int addr)
  * Read a word of data stored in the EEPROM at address 'addr.'
  */
 static void
-re_eeprom_getword(struct rl_softc *sc, int addr, u_int16_t *dest)
+re_eeprom_getword(struct rl_softc *sc, int addr, uint16_t *dest)
 {
 	int			i;
-	u_int16_t		word = 0;
+	uint16_t		word = 0;
 
 	/*
 	 * Send address of word we want to read.
@@ -426,7 +426,7 @@ static void
 re_read_eeprom(struct rl_softc *sc, caddr_t dest, int off, int cnt)
 {
 	int			i;
-	u_int16_t		word = 0, *ptr;
+	uint16_t		word = 0, *ptr;
 
 	CSR_SETBIT_1(sc, RL_EECMD, RL_EEMODE_PROGRAM);
 
@@ -436,7 +436,7 @@ re_read_eeprom(struct rl_softc *sc, caddr_t dest, int off, int cnt)
 		CSR_SETBIT_1(sc, RL_EECMD, RL_EE_SEL);
 		re_eeprom_getword(sc, off + i, &word);
 		CSR_CLRBIT_1(sc, RL_EECMD, RL_EE_SEL);
-		ptr = (u_int16_t *)(dest + (i * 2));
+		ptr = (uint16_t *)(dest + (i * 2));
                 *ptr = word;
 	}
 
@@ -447,7 +447,7 @@ static int
 re_gmii_readreg(device_t dev, int phy, int reg)
 {
 	struct rl_softc		*sc;
-	u_int32_t		rval;
+	uint32_t		rval;
 	int			i;
 
 	sc = device_get_softc(dev);
@@ -485,7 +485,7 @@ static int
 re_gmii_writereg(device_t dev, int phy, int reg, int data)
 {
 	struct rl_softc		*sc;
-	u_int32_t		rval;
+	uint32_t		rval;
 	int			i;
 
 	sc = device_get_softc(dev);
@@ -517,8 +517,8 @@ static int
 re_miibus_readreg(device_t dev, int phy, int reg)
 {
 	struct rl_softc		*sc;
-	u_int16_t		rval = 0;
-	u_int16_t		re8139_reg = 0;
+	uint16_t		rval = 0;
+	uint16_t		re8139_reg = 0;
 
 	sc = device_get_softc(dev);
 
@@ -571,7 +571,7 @@ static int
 re_miibus_writereg(device_t dev, int phy, int reg, int data)
 {
 	struct rl_softc		*sc;
-	u_int16_t		re8139_reg = 0;
+	uint16_t		re8139_reg = 0;
 	int			rval = 0;
 
 	sc = device_get_softc(dev);
@@ -779,11 +779,11 @@ re_diag(struct rl_softc *sc)
 	struct mbuf		*m0;
 	struct ether_header	*eh;
 	struct rl_desc		*cur_rx;
-	u_int16_t		status;
-	u_int32_t		rxstat;
+	uint16_t		status;
+	uint32_t		rxstat;
 	int			total_len, i, error = 0, phyaddr;
-	u_int8_t		dst[] = { 0x00, 'h', 'e', 'l', 'l', 'o' };
-	u_int8_t		src[] = { 0x00, 'w', 'o', 'r', 'l', 'd' };
+	uint8_t		dst[] = { 0x00, 'h', 'e', 'l', 'l', 'o' };
+	uint8_t		src[] = { 0x00, 'w', 'o', 'r', 'l', 'd' };
 
 	/* Allocate a single mbuf */
 	MGETHDR(m0, M_NOWAIT, MT_DATA);
@@ -1213,14 +1213,14 @@ static int
 re_attach(device_t dev)
 {
 	u_char			eaddr[ETHER_ADDR_LEN];
-	u_int16_t		as[ETHER_ADDR_LEN / 2];
+	uint16_t		as[ETHER_ADDR_LEN / 2];
 	struct rl_softc		*sc;
 	if_t ifp;
 	const struct rl_hwrev	*hw_rev;
 	int			capmask, error = 0, hwrev, i, msic, msixc,
 				phy, reg, rid;
-	u_int32_t		cap, ctl;
-	u_int16_t		devid, re_did = 0;
+	uint32_t		cap, ctl;
+	uint16_t		devid, re_did = 0;
 	uint8_t			cfg;
 
 	sc = device_get_softc(dev);
@@ -2172,7 +2172,7 @@ re_rxeof(struct rl_softc *sc, int *rx_npktsp)
 	if_t ifp;
 	int			i, rxerr, total_len;
 	struct rl_desc		*cur_rx;
-	u_int32_t		rxstat, rxvlan;
+	uint32_t		rxstat, rxvlan;
 	int			jumbo, maxpkt = 16, rx_npkts = 0;
 
 	RL_LOCK_ASSERT(sc);
@@ -2415,7 +2415,7 @@ re_txeof(struct rl_softc *sc)
 {
 	if_t ifp;
 	struct rl_txdesc	*txd;
-	u_int32_t		txstat;
+	uint32_t		txstat;
 	int			cons;
 
 	cons = sc->rl_ldata.rl_tx_considx;
@@ -2537,7 +2537,7 @@ re_poll_locked(if_t ifp, enum poll_cmd cmd, int count)
 		re_start_locked(ifp);
 
 	if (cmd == POLL_AND_CHECK_STATUS) { /* also check status register */
-		u_int16_t       status;
+		uint16_t       status;
 
 		status = CSR_READ_2(sc, RL_ISR);
 		if (status == 0xffff)
@@ -2584,7 +2584,7 @@ re_int_task(void *arg, int npending)
 {
 	struct rl_softc		*sc;
 	if_t ifp;
-	u_int16_t		status;
+	uint16_t		status;
 	int			rval = 0;
 
 	sc = arg;

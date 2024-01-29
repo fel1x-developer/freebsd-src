@@ -67,10 +67,10 @@ static int		rtaspci_attach(device_t);
 /*
  * pcib interface.
  */
-static u_int32_t	rtaspci_read_config(device_t, u_int, u_int, u_int,
+static uint32_t	rtaspci_read_config(device_t, u_int, u_int, u_int,
 			    u_int, int);
 static void		rtaspci_write_config(device_t, u_int, u_int, u_int,
-			    u_int, u_int32_t, int);
+			    u_int, uint32_t, int);
 
 /*
  * Driver methods.

@@ -92,8 +92,8 @@
  * Holds an individual descriptor for any of the rings.
  */
 typedef struct hifn_desc {
-	volatile u_int32_t l;		/* length and status bits */
-	volatile u_int32_t p;
+	volatile uint32_t l;		/* length and status bits */
+	volatile uint32_t p;
 } hifn_desc_t;
 
 /*
@@ -446,10 +446,10 @@ typedef struct hifn_desc {
  * Structure to help build up the command data structure.
  */
 typedef struct hifn_base_command {
-	volatile u_int16_t masks;
-	volatile u_int16_t session_num;
-	volatile u_int16_t total_source_count;
-	volatile u_int16_t total_dest_count;
+	volatile uint16_t masks;
+	volatile uint16_t session_num;
+	volatile uint16_t total_source_count;
+	volatile uint16_t total_dest_count;
 } hifn_base_command_t;
 
 #define	HIFN_BASE_CMD_MAC		0x0400
@@ -466,10 +466,10 @@ typedef struct hifn_base_command {
  * Structure to help build up the command data structure.
  */
 typedef struct hifn_crypt_command {
-	volatile u_int16_t masks;
-	volatile u_int16_t header_skip;
-	volatile u_int16_t source_count;
-	volatile u_int16_t reserved;
+	volatile uint16_t masks;
+	volatile uint16_t header_skip;
+	volatile uint16_t source_count;
+	volatile uint16_t reserved;
 } hifn_crypt_command_t;
 
 #define	HIFN_CRYPT_CMD_ALG_MASK		0x0003		/* algorithm: */
@@ -498,10 +498,10 @@ typedef struct hifn_crypt_command {
  * Structure to help build up the command data structure.
  */
 typedef struct hifn_mac_command {
-	volatile u_int16_t masks;
-	volatile u_int16_t header_skip;
-	volatile u_int16_t source_count;
-	volatile u_int16_t reserved;
+	volatile uint16_t masks;
+	volatile uint16_t header_skip;
+	volatile uint16_t source_count;
+	volatile uint16_t reserved;
 } hifn_mac_command_t;
 
 #define	HIFN_MAC_CMD_ALG_MASK		0x0001

@@ -284,8 +284,8 @@ static void nfsrc_lock(struct nfsrvcache *rp);
 static void nfsrc_unlock(struct nfsrvcache *rp);
 static void nfsrc_wanted(struct nfsrvcache *rp);
 static void nfsrc_freecache(struct nfsrvcache *rp);
-static int nfsrc_getlenandcksum(struct mbuf *m1, u_int16_t *cksum);
-static void nfsrc_marksametcpconn(u_int64_t);
+static int nfsrc_getlenandcksum(struct mbuf *m1, uint16_t *cksum);
+static void nfsrc_marksametcpconn(uint64_t);
 
 /*
  * Return the correct mutex for this cache entry.
@@ -841,7 +841,7 @@ nfsrvd_cleancache(void)
  * The basic rule is to get rid of entries that are expired.
  */
 void
-nfsrc_trimcache(u_int64_t sockref, uint32_t snd_una, int final)
+nfsrc_trimcache(uint64_t sockref, uint32_t snd_una, int final)
 {
 	struct nfsrchash_bucket *hbp;
 	struct nfsrvcache *rp, *nextrp;
@@ -1022,7 +1022,7 @@ nfsrvd_derefcache(struct nfsrvcache *rp)
  * NFSRVCACHE_CHECKLEN bytes.
  */
 static int
-nfsrc_getlenandcksum(struct mbuf *m1, u_int16_t *cksum)
+nfsrc_getlenandcksum(struct mbuf *m1, uint16_t *cksum)
 {
 	int len = 0, cklen;
 	struct mbuf *m;
@@ -1042,6 +1042,6 @@ nfsrc_getlenandcksum(struct mbuf *m1, u_int16_t *cksum)
  * NFSv4.
  */
 static void
-nfsrc_marksametcpconn(u_int64_t sockref)
+nfsrc_marksametcpconn(uint64_t sockref)
 {
 }

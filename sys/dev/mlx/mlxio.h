@@ -60,8 +60,8 @@ struct mlx_usercommand
     int		mu_bufptr;	/* offset into command mailbox to place databuffer address */
 
     /* command */
-    u_int16_t	mu_status;	/* command status returned */
-    u_int8_t	mu_command[16];	/* command mailbox contents */
+    uint16_t	mu_status;	/* command status returned */
+    uint8_t	mu_command[16];	/* command mailbox contents */
 
     /* wrapper */
     int		mu_error;	/* result of submission to driver */
@@ -77,12 +77,12 @@ struct mlx_rebuild_request
 
 struct mlx_rebuild_status
 {
-    u_int16_t	rs_code;
+    uint16_t	rs_code;
 #define MLX_REBUILDSTAT_REBUILDCHECK	0x0000
 #define MLX_REBUILDSTAT_ADDCAPACITY	0x0400
 #define MLX_REBUILDSTAT_ADDCAPACITYINIT	0x0500
 #define MLX_REBUILDSTAT_IDLE		0xffff
-    u_int16_t	rs_drive;
+    uint16_t	rs_drive;
     int		rs_size;
     int		rs_remaining;
 };

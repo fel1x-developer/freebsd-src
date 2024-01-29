@@ -397,7 +397,7 @@ ata_periodic_poll(void *data)
 }
 
 void
-ata_print_cable(device_t dev, u_int8_t *who)
+ata_print_cable(device_t dev, uint8_t *who)
 {
     device_printf(dev,
                   "DMA limited to UDMA33, %s found non-ATA66 cable\n", who);

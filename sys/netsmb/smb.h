@@ -440,6 +440,6 @@ enum smb_dialects {
 #define	SMB_ERROR_NETWORK_ACCESS_DENIED	65
 #define	SMB_ERROR_MORE_DATA		234
 
-typedef u_int16_t	smbfh;
+typedef uint16_t	smbfh;
 
 #endif /* _NETSMB_SMB_H_ */

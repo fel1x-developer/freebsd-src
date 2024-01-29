@@ -81,7 +81,7 @@
  */
 #define HDRSIZE(sav) \
 	(((sav)->flags & SADB_X_EXT_OLD) ? \
-		sizeof (struct ah) : sizeof (struct ah) + sizeof (u_int32_t))
+		sizeof (struct ah) : sizeof (struct ah) + sizeof (uint32_t))
 /* 
  * Return authenticator size in bytes, based on a field in the
  * algorithm descriptor.
@@ -166,7 +166,7 @@ ah_hdrsiz(struct secasvar *sav)
 		size = roundup(rplen + authsize, align);
 	} else {
 		/* default guess */
-		size = sizeof (struct ah) + sizeof (u_int32_t) + 16;
+		size = sizeof (struct ah) + sizeof (uint32_t) + 16;
 	}
 	return size;
 }
@@ -579,7 +579,7 @@ ah_input(struct mbuf *m, struct secasvar *sav, int skip, int protoff)
 	SECASVAR_RUNLOCK(sav);
 
 	/* Verify AH header length. */
-	hl = sizeof(struct ah) + (ah->ah_len * sizeof (u_int32_t));
+	hl = sizeof(struct ah) + (ah->ah_len * sizeof (uint32_t));
 	ahx = sav->tdb_authalgxform;
 	authsize = AUTHSIZE(sav);
 	ahsize = ah_hdrsiz(sav);
@@ -779,7 +779,7 @@ ah_input_cb(struct cryptop *crp)
 	 * Update replay sequence number, if appropriate.
 	 */
 	if (sav->replay) {
-		u_int32_t seq;
+		uint32_t seq;
 
 		m_copydata(m, skip + offsetof(struct newah, ah_seq),
 			   sizeof (seq), (caddr_t) &seq);
@@ -932,8 +932,8 @@ ah_output(struct mbuf *m, struct secpolicy *sp, struct secasvar *sav,
 	ah = (struct newah *)(mtod(mi, caddr_t) + roff);
 
 	/* Initialize the AH header. */
-	m_copydata(m, protoff, sizeof(u_int8_t), (caddr_t) &ah->ah_nxt);
-	ah->ah_len = (ahsize - sizeof(struct ah)) / sizeof(u_int32_t);
+	m_copydata(m, protoff, sizeof(uint8_t), (caddr_t) &ah->ah_nxt);
+	ah->ah_len = (ahsize - sizeof(struct ah)) / sizeof(uint32_t);
 	ah->ah_reserve = 0;
 	ah->ah_spi = sav->spi;
 
@@ -1010,10 +1010,10 @@ ah_output(struct mbuf *m, struct secpolicy *sp, struct secasvar *sav,
 	case AF_INET:
 		bcopy(((caddr_t)(xd + 1)) +
 		    offsetof(struct ip, ip_len),
-		    (caddr_t) &iplen, sizeof(u_int16_t));
+		    (caddr_t) &iplen, sizeof(uint16_t));
 		iplen = htons(ntohs(iplen) + ahsize);
 		m_copyback(m, offsetof(struct ip, ip_len),
-		    sizeof(u_int16_t), (caddr_t) &iplen);
+		    sizeof(uint16_t), (caddr_t) &iplen);
 		break;
 #endif /* INET */
 

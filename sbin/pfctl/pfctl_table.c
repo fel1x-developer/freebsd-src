@@ -498,7 +498,7 @@ radix_perror(void)
 
 int
 pfctl_define_table(char *name, int flags, int addrs, const char *anchor,
-    struct pfr_buffer *ab, u_int32_t ticket)
+    struct pfr_buffer *ab, uint32_t ticket)
 {
 	struct pfr_table tbl;
 

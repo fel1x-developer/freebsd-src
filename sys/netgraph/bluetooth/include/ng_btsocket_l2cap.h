@@ -66,7 +66,7 @@ typedef struct ng_btsocket_l2cap_rtentry *	ng_btsocket_l2cap_rtentry_p;
 struct ng_btsocket_l2cap_raw_pcb {
 	struct socket				*so;	/* socket */
 
-	u_int32_t				 flags; /* flags */
+	uint32_t				 flags; /* flags */
 #define NG_BTSOCKET_L2CAP_RAW_PRIVILEGED	(1 << 0)
 
 	bdaddr_t				 src;	/* source address */
@@ -75,7 +75,7 @@ struct ng_btsocket_l2cap_raw_pcb {
 	uint8_t			 	 	 dsttype;/*source addr type*/
 	ng_btsocket_l2cap_rtentry_p		 rt;    /* routing info */
 
-	u_int32_t				 token;	/* message token */
+	uint32_t				 token;	/* message token */
 	struct ng_mesg				*msg;   /* message */
 
 	struct mtx				 pcb_mtx; /* pcb mutex */
@@ -134,14 +134,14 @@ struct ng_btsocket_l2cap_pcb {
 	uint8_t			 	 srctype;	/*source addr type*/
 	uint8_t			 	 dsttype;	/*source addr type*/
 
-	u_int16_t			 psm;	     /* PSM */
-	u_int16_t			 cid;	     /* Local channel ID */
+	uint16_t			 psm;	     /* PSM */
+	uint16_t			 cid;	     /* Local channel ID */
 	uint8_t				 idtype;
-	u_int16_t			 flags;      /* socket flags */
+	uint16_t			 flags;      /* socket flags */
 #define NG_BTSOCKET_L2CAP_CLIENT	(1 << 0)     /* socket is client */
 #define NG_BTSOCKET_L2CAP_TIMO		(1 << 1)     /* timeout pending */
 
-	u_int8_t			 state;      /* socket state */
+	uint8_t			 state;      /* socket state */
 #define NG_BTSOCKET_L2CAP_CLOSED	0            /* socket closed */
 #define NG_BTSOCKET_L2CAP_CONNECTING	1            /* wait for connect */
 #define NG_BTSOCKET_L2CAP_CONFIGURING	2            /* wait for config */
@@ -149,7 +149,7 @@ struct ng_btsocket_l2cap_pcb {
 #define NG_BTSOCKET_L2CAP_DISCONNECTING	4            /* wait for disconnect */
 #define NG_BTSOCKET_L2CAP_W4_ENC_CHANGE 5  
 
-	u_int8_t			 cfg_state;  /* config state */
+	uint8_t			 cfg_state;  /* config state */
 #define	NG_BTSOCKET_L2CAP_CFG_IN	(1 << 0)     /* incoming path done */
 #define	NG_BTSOCKET_L2CAP_CFG_OUT	(1 << 1)     /* outgoing path done */
 #define	NG_BTSOCKET_L2CAP_CFG_BOTH \
@@ -158,18 +158,18 @@ struct ng_btsocket_l2cap_pcb {
 #define	NG_BTSOCKET_L2CAP_CFG_IN_SENT	(1 << 2)     /* L2CAP ConfigReq sent */
 #define	NG_BTSOCKET_L2CAP_CFG_OUT_SENT	(1 << 3)     /* ---/--- */
 	uint8_t 			 encryption;
-	u_int16_t			 imtu;       /* Incoming MTU */
+	uint16_t			 imtu;       /* Incoming MTU */
 	ng_l2cap_flow_t			 iflow;      /* Input flow spec */
 
-	u_int16_t			 omtu;       /* Outgoing MTU */
+	uint16_t			 omtu;       /* Outgoing MTU */
 	ng_l2cap_flow_t			 oflow;      /* Outgoing flow spec */
 
-	u_int16_t			 flush_timo; /* flush timeout */   
-	u_int16_t			 link_timo;  /* link timeout */ 
+	uint16_t			 flush_timo; /* flush timeout */   
+	uint16_t			 link_timo;  /* link timeout */ 
 
 	struct callout			 timo;       /* timeout */
 
-	u_int32_t			 token;	     /* message token */
+	uint32_t			 token;	     /* message token */
 	ng_btsocket_l2cap_rtentry_p	 rt;         /* routing info */
 
 	struct mtx			 pcb_mtx;    /* pcb mutex */

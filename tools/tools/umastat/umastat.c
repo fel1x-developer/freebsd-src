@@ -108,7 +108,7 @@ kread_symbol(kvm_t *kvm, int index, void *address, size_t size,
 }
 
 static const struct flaginfo {
-	u_int32_t	 fi_flag;
+	uint32_t	 fi_flag;
 	const char	*fi_name;
 } flaginfo[] = {
 	{ UMA_ZFLAG_MULTI, "multi" },

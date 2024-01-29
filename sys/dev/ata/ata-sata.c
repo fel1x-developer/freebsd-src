@@ -49,7 +49,7 @@ void
 ata_sata_phy_check_events(device_t dev, int port)
 {
     struct ata_channel *ch = device_get_softc(dev);
-    u_int32_t error, status;
+    uint32_t error, status;
 
     if (ata_sata_scr_read(ch, port, ATA_SERROR, &error))
 	return;
@@ -107,7 +107,7 @@ ata_sata_scr_write(struct ata_channel *ch, int port, int reg, uint32_t val)
 static int
 ata_sata_connect(struct ata_channel *ch, int port, int quick)
 {
-    u_int32_t status;
+    uint32_t status;
     int timeout, t;
 
     /* wait up to 1 second for "connect well" */
@@ -241,7 +241,7 @@ ata_sata_getrev(device_t dev, int target)
 }
 
 int
-ata_request2fis_h2d(struct ata_request *request, u_int8_t *fis)
+ata_request2fis_h2d(struct ata_request *request, uint8_t *fis)
 {
 
     if (request->flags & ATA_R_ATAPI) {
@@ -285,7 +285,7 @@ void
 ata_pm_identify(device_t dev)
 {
     struct ata_channel *ch = device_get_softc(dev);
-    u_int32_t pm_chipid, pm_revision, pm_ports;
+    uint32_t pm_chipid, pm_revision, pm_ports;
     int port;
 
     /* get PM vendor & product data */
@@ -336,7 +336,7 @@ ata_pm_identify(device_t dev)
 
     /* reset all ports and register if anything connected */
     for (port=0; port < pm_ports; port++) {
-	u_int32_t signature;
+	uint32_t signature;
 
 	if (!ata_sata_phy_reset(dev, port, 1))
 	    continue;

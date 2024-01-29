@@ -27,8 +27,8 @@
 
 struct mem_range_desc
 {
-	u_int64_t	mr_base;
-	u_int64_t	mr_len;
+	uint64_t	mr_base;
+	uint64_t	mr_len;
 	int		mr_flags;
 	char		mr_owner[8];
 };

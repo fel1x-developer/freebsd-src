@@ -67,7 +67,7 @@ static struct smb_dialect smb_dialects[] = {
 	{-1,			NULL}
 };
 
-static u_int32_t
+static uint32_t
 smb_vc_maxread(struct smb_vc *vcp)
 {
 	/*
@@ -85,7 +85,7 @@ smb_vc_maxread(struct smb_vc *vcp)
 		return (vcp->vc_sopt.sv_maxtx - SMB_HDRLEN - 64);
 }
 
-static u_int32_t
+static uint32_t
 smb_vc_maxwrite(struct smb_vc *vcp)
 {
 	/*
@@ -115,8 +115,8 @@ smb_smb_negotiate(struct smb_vc *vcp, struct smb_cred *scred)
 	struct smb_rq *rqp;
 	struct mbchain *mbp;
 	struct mdchain *mdp;
-	u_int8_t wc, stime[8], sblen;
-	u_int16_t dindex, tw, tw1, swlen, bc;
+	uint8_t wc, stime[8], sblen;
+	uint16_t dindex, tw, tw1, swlen, bc;
 	int error, maxqsz;
 	int unicode = SMB_UNICODE_STRINGS(vcp);
 	void * servercharset = vcp->vc_toserver;
@@ -178,7 +178,7 @@ smb_smb_negotiate(struct smb_vc *vcp, struct smb_cred *scred)
 			md_get_uint32le(mdp, &sp->sv_skey);
 			md_get_uint32le(mdp, &sp->sv_caps);
 			md_get_mem(mdp, stime, 8, MB_MSYSTEM);
-			md_get_uint16le(mdp, (u_int16_t*)&sp->sv_tz);
+			md_get_uint16le(mdp, (uint16_t*)&sp->sv_tz);
 			md_get_uint8(mdp, &sblen);
 			if (sblen && (sp->sv_sm & SMB_SM_ENCRYPT)) {
 				if (sblen != SMB_MAXCHALLENGELEN) {
@@ -230,7 +230,7 @@ smb_smb_negotiate(struct smb_vc *vcp, struct smb_cred *scred)
 			if (wc == 13) {		/* >= LANMAN1 */
 				md_get_uint16(mdp, &tw);		/* time */
 				md_get_uint16(mdp, &tw1);		/* date */
-				md_get_uint16le(mdp, (u_int16_t*)&sp->sv_tz);
+				md_get_uint16le(mdp, (uint16_t*)&sp->sv_tz);
 				md_get_uint16le(mdp, &swlen);
 				if (swlen > SMB_MAXCHALLENGELEN)
 					break;
@@ -292,12 +292,12 @@ smb_smb_ssnsetup(struct smb_vc *vcp, struct smb_cred *scred)
 {
 	struct smb_rq *rqp;
 	struct mbchain *mbp;
-/*	u_int8_t wc;
-	u_int16_t tw, tw1;*/
+/*	uint8_t wc;
+	uint16_t tw, tw1;*/
 	smb_uniptr unipp, ntencpass = NULL;
 	char *pp, *up, *pbuf, *encpass;
 	int error, plen, uniplen, ulen, upper;
-	u_int32_t caps = 0;
+	uint32_t caps = 0;
 
 	upper = 0;
 
@@ -618,16 +618,16 @@ smb_smb_treedisconnect(struct smb_share *ssp, struct smb_cred *scred)
 }
 
 static __inline int
-smb_smb_readx(struct smb_share *ssp, u_int16_t fid, int *len, int *rresid,
+smb_smb_readx(struct smb_share *ssp, uint16_t fid, int *len, int *rresid,
 	      struct uio *uio, struct smb_cred *scred)
 {
 	struct smb_rq *rqp;
 	struct mbchain *mbp;
 	struct mdchain *mdp;
-	u_int8_t wc;
+	uint8_t wc;
 	int error;
-	u_int16_t residhi, residlo, off, doff;
-	u_int32_t resid;
+	uint16_t residhi, residlo, off, doff;
+	uint32_t resid;
 
 	error = smb_rq_alloc(SSTOCP(ssp), SMB_COM_READ_ANDX, scred, &rqp);
 	if (error)
@@ -699,15 +699,15 @@ smb_smb_readx(struct smb_share *ssp, u_int16_t fid, int *len, int *rresid,
 }
 
 static __inline int
-smb_smb_writex(struct smb_share *ssp, u_int16_t fid, int *len, int *rresid,
+smb_smb_writex(struct smb_share *ssp, uint16_t fid, int *len, int *rresid,
 	struct uio *uio, struct smb_cred *scred)
 {
 	struct smb_rq *rqp;
 	struct mbchain *mbp;
 	struct mdchain *mdp;
 	int error;
-	u_int8_t wc;
-	u_int16_t resid;
+	uint8_t wc;
+	uint16_t resid;
 
 	error = smb_rq_alloc(SSTOCP(ssp), SMB_COM_WRITE_ANDX, scred, &rqp);
 	if (error)
@@ -756,14 +756,14 @@ smb_smb_writex(struct smb_share *ssp, u_int16_t fid, int *len, int *rresid,
 }
 
 static __inline int
-smb_smb_read(struct smb_share *ssp, u_int16_t fid,
+smb_smb_read(struct smb_share *ssp, uint16_t fid,
 	int *len, int *rresid, struct uio *uio, struct smb_cred *scred)
 {
 	struct smb_rq *rqp;
 	struct mbchain *mbp;
 	struct mdchain *mdp;
-	u_int16_t resid, bc;
-	u_int8_t wc;
+	uint16_t resid, bc;
+	uint8_t wc;
 	int error, rlen, blksz;
 
 	if (SSTOVC(ssp)->vc_sopt.sv_caps & SMB_CAP_LARGE_READX)
@@ -814,7 +814,7 @@ smb_smb_read(struct smb_share *ssp, u_int16_t fid,
 }
 
 int
-smb_read(struct smb_share *ssp, u_int16_t fid, struct uio *uio,
+smb_read(struct smb_share *ssp, uint16_t fid, struct uio *uio,
 	struct smb_cred *scred)
 {
 	int tsize, len, resid;
@@ -835,14 +835,14 @@ smb_read(struct smb_share *ssp, u_int16_t fid, struct uio *uio,
 }
 
 static __inline int
-smb_smb_write(struct smb_share *ssp, u_int16_t fid, int *len, int *rresid,
+smb_smb_write(struct smb_share *ssp, uint16_t fid, int *len, int *rresid,
 	struct uio *uio, struct smb_cred *scred)
 {
 	struct smb_rq *rqp;
 	struct mbchain *mbp;
 	struct mdchain *mdp;
-	u_int16_t resid;
-	u_int8_t wc;
+	uint16_t resid;
+	uint8_t wc;
 	int error, blksz;
 
 	if (*len && SSTOVC(ssp)->vc_sopt.sv_caps & SMB_CAP_LARGE_WRITEX)
@@ -889,7 +889,7 @@ smb_smb_write(struct smb_share *ssp, u_int16_t fid, int *len, int *rresid,
 }
 
 int
-smb_write(struct smb_share *ssp, u_int16_t fid, struct uio *uio,
+smb_write(struct smb_share *ssp, uint16_t fid, struct uio *uio,
 	struct smb_cred *scred)
 {
 	int error = 0, len, tsize, resid;

@@ -79,7 +79,7 @@ static void ahci_stop(struct ahci_channel *ch);
 static void ahci_clo(struct ahci_channel *ch);
 static void ahci_start_fr(struct ahci_channel *ch);
 static void ahci_stop_fr(struct ahci_channel *ch);
-static int ahci_phy_check_events(struct ahci_channel *ch, u_int32_t serr);
+static int ahci_phy_check_events(struct ahci_channel *ch, uint32_t serr);
 static uint32_t ahci_ch_detval(struct ahci_channel *ch, uint32_t val);
 
 static int ahci_sata_connect(struct ahci_channel *ch);
@@ -497,7 +497,7 @@ ahci_intr(void *data)
 {
 	struct ahci_controller_irq *irq = data;
 	struct ahci_controller *ctlr = irq->ctlr;
-	u_int32_t is, ise = 0;
+	uint32_t is, ise = 0;
 	void *arg;
 	int unit;
 
@@ -803,7 +803,7 @@ ahci_ch_attach(device_t dev)
 	struct sysctl_ctx_list *ctx;
 	struct sysctl_oid *tree;
 	int rid, error, i, sata_rev = 0;
-	u_int32_t version;
+	uint32_t version;
 
 	ch->dev = dev;
 	ch->unit = (intptr_t)device_get_ivars(dev);
@@ -1214,12 +1214,12 @@ ahci_slotsfree(device_t dev)
 }
 
 static int
-ahci_phy_check_events(struct ahci_channel *ch, u_int32_t serr)
+ahci_phy_check_events(struct ahci_channel *ch, uint32_t serr)
 {
 
 	if (((ch->pm_level == 0) && (serr & ATA_SE_PHY_CHANGED)) ||
 	    ((ch->pm_level != 0 || ch->listening) && (serr & ATA_SE_EXCHANGED))) {
-		u_int32_t status = ATA_INL(ch->r_mem, AHCI_P_SSTS);
+		uint32_t status = ATA_INL(ch->r_mem, AHCI_P_SSTS);
 		union ccb *ccb;
 
 		if (bootverbose) {
@@ -1246,7 +1246,7 @@ ahci_phy_check_events(struct ahci_channel *ch, u_int32_t serr)
 static void
 ahci_cpd_check_events(struct ahci_channel *ch)
 {
-	u_int32_t status;
+	uint32_t status;
 	union ccb *ccb;
 	device_t dev;
 
@@ -1276,7 +1276,7 @@ ahci_cpd_check_events(struct ahci_channel *ch)
 }
 
 static void
-ahci_notify_events(struct ahci_channel *ch, u_int32_t status)
+ahci_notify_events(struct ahci_channel *ch, uint32_t status)
 {
 	struct cam_path *dpath;
 	int i;
@@ -1389,7 +1389,7 @@ ahci_ch_intr_main(struct ahci_channel *ch, uint32_t istatus)
 		if (ch->caps & AHCI_CAP_SSNTF)
 			sntf = ATA_INL(ch->r_mem, AHCI_P_SNTF);
 		else if (ch->fbs_enabled) {
-			u_int8_t *fis = ch->dma.rfis + 0x58;
+			uint8_t *fis = ch->dma.rfis + 0x58;
 
 			for (i = 0; i < 16; i++) {
 				if (fis[1] & 0x80) {
@@ -1399,7 +1399,7 @@ ahci_ch_intr_main(struct ahci_channel *ch, uint32_t istatus)
 	    			fis += 256;
 	    		}
 		} else {
-			u_int8_t *fis = ch->dma.rfis + 0x58;
+			uint8_t *fis = ch->dma.rfis + 0x58;
 
 			if (fis[1] & 0x80)
 				sntf = (1 << (fis[1] & 0x0f));
@@ -1685,7 +1685,7 @@ ahci_execute_transaction(struct ahci_slot *slot)
 		    (ccb->ccb_h.flags & CAM_DIR_OUT ? AHCI_CMD_WRITE : 0) |
 		    (ccb->ccb_h.func_code == XPT_SCSI_IO ?
 		     (AHCI_CMD_ATAPI | AHCI_CMD_PREFETCH) : 0) |
-		    (fis_size / sizeof(u_int32_t)) |
+		    (fis_size / sizeof(uint32_t)) |
 		    (port << 12);
 	clp->prd_length = htole16(slot->dma.nsegs);
 	/* Special handling for Soft Reset command. */
@@ -1952,7 +1952,7 @@ ahci_end_transaction(struct ahci_slot *slot, enum ahci_err_type et)
 
 		if ((et == AHCI_ERR_TFE) ||
 		    (ccb->ataio.cmd.flags & CAM_ATAIO_NEEDRESULT)) {
-			u_int8_t *fis = ch->dma.rfis + 0x40;
+			uint8_t *fis = ch->dma.rfis + 0x40;
 
 			bus_dmamap_sync(ch->dma.rfis_tag, ch->dma.rfis_map,
 			    BUS_DMASYNC_POSTREAD);
@@ -2303,7 +2303,7 @@ ahci_process_request_sense(struct ahci_channel *ch, union ccb *ccb)
 static void
 ahci_start(struct ahci_channel *ch, int fbs)
 {
-	u_int32_t cmd;
+	uint32_t cmd;
 
 	/* Run the channel start callback, if any. */
 	if (ch->start)
@@ -2329,7 +2329,7 @@ ahci_start(struct ahci_channel *ch, int fbs)
 static void
 ahci_stop(struct ahci_channel *ch)
 {
-	u_int32_t cmd;
+	uint32_t cmd;
 	int timeout;
 
 	/* Kill all activity on this channel */
@@ -2350,7 +2350,7 @@ ahci_stop(struct ahci_channel *ch)
 static void
 ahci_clo(struct ahci_channel *ch)
 {
-	u_int32_t cmd;
+	uint32_t cmd;
 	int timeout;
 
 	/* Issue Command List Override if supported */ 
@@ -2372,7 +2372,7 @@ ahci_clo(struct ahci_channel *ch)
 static void
 ahci_stop_fr(struct ahci_channel *ch)
 {
-	u_int32_t cmd;
+	uint32_t cmd;
 	int timeout;
 
 	/* Kill all FIS reception on this channel */
@@ -2392,7 +2392,7 @@ ahci_stop_fr(struct ahci_channel *ch)
 static void
 ahci_start_fr(struct ahci_channel *ch)
 {
-	u_int32_t cmd;
+	uint32_t cmd;
 
 	/* Start FIS reception on this channel */
 	cmd = ATA_INL(ch->r_mem, AHCI_P_CMD);
@@ -2543,7 +2543,7 @@ ahci_reset(struct ahci_channel *ch)
 static int
 ahci_setup_fis(struct ahci_channel *ch, struct ahci_cmd_tab *ctp, union ccb *ccb, int tag)
 {
-	u_int8_t *fis = &ctp->cfis[0];
+	uint8_t *fis = &ctp->cfis[0];
 
 	bzero(fis, 20);
 	fis[0] = 0x27;  		/* host to device */
@@ -2600,7 +2600,7 @@ ahci_setup_fis(struct ahci_channel *ch, struct ahci_cmd_tab *ctp, union ccb *ccb
 static int
 ahci_sata_connect(struct ahci_channel *ch)
 {
-	u_int32_t status;
+	uint32_t status;
 	int timeout, timeoutslot, found = 0;
 
 	/*

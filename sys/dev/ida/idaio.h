@@ -6,7 +6,7 @@
 struct ida_user_command {
 	int		command;
 	int		drive;
-	u_int32_t	blkno;
+	uint32_t	blkno;
 	union {
 		struct ida_drive_info		di;
 		struct ida_drive_info_ext	die;
@@ -15,7 +15,7 @@ struct ida_user_command {
 		struct ida_phys_drv_info	pdi;
 		struct ida_blink_drv_leds	bdl;
 		struct ida_label_logical	ll;
-		u_int8_t buf;
+		uint8_t buf;
 	} d;
 };
 

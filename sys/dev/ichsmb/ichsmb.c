@@ -263,7 +263,7 @@ ichsmb_writew(device_t dev, u_char slave, char cmd, short word)
 	int smb_error;
 
 	DBG("slave=0x%02x cmd=0x%02x word=0x%04x\n",
-	    slave, (u_char)cmd, (u_int16_t)word);
+	    slave, (u_char)cmd, (uint16_t)word);
 	KASSERT(sc->ich_cmd == -1,
 	    ("%s: ich_cmd=%d\n", __func__ , sc->ich_cmd));
 	mtx_lock(&sc->mutex);
@@ -327,7 +327,7 @@ ichsmb_readw(device_t dev, u_char slave, char cmd, short *word)
 			ICH_D1) << 8);
 	}
 	mtx_unlock(&sc->mutex);
-	DBG("smb_error=%d word=0x%04x\n", smb_error, (u_int16_t)*word);
+	DBG("smb_error=%d word=0x%04x\n", smb_error, (uint16_t)*word);
 	return (smb_error);
 }
 
@@ -338,7 +338,7 @@ ichsmb_pcall(device_t dev, u_char slave, char cmd, short sdata, short *rdata)
 	int smb_error;
 
 	DBG("slave=0x%02x cmd=0x%02x sdata=0x%04x\n",
-	    slave, (u_char)cmd, (u_int16_t)sdata);
+	    slave, (u_char)cmd, (uint16_t)sdata);
 	KASSERT(sc->ich_cmd == -1,
 	    ("%s: ich_cmd=%d\n", __func__ , sc->ich_cmd));
 	mtx_lock(&sc->mutex);
@@ -357,7 +357,7 @@ ichsmb_pcall(device_t dev, u_char slave, char cmd, short sdata, short *rdata)
 			ICH_D1) << 8);
 	}
 	mtx_unlock(&sc->mutex);
-	DBG("smb_error=%d rdata=0x%04x\n", smb_error, (u_int16_t)*rdata);
+	DBG("smb_error=%d rdata=0x%04x\n", smb_error, (uint16_t)*rdata);
 	return (smb_error);
 }
 
@@ -460,7 +460,7 @@ ichsmb_bread(device_t dev, u_char slave, char cmd, u_char *count, char *buf)
  * This table describes what interrupts we should ever expect to
  * see after each ICH command, not including the SMBALERT interrupt.
  */
-static const u_int8_t ichsmb_state_irqs[] = {
+static const uint8_t ichsmb_state_irqs[] = {
 	/* quick */
 	(ICH_HST_STA_BUS_ERR | ICH_HST_STA_DEV_ERR | ICH_HST_STA_INTR),
 	/* byte */
@@ -489,8 +489,8 @@ ichsmb_device_intr(void *cookie)
 	const sc_p sc = cookie;
 	const device_t dev = sc->dev;
 	const int maxloops = 16;
-	u_int8_t status;
-	u_int8_t ok_bits;
+	uint8_t status;
+	uint8_t ok_bits;
 	int cmd_index;
         int count;
 

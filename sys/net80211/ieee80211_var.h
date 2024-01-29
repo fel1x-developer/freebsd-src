@@ -278,7 +278,7 @@ struct ieee80211com {
 				    int, struct ieee80211_channel []);
 
 	int			(*ic_set_quiet)(struct ieee80211_node *,
-				    u_int8_t *quiet_elm);
+				    uint8_t *quiet_elm);
 
 	/* regular transmit */
 	int			(*ic_transmit)(struct ieee80211com *,

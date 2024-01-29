@@ -100,7 +100,7 @@ static int	snapper_uninit(struct snd_mixer *m);
 static int	snapper_reinit(struct snd_mixer *m);
 static int	snapper_set(struct snd_mixer *m, unsigned dev, unsigned left,
 		    unsigned right);
-static u_int32_t	snapper_setrecsrc(struct snd_mixer *m, u_int32_t src);
+static uint32_t	snapper_setrecsrc(struct snd_mixer *m, uint32_t src);
 
 static device_method_t snapper_methods[] = {
 	/* Device interface. */
@@ -481,8 +481,8 @@ snapper_set(struct snd_mixer *m, unsigned dev, unsigned left, unsigned right)
 	return (0);
 }
 
-static u_int32_t
-snapper_setrecsrc(struct snd_mixer *m, u_int32_t src)
+static uint32_t
+snapper_setrecsrc(struct snd_mixer *m, uint32_t src)
 {
 	return (0);
 }

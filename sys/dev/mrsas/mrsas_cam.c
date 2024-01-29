@@ -69,10 +69,10 @@ mrsas_build_ldio_nonrw(struct mrsas_softc *sc, struct mrsas_mpt_cmd *cmd,
     union ccb *ccb);
 int
 mrsas_build_syspdio(struct mrsas_softc *sc, struct mrsas_mpt_cmd *cmd,
-    union ccb *ccb, struct cam_sim *sim, u_int8_t fp_possible);
+    union ccb *ccb, struct cam_sim *sim, uint8_t fp_possible);
 int
 mrsas_setup_io(struct mrsas_softc *sc, struct mrsas_mpt_cmd *cmd,
-    union ccb *ccb, u_int32_t device_id,
+    union ccb *ccb, uint32_t device_id,
     MRSAS_RAID_SCSI_IO_REQUEST * io_request);
 void	mrsas_xpt_freeze(struct mrsas_softc *sc);
 void	mrsas_xpt_release(struct mrsas_softc *sc);
@@ -81,18 +81,18 @@ void	mrsas_release_mpt_cmd(struct mrsas_mpt_cmd *cmd);
 void	mrsas_unmap_request(struct mrsas_softc *sc, struct mrsas_mpt_cmd *cmd);
 void	mrsas_cmd_done(struct mrsas_softc *sc, struct mrsas_mpt_cmd *cmd);
 void
-mrsas_fire_cmd(struct mrsas_softc *sc, u_int32_t req_desc_lo,
-    u_int32_t req_desc_hi);
+mrsas_fire_cmd(struct mrsas_softc *sc, uint32_t req_desc_lo,
+    uint32_t req_desc_hi);
 void
 mrsas_set_pd_lba(MRSAS_RAID_SCSI_IO_REQUEST * io_request,
-    u_int8_t cdb_len, struct IO_REQUEST_INFO *io_info, union ccb *ccb,
-    MR_DRV_RAID_MAP_ALL * local_map_ptr, u_int32_t ref_tag,
-    u_int32_t ld_block_size);
+    uint8_t cdb_len, struct IO_REQUEST_INFO *io_info, union ccb *ccb,
+    MR_DRV_RAID_MAP_ALL * local_map_ptr, uint32_t ref_tag,
+    uint32_t ld_block_size);
 static void mrsas_freeze_simq(struct mrsas_mpt_cmd *cmd, struct cam_sim *sim);
 static void mrsas_cam_poll(struct cam_sim *sim);
 static void mrsas_action(struct cam_sim *sim, union ccb *ccb);
 static void mrsas_scsiio_timeout(void *data);
-static int mrsas_track_scsiio(struct mrsas_softc *sc, target_id_t id, u_int32_t bus_id);
+static int mrsas_track_scsiio(struct mrsas_softc *sc, target_id_t id, uint32_t bus_id);
 static void mrsas_tm_response_code(struct mrsas_softc *sc,
     MPI2_SCSI_TASK_MANAGE_REPLY *mpi_reply);
 static int mrsas_issue_tm(struct mrsas_softc *sc,
@@ -113,26 +113,26 @@ static void mrsas_build_prp_nvme(struct mrsas_mpt_cmd *cmd,
 
 struct mrsas_mpt_cmd *mrsas_get_mpt_cmd(struct mrsas_softc *sc);
 MRSAS_REQUEST_DESCRIPTOR_UNION *
-	mrsas_get_request_desc(struct mrsas_softc *sc, u_int16_t index);
+	mrsas_get_request_desc(struct mrsas_softc *sc, uint16_t index);
 
 extern int mrsas_reset_targets(struct mrsas_softc *sc);
-extern u_int16_t MR_TargetIdToLdGet(u_int32_t ldTgtId, MR_DRV_RAID_MAP_ALL * map);
-extern u_int32_t
-MR_LdBlockSizeGet(u_int32_t ldTgtId, MR_DRV_RAID_MAP_ALL * map);
+extern uint16_t MR_TargetIdToLdGet(uint32_t ldTgtId, MR_DRV_RAID_MAP_ALL * map);
+extern uint32_t
+MR_LdBlockSizeGet(uint32_t ldTgtId, MR_DRV_RAID_MAP_ALL * map);
 extern void mrsas_isr(void *arg);
 extern void mrsas_aen_handler(struct mrsas_softc *sc);
-extern u_int8_t
+extern uint8_t
 MR_BuildRaidContext(struct mrsas_softc *sc,
     struct IO_REQUEST_INFO *io_info, RAID_CONTEXT * pRAID_Context,
     MR_DRV_RAID_MAP_ALL * map);
-extern u_int16_t
-MR_LdSpanArrayGet(u_int32_t ld, u_int32_t span,
+extern uint16_t
+MR_LdSpanArrayGet(uint32_t ld, uint32_t span,
     MR_DRV_RAID_MAP_ALL * map);
-extern u_int16_t 
+extern uint16_t 
 mrsas_get_updated_dev_handle(struct mrsas_softc *sc,
     PLD_LOAD_BALANCE_INFO lbInfo, struct IO_REQUEST_INFO *io_info);
-extern int mrsas_complete_cmd(struct mrsas_softc *sc, u_int32_t MSIxIndex);
-extern MR_LD_RAID *MR_LdRaidGet(u_int32_t ld, MR_DRV_RAID_MAP_ALL * map);
+extern int mrsas_complete_cmd(struct mrsas_softc *sc, uint32_t MSIxIndex);
+extern MR_LD_RAID *MR_LdRaidGet(uint32_t ld, MR_DRV_RAID_MAP_ALL * map);
 extern void mrsas_disable_intr(struct mrsas_softc *sc);
 extern void mrsas_enable_intr(struct mrsas_softc *sc);
 void mrsas_prepare_secondRaid1_IO(struct mrsas_softc *sc,
@@ -263,7 +263,7 @@ mrsas_action(struct cam_sim *sim, union ccb *ccb)
 {
 	struct mrsas_softc *sc = (struct mrsas_softc *)cam_sim_softc(sim);
 	struct ccb_hdr *ccb_h = &(ccb->ccb_h);
-	u_int32_t device_id;
+	uint32_t device_id;
 
 	/*
      * Check if the system going down
@@ -385,7 +385,7 @@ mrsas_scsiio_timeout(void *data)
 {
 	struct mrsas_mpt_cmd *cmd;
 	struct mrsas_softc *sc;
-	u_int32_t target_id;
+	uint32_t target_id;
 
 	if (!data)
 		return;
@@ -439,7 +439,7 @@ mrsas_startio(struct mrsas_softc *sc, struct cam_sim *sim,
 	struct ccb_hdr *ccb_h = &(ccb->ccb_h);
 	struct ccb_scsiio *csio = &(ccb->csio);
 	MRSAS_REQUEST_DESCRIPTOR_UNION *req_desc;
-	u_int8_t cmd_type;
+	uint8_t cmd_type;
 
 	if ((csio->cdb_io.cdb_bytes[0]) == SYNCHRONIZE_CACHE &&
 		(!sc->fw_sync_cache_support)) {
@@ -697,7 +697,7 @@ mrsas_release_mpt_cmd(struct mrsas_mpt_cmd *cmd)
 
 	mtx_lock(&sc->mpt_cmd_pool_lock);
 	cmd->r1_alt_dev_handle = MR_DEVHANDLE_INVALID;
-	cmd->sync_cmd_idx = (u_int32_t)MRSAS_ULONG_MAX;
+	cmd->sync_cmd_idx = (uint32_t)MRSAS_ULONG_MAX;
 	cmd->peer_cmd = NULL;
 	cmd->cmd_completed = 0;
 	memset((uint8_t *)cmd->io_request, 0,
@@ -716,9 +716,9 @@ mrsas_release_mpt_cmd(struct mrsas_mpt_cmd *cmd)
  * This function returns a pointer to the request descriptor.
  */
 MRSAS_REQUEST_DESCRIPTOR_UNION *
-mrsas_get_request_desc(struct mrsas_softc *sc, u_int16_t index)
+mrsas_get_request_desc(struct mrsas_softc *sc, uint16_t index)
 {
-	u_int8_t *p;
+	uint8_t *p;
 
 	KASSERT(index < sc->max_fw_cmds, ("req_desc is out of range"));
 	p = sc->req_desc + sizeof(MRSAS_REQUEST_DESCRIPTOR_UNION) * index;
@@ -790,7 +790,7 @@ mrsas_build_ldio_rw(struct mrsas_softc *sc, struct mrsas_mpt_cmd *cmd,
 {
 	struct ccb_hdr *ccb_h = &(ccb->ccb_h);
 	struct ccb_scsiio *csio = &(ccb->csio);
-	u_int32_t device_id;
+	uint32_t device_id;
 	MRSAS_RAID_SCSI_IO_REQUEST *io_request;
 
 	device_id = ccb_h->target_id;
@@ -832,11 +832,11 @@ static void
 mrsas_stream_detect(struct mrsas_softc *sc, struct mrsas_mpt_cmd *cmd,
     struct IO_REQUEST_INFO *io_info)
 {
-	u_int32_t device_id = io_info->ldTgtId;
+	uint32_t device_id = io_info->ldTgtId;
 	LD_STREAM_DETECT *current_ld_SD = sc->streamDetectByLD[device_id];
-	u_int32_t *track_stream = &current_ld_SD->mruBitMap;
-	u_int32_t streamNum, shiftedValues, unshiftedValues;
-	u_int32_t indexValueMask, shiftedValuesMask;
+	uint32_t *track_stream = &current_ld_SD->mruBitMap;
+	uint32_t streamNum, shiftedValues, unshiftedValues;
+	uint32_t indexValueMask, shiftedValuesMask;
 	int i;
 	boolean_t isReadAhead = false;
 	STREAM_DETECT *current_SD;
@@ -901,7 +901,7 @@ mrsas_stream_detect(struct mrsas_softc *sc, struct mrsas_mpt_cmd *cmd,
  */
 int
 mrsas_setup_io(struct mrsas_softc *sc, struct mrsas_mpt_cmd *cmd,
-    union ccb *ccb, u_int32_t device_id,
+    union ccb *ccb, uint32_t device_id,
     MRSAS_RAID_SCSI_IO_REQUEST * io_request)
 {
 	struct ccb_hdr *ccb_h = &(ccb->ccb_h);
@@ -911,9 +911,9 @@ mrsas_setup_io(struct mrsas_softc *sc, struct mrsas_mpt_cmd *cmd,
 	struct mrsas_mpt_cmd *r1_cmd = NULL;
 
 	MR_LD_RAID *raid;
-	u_int8_t fp_possible;
-	u_int32_t start_lba_hi, start_lba_lo, ld_block_size, ld;
-	u_int32_t datalength = 0;
+	uint8_t fp_possible;
+	uint32_t start_lba_hi, start_lba_lo, ld_block_size, ld;
+	uint32_t datalength = 0;
 
 	io_request->RaidContext.raid_context.VirtualDiskTgtId = htole16(device_id);
 
@@ -925,55 +925,55 @@ mrsas_setup_io(struct mrsas_softc *sc, struct mrsas_mpt_cmd *cmd,
 	 * READ_6 (0x08) or WRITE_6 (0x0A) cdb
 	 */
 	if (csio->cdb_len == 6) {
-		datalength = (u_int32_t)csio->cdb_io.cdb_bytes[4];
-		start_lba_lo = ((u_int32_t)csio->cdb_io.cdb_bytes[1] << 16) |
-		    ((u_int32_t)csio->cdb_io.cdb_bytes[2] << 8) |
-		    (u_int32_t)csio->cdb_io.cdb_bytes[3];
+		datalength = (uint32_t)csio->cdb_io.cdb_bytes[4];
+		start_lba_lo = ((uint32_t)csio->cdb_io.cdb_bytes[1] << 16) |
+		    ((uint32_t)csio->cdb_io.cdb_bytes[2] << 8) |
+		    (uint32_t)csio->cdb_io.cdb_bytes[3];
 		start_lba_lo &= 0x1FFFFF;
 	}
 	/*
 	 * READ_10 (0x28) or WRITE_6 (0x2A) cdb
 	 */
 	else if (csio->cdb_len == 10) {
-		datalength = (u_int32_t)csio->cdb_io.cdb_bytes[8] |
-		    ((u_int32_t)csio->cdb_io.cdb_bytes[7] << 8);
-		start_lba_lo = ((u_int32_t)csio->cdb_io.cdb_bytes[2] << 24) |
-		    ((u_int32_t)csio->cdb_io.cdb_bytes[3] << 16) |
-		    (u_int32_t)csio->cdb_io.cdb_bytes[4] << 8 |
-		    ((u_int32_t)csio->cdb_io.cdb_bytes[5]);
+		datalength = (uint32_t)csio->cdb_io.cdb_bytes[8] |
+		    ((uint32_t)csio->cdb_io.cdb_bytes[7] << 8);
+		start_lba_lo = ((uint32_t)csio->cdb_io.cdb_bytes[2] << 24) |
+		    ((uint32_t)csio->cdb_io.cdb_bytes[3] << 16) |
+		    (uint32_t)csio->cdb_io.cdb_bytes[4] << 8 |
+		    ((uint32_t)csio->cdb_io.cdb_bytes[5]);
 	}
 	/*
 	 * READ_12 (0xA8) or WRITE_12 (0xAA) cdb
 	 */
 	else if (csio->cdb_len == 12) {
-		datalength = (u_int32_t)csio->cdb_io.cdb_bytes[6] << 24 |
-		    ((u_int32_t)csio->cdb_io.cdb_bytes[7] << 16) |
-		    ((u_int32_t)csio->cdb_io.cdb_bytes[8] << 8) |
-		    ((u_int32_t)csio->cdb_io.cdb_bytes[9]);
-		start_lba_lo = ((u_int32_t)csio->cdb_io.cdb_bytes[2] << 24) |
-		    ((u_int32_t)csio->cdb_io.cdb_bytes[3] << 16) |
-		    (u_int32_t)csio->cdb_io.cdb_bytes[4] << 8 |
-		    ((u_int32_t)csio->cdb_io.cdb_bytes[5]);
+		datalength = (uint32_t)csio->cdb_io.cdb_bytes[6] << 24 |
+		    ((uint32_t)csio->cdb_io.cdb_bytes[7] << 16) |
+		    ((uint32_t)csio->cdb_io.cdb_bytes[8] << 8) |
+		    ((uint32_t)csio->cdb_io.cdb_bytes[9]);
+		start_lba_lo = ((uint32_t)csio->cdb_io.cdb_bytes[2] << 24) |
+		    ((uint32_t)csio->cdb_io.cdb_bytes[3] << 16) |
+		    (uint32_t)csio->cdb_io.cdb_bytes[4] << 8 |
+		    ((uint32_t)csio->cdb_io.cdb_bytes[5]);
 	}
 	/*
 	 * READ_16 (0x88) or WRITE_16 (0xx8A) cdb
 	 */
 	else if (csio->cdb_len == 16) {
-		datalength = (u_int32_t)csio->cdb_io.cdb_bytes[10] << 24 |
-		    ((u_int32_t)csio->cdb_io.cdb_bytes[11] << 16) |
-		    ((u_int32_t)csio->cdb_io.cdb_bytes[12] << 8) |
-		    ((u_int32_t)csio->cdb_io.cdb_bytes[13]);
-		start_lba_lo = ((u_int32_t)csio->cdb_io.cdb_bytes[6] << 24) |
-		    ((u_int32_t)csio->cdb_io.cdb_bytes[7] << 16) |
-		    (u_int32_t)csio->cdb_io.cdb_bytes[8] << 8 |
-		    ((u_int32_t)csio->cdb_io.cdb_bytes[9]);
-		start_lba_hi = ((u_int32_t)csio->cdb_io.cdb_bytes[2] << 24) |
-		    ((u_int32_t)csio->cdb_io.cdb_bytes[3] << 16) |
-		    (u_int32_t)csio->cdb_io.cdb_bytes[4] << 8 |
-		    ((u_int32_t)csio->cdb_io.cdb_bytes[5]);
+		datalength = (uint32_t)csio->cdb_io.cdb_bytes[10] << 24 |
+		    ((uint32_t)csio->cdb_io.cdb_bytes[11] << 16) |
+		    ((uint32_t)csio->cdb_io.cdb_bytes[12] << 8) |
+		    ((uint32_t)csio->cdb_io.cdb_bytes[13]);
+		start_lba_lo = ((uint32_t)csio->cdb_io.cdb_bytes[6] << 24) |
+		    ((uint32_t)csio->cdb_io.cdb_bytes[7] << 16) |
+		    (uint32_t)csio->cdb_io.cdb_bytes[8] << 8 |
+		    ((uint32_t)csio->cdb_io.cdb_bytes[9]);
+		start_lba_hi = ((uint32_t)csio->cdb_io.cdb_bytes[2] << 24) |
+		    ((uint32_t)csio->cdb_io.cdb_bytes[3] << 16) |
+		    (uint32_t)csio->cdb_io.cdb_bytes[4] << 8 |
+		    ((uint32_t)csio->cdb_io.cdb_bytes[5]);
 	}
 	memset(&io_info, 0, sizeof(struct IO_REQUEST_INFO));
-	io_info.ldStartBlock = ((u_int64_t)start_lba_hi << 32) | start_lba_lo;
+	io_info.ldStartBlock = ((uint64_t)start_lba_hi << 32) | start_lba_lo;
 	io_info.numBlocks = datalength;
 	io_info.ldTgtId = device_id;
 	io_info.r1_alt_dev_handle = MR_DEVHANDLE_INVALID;
@@ -1141,7 +1141,7 @@ mrsas_build_ldio_nonrw(struct mrsas_softc *sc, struct mrsas_mpt_cmd *cmd,
     union ccb *ccb)
 {
 	struct ccb_hdr *ccb_h = &(ccb->ccb_h);
-	u_int32_t device_id, ld;
+	uint32_t device_id, ld;
 	MR_DRV_RAID_MAP_ALL *map_ptr;
 	MR_LD_RAID *raid;
 	MRSAS_RAID_SCSI_IO_REQUEST *io_request;
@@ -1195,10 +1195,10 @@ mrsas_build_ldio_nonrw(struct mrsas_softc *sc, struct mrsas_mpt_cmd *cmd,
  */
 int
 mrsas_build_syspdio(struct mrsas_softc *sc, struct mrsas_mpt_cmd *cmd,
-    union ccb *ccb, struct cam_sim *sim, u_int8_t fp_possible)
+    union ccb *ccb, struct cam_sim *sim, uint8_t fp_possible)
 {
 	struct ccb_hdr *ccb_h = &(ccb->ccb_h);
-	u_int32_t device_id;
+	uint32_t device_id;
 	MR_DRV_RAID_MAP_ALL *local_map_ptr;
 	MRSAS_RAID_SCSI_IO_REQUEST *io_request;
 	struct MR_PD_CFG_SEQ_NUM_SYNC *pd_sync;
@@ -1321,9 +1321,9 @@ static boolean_t mrsas_is_prp_possible(struct mrsas_mpt_cmd *cmd,
 {
 	struct mrsas_softc *sc = cmd->sc;
 	int i;
-	u_int32_t data_length = 0;
+	uint32_t data_length = 0;
 	bool build_prp = false;
-	u_int32_t mr_nvme_pg_size;
+	uint32_t mr_nvme_pg_size;
 
 	mr_nvme_pg_size = max(sc->nvme_page_size, MR_DEFAULT_NVME_PAGE_SIZE);
 	data_length = cmd->length;
@@ -1384,7 +1384,7 @@ int
 mrsas_map_request(struct mrsas_softc *sc,
     struct mrsas_mpt_cmd *cmd, union ccb *ccb)
 {
-	u_int32_t retcode = 0;
+	uint32_t retcode = 0;
 	struct cam_sim *sim;
 
 	sim = xpt_path_sim(cmd->ccb_ptr->ccb_h.path);
@@ -1501,13 +1501,13 @@ static void mrsas_build_prp_nvme(struct mrsas_mpt_cmd *cmd, bus_dma_segment_t *s
 	struct mrsas_softc *sc = cmd->sc;
 	int sge_len, offset, num_prp_in_chain = 0;
 	pMpi25IeeeSgeChain64_t main_chain_element, ptr_first_sgl, sgl_ptr;
-	u_int64_t *ptr_sgl;
+	uint64_t *ptr_sgl;
 	bus_addr_t ptr_sgl_phys;
-	u_int64_t sge_addr;
-	u_int32_t page_mask, page_mask_result, i = 0;
-	u_int32_t first_prp_len;
+	uint64_t sge_addr;
+	uint32_t page_mask, page_mask_result, i = 0;
+	uint32_t first_prp_len;
 	int data_len = cmd->length;
-	u_int32_t mr_nvme_pg_size = max(sc->nvme_page_size,
+	uint32_t mr_nvme_pg_size = max(sc->nvme_page_size,
 					MR_DEFAULT_NVME_PAGE_SIZE);
 
 	sgl_ptr = (pMpi25IeeeSgeChain64_t) &cmd->io_request->SGL;
@@ -1524,13 +1524,13 @@ static void mrsas_build_prp_nvme(struct mrsas_mpt_cmd *cmd, bus_dma_segment_t *s
 	 * of the PRP entries are built in the contiguous PCIe buffer.
 	 */
 	page_mask = mr_nvme_pg_size - 1;
-	ptr_sgl = (u_int64_t *) cmd->chain_frame;
+	ptr_sgl = (uint64_t *) cmd->chain_frame;
 	ptr_sgl_phys = cmd->chain_frame_phys_addr;
 	memset(ptr_sgl, 0, sc->max_chain_frame_sz);
 
 	/* Build chain frame element which holds all PRPs except first*/
 	main_chain_element = (pMpi25IeeeSgeChain64_t)
-	    ((u_int8_t *)sgl_ptr + sizeof(MPI25_IEEE_SGE_CHAIN64));
+	    ((uint8_t *)sgl_ptr + sizeof(MPI25_IEEE_SGE_CHAIN64));
 
 	main_chain_element->Address = cmd->chain_frame_phys_addr;
 	main_chain_element->NextChainOffset = 0;
@@ -1544,7 +1544,7 @@ static void mrsas_build_prp_nvme(struct mrsas_mpt_cmd *cmd, bus_dma_segment_t *s
 	sge_len = segs[i].ds_len;
 	i++;
 
-	offset = (u_int32_t) (sge_addr & page_mask);
+	offset = (uint32_t) (sge_addr & page_mask);
 	first_prp_len = mr_nvme_pg_size - offset;
 
 	ptr_first_sgl->Address = sge_addr;
@@ -1562,7 +1562,7 @@ static void mrsas_build_prp_nvme(struct mrsas_mpt_cmd *cmd, bus_dma_segment_t *s
 	}
 
 	for (;;) {
-		offset = (u_int32_t) (sge_addr & page_mask);
+		offset = (uint32_t) (sge_addr & page_mask);
 
 		/* Put PRP pointer due to page boundary*/
 		page_mask_result = (uintptr_t)(ptr_sgl + 1) & page_mask;
@@ -1595,7 +1595,7 @@ static void mrsas_build_prp_nvme(struct mrsas_mpt_cmd *cmd, bus_dma_segment_t *s
 		i++;
 	}
 
-	main_chain_element->Length = num_prp_in_chain * sizeof(u_int64_t);
+	main_chain_element->Length = num_prp_in_chain * sizeof(uint64_t);
 	mrsas_atomic_inc(&sc->prp_count);
 
 }
@@ -1801,7 +1801,7 @@ mrsas_bus_scan_sim(struct mrsas_softc *sc, struct cam_sim *sim)
  * Returns FAIL if IOs pending to the target device, else return SUCCESS
  */
 static int
-mrsas_track_scsiio(struct mrsas_softc *sc, target_id_t tgt_id, u_int32_t bus_id)
+mrsas_track_scsiio(struct mrsas_softc *sc, target_id_t tgt_id, uint32_t bus_id)
 {
 	int i;
 	struct mrsas_mpt_cmd *mpt_cmd = NULL;
@@ -1925,7 +1925,7 @@ int mrsas_reset_targets(struct mrsas_softc *sc)
 	MPI2_SCSI_TASK_MANAGE_REQUEST *tm_mpi_request;
 	MRSAS_REQUEST_DESCRIPTOR_UNION *req_desc;
 	int retCode = FAIL, count, i, outstanding;
-	u_int32_t MSIxIndex, bus_id;
+	uint32_t MSIxIndex, bus_id;
 	target_id_t tgt_id;
 #if TM_DEBUG
 	MPI2_SCSI_TASK_MANAGE_REPLY *mpi_reply;

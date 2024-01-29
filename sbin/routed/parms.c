@@ -460,7 +460,7 @@ static const char *			/* 0 or error message */
 get_passwd(char *tgt,
 	   char *val,
 	   struct parm *parmp,
-	   u_int16_t type,
+	   uint16_t type,
 	   int safe)			/* 1=from secure file */
 {
 	static char buf[80];

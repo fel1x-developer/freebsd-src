@@ -65,7 +65,7 @@ struct pst_softc {
 
 struct pst_request {
     struct pst_softc		*psc;		/* pointer to softc */
-    u_int32_t			mfa;		/* frame addreess */
+    uint32_t			mfa;		/* frame addreess */
     struct callout		timeout;	/* timeout timer */
     struct bio			*bp;		/* associated bio ptr */
 };
@@ -76,7 +76,7 @@ static int pst_probe(device_t);
 static int pst_attach(device_t);
 static void pst_shutdown_post_sync(device_t, int);
 static void pst_start(struct pst_softc *);
-static void pst_done(struct iop_softc *, u_int32_t, struct i2o_single_reply *);
+static void pst_done(struct iop_softc *, uint32_t, struct i2o_single_reply *);
 static int pst_rw(struct pst_request *);
 static void pst_timeout(void *);
 static void bpack(int8_t *, int8_t *, int);
@@ -218,7 +218,7 @@ pst_start(struct pst_softc *psc)
 {
     struct pst_request *request;
     struct bio *bp;
-    u_int32_t mfa;
+    uint32_t mfa;
     int error;
 
     if (psc->iop->outstanding < (I2O_IOP_OUTBOUND_FRAME_COUNT - 1) &&
@@ -248,7 +248,7 @@ pst_start(struct pst_softc *psc)
 }
 
 static void
-pst_done(struct iop_softc *sc, u_int32_t mfa, struct i2o_single_reply *reply)
+pst_done(struct iop_softc *sc, uint32_t mfa, struct i2o_single_reply *reply)
 {
     struct pst_request *request =
 	(struct pst_request *)reply->transaction_context;
@@ -294,11 +294,11 @@ pst_rw(struct pst_request *request)
 	printf("pst: unknown command type 0x%02x\n", request->bp->bio_cmd);
 	return EOPNOTSUPP;
     }
-    msg->initiator_context = (u_int32_t)pst_done;
-    msg->transaction_context = (u_int32_t)request;
+    msg->initiator_context = (uint32_t)pst_done;
+    msg->transaction_context = (uint32_t)request;
     msg->time_multiplier = 1;
     msg->bytecount = request->bp->bio_bcount;
-    msg->lba = ((u_int64_t)request->bp->bio_pblkno) * (DEV_BSIZE * 1LL);
+    msg->lba = ((uint64_t)request->bp->bio_pblkno) * (DEV_BSIZE * 1LL);
 
     if (!iop_create_sgl((struct i2o_basic_message *)msg, request->bp->bio_data,
 			request->bp->bio_bcount, sgl_flag))

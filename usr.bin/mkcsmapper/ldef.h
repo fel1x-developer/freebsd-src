@@ -31,9 +31,9 @@
 #include <sys/types.h>
 
 typedef struct {
-	u_int32_t	 begin;
-	u_int32_t	 end;
-	u_int32_t	 width;
+	uint32_t	 begin;
+	uint32_t	 end;
+	uint32_t	 width;
 } linear_zone_t;
 
 extern int	 debug;

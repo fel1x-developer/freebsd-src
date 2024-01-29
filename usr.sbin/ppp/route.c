@@ -147,7 +147,7 @@ p_sockaddr(struct prompt *prompt, struct sockaddr *phost,
 }
 
 static struct bits {
-  u_int32_t b_mask;
+  uint32_t b_mask;
   char b_val;
 } bits[] = {
   { RTF_UP, 'U' },
@@ -178,7 +178,7 @@ static struct bits {
 };
 
 static void
-p_flags(struct prompt *prompt, u_int32_t f, unsigned max)
+p_flags(struct prompt *prompt, uint32_t f, unsigned max)
 {
   char name[33], *flags;
   register struct bits *p = bits;
@@ -724,9 +724,9 @@ add_scope(struct sockaddr *sa, int ifindex)
   if (!IN6_IS_ADDR_LINKLOCAL(&sa6->sin6_addr) &&
       !IN6_IS_ADDR_MC_LINKLOCAL(&sa6->sin6_addr))
     return;
-  if (*(u_int16_t *)&sa6->sin6_addr.s6_addr[2] != 0)
+  if (*(uint16_t *)&sa6->sin6_addr.s6_addr[2] != 0)
     return;
-  *(u_int16_t *)&sa6->sin6_addr.s6_addr[2] = htons(ifindex);
+  *(uint16_t *)&sa6->sin6_addr.s6_addr[2] = htons(ifindex);
 }
 #endif
 

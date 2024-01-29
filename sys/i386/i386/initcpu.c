@@ -488,7 +488,7 @@ static int ppro_apic_used = -1;
 static void
 init_ppro(void)
 {
-	u_int64_t	apicbase;
+	uint64_t	apicbase;
 
 	/*
 	 * Local APIC should be disabled if it is not going to be used.
@@ -508,7 +508,7 @@ init_ppro(void)
 void
 ppro_reenable_apic(void)
 {
-	u_int64_t	apicbase;
+	uint64_t	apicbase;
 
 	if (ppro_apic_used == 0) {
 		apicbase = rdmsr(MSR_APICBASE);
@@ -527,7 +527,7 @@ init_mendocino(void)
 {
 #ifdef CPU_PPRO2CELERON
 	register_t	saveintr;
-	u_int64_t	bbl_cr_ctl3;
+	uint64_t	bbl_cr_ctl3;
 
 	saveintr = intr_disable();
 
@@ -811,7 +811,7 @@ initializecpucache(void)
 static void
 enable_K5_wt_alloc(void)
 {
-	u_int64_t	msr;
+	uint64_t	msr;
 	register_t	saveintr;
 
 	/*
@@ -852,7 +852,7 @@ static void
 enable_K6_wt_alloc(void)
 {
 	quad_t	size;
-	u_int64_t	whcr;
+	uint64_t	whcr;
 	register_t	saveintr;
 
 	saveintr = intr_disable();
@@ -870,7 +870,7 @@ enable_K6_wt_alloc(void)
 	 * The I/O Trap Restart function (bit 9 of TR12) is always enabled
 	 * on the AMD-K6.
 	 */
-	wrmsr(0x0000000e, (u_int64_t)0x0008);
+	wrmsr(0x0000000e, (uint64_t)0x0008);
 #endif
 	/* Don't assume that memory size is aligned with 4M. */
 	if (Maxmem > 0)
@@ -902,7 +902,7 @@ static void
 enable_K6_2_wt_alloc(void)
 {
 	quad_t	size;
-	u_int64_t	whcr;
+	uint64_t	whcr;
 	register_t	saveintr;
 
 	saveintr = intr_disable();
@@ -920,7 +920,7 @@ enable_K6_2_wt_alloc(void)
 	 * The I/O Trap Restart function (bit 9 of TR12) is always enabled
 	 * on the AMD-K6.
 	 */
-	wrmsr(0x0000000e, (u_int64_t)0x0008);
+	wrmsr(0x0000000e, (uint64_t)0x0008);
 #endif
 	/* Don't assume that memory size is aligned with 4M. */
 	if (Maxmem > 0)

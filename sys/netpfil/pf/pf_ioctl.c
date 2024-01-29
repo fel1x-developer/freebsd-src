@@ -99,8 +99,8 @@ SDT_PROBE_DEFINE3(pf, ioctl, function, error, "char *", "int", "int");
 SDT_PROBE_DEFINE2(pf, ioctl, addrule, error, "int", "int");
 SDT_PROBE_DEFINE2(pf, ioctl, nvchk, error, "int", "int");
 
-static struct pf_kpool	*pf_get_kpool(const char *, u_int32_t, u_int8_t,
-			    u_int32_t, u_int8_t, u_int8_t, u_int8_t);
+static struct pf_kpool	*pf_get_kpool(const char *, uint32_t, uint8_t,
+			    uint32_t, uint8_t, uint8_t, uint8_t);
 
 static void		 pf_mv_kpool(struct pf_kpalist *, struct pf_kpalist *);
 static void		 pf_empty_kpool(struct pf_kpalist *);
@@ -112,21 +112,21 @@ static int		 pf_rollback_eth(uint32_t, const char *);
 static int		 pf_commit_eth(uint32_t, const char *);
 static void		 pf_free_eth_rule(struct pf_keth_rule *);
 #ifdef ALTQ
-static int		 pf_begin_altq(u_int32_t *);
-static int		 pf_rollback_altq(u_int32_t);
-static int		 pf_commit_altq(u_int32_t);
+static int		 pf_begin_altq(uint32_t *);
+static int		 pf_rollback_altq(uint32_t);
+static int		 pf_commit_altq(uint32_t);
 static int		 pf_enable_altq(struct pf_altq *);
 static int		 pf_disable_altq(struct pf_altq *);
 static uint16_t		 pf_qname2qid(const char *);
 static void		 pf_qid_unref(uint16_t);
 #endif /* ALTQ */
-static int		 pf_begin_rules(u_int32_t *, int, const char *);
-static int		 pf_rollback_rules(u_int32_t, int, char *);
+static int		 pf_begin_rules(uint32_t *, int, const char *);
+static int		 pf_rollback_rules(uint32_t, int, char *);
 static int		 pf_setup_pfsync_matching(struct pf_kruleset *);
 static void		 pf_hash_rule_rolling(MD5_CTX *, struct pf_krule *);
 static void		 pf_hash_rule(struct pf_krule *);
 static void		 pf_hash_rule_addr(MD5_CTX *, struct pf_rule_addr *);
-static int		 pf_commit_rules(u_int32_t, int, char *);
+static int		 pf_commit_rules(uint32_t, int, char *);
 static int		 pf_addr_setup(struct pf_kruleset *,
 			    struct pf_addr_wrap *, sa_family_t);
 static void		 pf_addr_copyout(struct pf_addr_wrap *);
@@ -215,9 +215,9 @@ static void		 pf_init_tagset(struct pf_tagset *, unsigned int *,
 static void		 pf_cleanup_tagset(struct pf_tagset *);
 static uint16_t		 tagname2hashindex(const struct pf_tagset *, const char *);
 static uint16_t		 tag2hashindex(const struct pf_tagset *, uint16_t);
-static u_int16_t	 tagname2tag(struct pf_tagset *, const char *);
-static u_int16_t	 pf_tagname2tag(const char *);
-static void		 tag_unref(struct pf_tagset *, u_int16_t);
+static uint16_t	 tagname2tag(struct pf_tagset *, const char *);
+static uint16_t	 pf_tagname2tag(const char *);
+static void		 tag_unref(struct pf_tagset *, uint16_t);
 
 #define DPFPRINTF(n, x) if (V_pf_status.debug >= (n)) printf x
 
@@ -324,7 +324,7 @@ pf_user_strcpy(char *dst, const char *src, size_t sz)
 static void
 pfattach_vnet(void)
 {
-	u_int32_t *my_timeout = V_pf_default_rule.timeout;
+	uint32_t *my_timeout = V_pf_default_rule.timeout;
 
 	bzero(&V_pf_status, sizeof(V_pf_status));
 
@@ -430,9 +430,9 @@ pfattach_vnet(void)
 }
 
 static struct pf_kpool *
-pf_get_kpool(const char *anchor, u_int32_t ticket, u_int8_t rule_action,
-    u_int32_t rule_number, u_int8_t r_last, u_int8_t active,
-    u_int8_t check_ticket)
+pf_get_kpool(const char *anchor, uint32_t ticket, uint8_t rule_action,
+    uint32_t rule_number, uint8_t r_last, uint8_t active,
+    uint8_t check_ticket)
 {
 	struct pf_kruleset	*ruleset;
 	struct pf_krule		*rule;
@@ -670,12 +670,12 @@ tag2hashindex(const struct pf_tagset *ts, uint16_t tag)
 	return (tag & ts->mask);
 }
 
-static u_int16_t
+static uint16_t
 tagname2tag(struct pf_tagset *ts, const char *tagname)
 {
 	struct pf_tagname	*tag;
-	u_int32_t		 index;
-	u_int16_t		 new_tagid;
+	uint32_t		 index;
+	uint16_t		 new_tagid;
 
 	PF_RULES_WASSERT();
 
@@ -725,7 +725,7 @@ tagname2tag(struct pf_tagset *ts, const char *tagname)
 }
 
 static void
-tag_unref(struct pf_tagset *ts, u_int16_t tag)
+tag_unref(struct pf_tagset *ts, uint16_t tag)
 {
 	struct pf_tagname	*t;
 	uint16_t		 index;
@@ -916,7 +916,7 @@ pf_qid_unref(uint16_t qid)
 }
 
 static int
-pf_begin_altq(u_int32_t *ticket)
+pf_begin_altq(uint32_t *ticket)
 {
 	struct pf_altq	*altq, *tmp;
 	int		 error = 0;
@@ -945,7 +945,7 @@ pf_begin_altq(u_int32_t *ticket)
 }
 
 static int
-pf_rollback_altq(u_int32_t ticket)
+pf_rollback_altq(uint32_t ticket)
 {
 	struct pf_altq	*altq, *tmp;
 	int		 error = 0;
@@ -973,7 +973,7 @@ pf_rollback_altq(u_int32_t ticket)
 }
 
 static int
-pf_commit_altq(u_int32_t ticket)
+pf_commit_altq(uint32_t ticket)
 {
 	struct pf_altqqueue	*old_altqs, *old_altq_ifs;
 	struct pf_altq		*altq, *tmp;
@@ -1083,7 +1083,7 @@ pf_disable_altq(struct pf_altq *altq)
 }
 
 static int
-pf_altq_ifnet_event_add(struct ifnet *ifp, int remove, u_int32_t ticket,
+pf_altq_ifnet_event_add(struct ifnet *ifp, int remove, uint32_t ticket,
     struct pf_altq *altq)
 {
 	struct ifnet	*ifp1;
@@ -1111,7 +1111,7 @@ void
 pf_altq_ifnet_event(struct ifnet *ifp, int remove)
 {
 	struct pf_altq	*a1, *a2, *a3;
-	u_int32_t	 ticket;
+	uint32_t	 ticket;
 	int		 error = 0;
 
 	/*
@@ -1203,7 +1203,7 @@ pf_rule_tree_free(struct pf_krule_global *tree)
 }
 
 static int
-pf_begin_rules(u_int32_t *ticket, int rs_num, const char *anchor)
+pf_begin_rules(uint32_t *ticket, int rs_num, const char *anchor)
 {
 	struct pf_krule_global *tree;
 	struct pf_kruleset	*rs;
@@ -1234,7 +1234,7 @@ pf_begin_rules(u_int32_t *ticket, int rs_num, const char *anchor)
 }
 
 static int
-pf_rollback_rules(u_int32_t ticket, int rs_num, char *anchor)
+pf_rollback_rules(uint32_t ticket, int rs_num, char *anchor)
 {
 	struct pf_kruleset	*rs;
 	struct pf_krule		*rule;
@@ -1256,19 +1256,19 @@ pf_rollback_rules(u_int32_t ticket, int rs_num, char *anchor)
 }
 
 #define PF_MD5_UPD(st, elm)						\
-		MD5Update(ctx, (u_int8_t *) &(st)->elm, sizeof((st)->elm))
+		MD5Update(ctx, (uint8_t *) &(st)->elm, sizeof((st)->elm))
 
 #define PF_MD5_UPD_STR(st, elm)						\
-		MD5Update(ctx, (u_int8_t *) (st)->elm, strlen((st)->elm))
+		MD5Update(ctx, (uint8_t *) (st)->elm, strlen((st)->elm))
 
 #define PF_MD5_UPD_HTONL(st, elm, stor) do {				\
 		(stor) = htonl((st)->elm);				\
-		MD5Update(ctx, (u_int8_t *) &(stor), sizeof(u_int32_t));\
+		MD5Update(ctx, (uint8_t *) &(stor), sizeof(uint32_t));\
 } while (0)
 
 #define PF_MD5_UPD_HTONS(st, elm, stor) do {				\
 		(stor) = htons((st)->elm);				\
-		MD5Update(ctx, (u_int8_t *) &(stor), sizeof(u_int16_t));\
+		MD5Update(ctx, (uint8_t *) &(stor), sizeof(uint16_t));\
 } while (0)
 
 static void
@@ -1299,8 +1299,8 @@ pf_hash_rule_addr(MD5_CTX *ctx, struct pf_rule_addr *pfr)
 static void
 pf_hash_rule_rolling(MD5_CTX *ctx, struct pf_krule *rule)
 {
-	u_int16_t x;
-	u_int32_t y;
+	uint16_t x;
+	uint32_t y;
 
 	pf_hash_rule_addr(ctx, &rule->src);
 	pf_hash_rule_addr(ctx, &rule->dst);
@@ -1359,14 +1359,14 @@ pf_krule_compare(struct pf_krule *a, struct pf_krule *b)
 }
 
 static int
-pf_commit_rules(u_int32_t ticket, int rs_num, char *anchor)
+pf_commit_rules(uint32_t ticket, int rs_num, char *anchor)
 {
 	struct pf_kruleset	*rs;
 	struct pf_krule		*rule, **old_array, *old_rule;
 	struct pf_krulequeue	*old_rules;
 	struct pf_krule_global  *old_tree;
 	int			 error;
-	u_int32_t		 old_rcount;
+	uint32_t		 old_rcount;
 
 	PF_RULES_WASSERT();
 
@@ -1453,7 +1453,7 @@ pf_setup_pfsync_matching(struct pf_kruleset *rs)
 	MD5_CTX			 ctx;
 	struct pf_krule		*rule;
 	int			 rs_cnt;
-	u_int8_t		 digest[PF_MD5_DIGEST_LENGTH];
+	uint8_t		 digest[PF_MD5_DIGEST_LENGTH];
 
 	MD5Init(&ctx);
 	for (rs_cnt = 0; rs_cnt < PF_RULESET_MAX; rs_cnt++) {
@@ -1586,7 +1586,7 @@ pf_src_node_copy(const struct pf_ksrc_node *in, struct pf_src_node *out)
 static int
 pf_export_kaltq(struct pf_altq *q, struct pfioc_altq_v1 *pa, size_t ioc_size)
 {
-	u_int32_t version;
+	uint32_t version;
 
 	if (ioc_size == sizeof(struct pfioc_altq_v0))
 		version = 0;
@@ -1599,8 +1599,8 @@ pf_export_kaltq(struct pf_altq *q, struct pfioc_altq_v1 *pa, size_t ioc_size)
 #define ASSIGN(x) exported_q->x = q->x
 #define COPY(x) \
 	bcopy(&q->x, &exported_q->x, min(sizeof(q->x), sizeof(exported_q->x)))
-#define SATU16(x) (u_int32_t)uqmin((x), USHRT_MAX)
-#define SATU32(x) (u_int32_t)uqmin((x), UINT_MAX)
+#define SATU16(x) (uint32_t)uqmin((x), USHRT_MAX)
+#define SATU32(x) (uint32_t)uqmin((x), UINT_MAX)
 
 	switch (version) {
 	case 0: {
@@ -1695,7 +1695,7 @@ pf_export_kaltq(struct pf_altq *q, struct pfioc_altq_v1 *pa, size_t ioc_size)
 static int
 pf_import_kaltq(struct pfioc_altq_v1 *pa, struct pf_altq *q, size_t ioc_size)
 {
-	u_int32_t version;
+	uint32_t version;
 
 	if (ioc_size == sizeof(struct pfioc_altq_v0))
 		version = 0;
@@ -1794,10 +1794,10 @@ pf_import_kaltq(struct pfioc_altq_v1 *pa, struct pf_altq *q, size_t ioc_size)
 }
 
 static struct pf_altq *
-pf_altq_get_nth_active(u_int32_t n)
+pf_altq_get_nth_active(uint32_t n)
 {
 	struct pf_altq		*altq;
-	u_int32_t		 nr;
+	uint32_t		 nr;
 
 	nr = 0;
 	TAILQ_FOREACH(altq, V_pf_altq_ifs_active, entries) {
@@ -2284,7 +2284,7 @@ pf_killstates_row(struct pf_kstate_kill *psk, struct pf_idhash *ih)
 	struct pf_state_key_cmp	 match_key;
 	int			 idx, killed = 0;
 	unsigned int		 dir;
-	u_int16_t		 srcport, dstport;
+	uint16_t		 srcport, dstport;
 	struct pfi_kkif		*kif;
 
 relock_DIOCKILLSTATES:
@@ -2582,7 +2582,7 @@ pfioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flags, struct thread *td
 		void			*packed;
 		struct pf_keth_rule	*tail;
 		struct pf_keth_ruleset	*rs;
-		u_int32_t		 ticket, nr;
+		uint32_t		 ticket, nr;
 		const char		*anchor = "";
 
 		nvl = NULL;
@@ -2665,7 +2665,7 @@ DIOCGETETHRULES_error:
 		void			*nvlpacked = NULL;
 		struct pf_keth_rule	*rule = NULL;
 		struct pf_keth_ruleset	*rs;
-		u_int32_t		 ticket, nr;
+		uint32_t		 ticket, nr;
 		bool			 clear = false;
 		const char		*anchor;
 
@@ -2802,7 +2802,7 @@ DIOCGETETHRULE_error:
 		    ruleset->inactive.ticket) {
 			DPFPRINTF(PF_DEBUG_MISC,
 			    ("ticket: %d != %d\n",
-			    (u_int32_t)nvlist_get_number(nvl, "ticket"),
+			    (uint32_t)nvlist_get_number(nvl, "ticket"),
 			    ruleset->inactive.ticket));
 			ERROUT(EBUSY);
 		}
@@ -3296,7 +3296,7 @@ DIOCGETRULENV_error:
 		struct pf_krule		*oldrule = NULL, *newrule = NULL;
 		struct pfi_kkif		*kif = NULL;
 		struct pf_kpooladdr	*pa;
-		u_int32_t		 nr = 0;
+		uint32_t		 nr = 0;
 		int			 rs_num;
 
 		pcr->anchor[sizeof(pcr->anchor) - 1] = 0;
@@ -3896,7 +3896,7 @@ DIOCGETSTATESV2_full:
 	}
 
 	case DIOCSETDEBUG: {
-		u_int32_t	*level = (u_int32_t *)addr;
+		uint32_t	*level = (uint32_t *)addr;
 
 		PF_RULES_WLOCK();
 		V_pf_status.debug = *level;
@@ -3939,7 +3939,7 @@ DIOCGETSTATESV2_full:
 		ifp = ifunit(ps.ifname);
 		if (ifp != NULL) {
 			psp->baudrate32 =
-			    (u_int32_t)uqmin(ifp->if_baudrate, UINT_MAX);
+			    (uint32_t)uqmin(ifp->if_baudrate, UINT_MAX);
 			if (cmd == DIOCGIFSPEEDV1)
 				psp->baudrate = ifp->if_baudrate;
 		} else {
@@ -4098,7 +4098,7 @@ DIOCGETSTATESV2_full:
 		struct pfioc_qstats_v1	*pq = (struct pfioc_qstats_v1 *)addr;
 		struct pf_altq		*altq;
 		int			 nbytes;
-		u_int32_t		 version;
+		uint32_t		 version;
 
 		PF_RULES_RLOCK();
 		if (pq->ticket != V_ticket_altqs_active) {
@@ -4230,7 +4230,7 @@ DIOCGETSTATESV2_full:
 		struct pfioc_pooladdr	*pp = (struct pfioc_pooladdr *)addr;
 		struct pf_kpool		*pool;
 		struct pf_kpooladdr	*pa;
-		u_int32_t		 nr = 0;
+		uint32_t		 nr = 0;
 
 		pp->anchor[sizeof(pp->anchor) - 1] = 0;
 
@@ -4425,7 +4425,7 @@ DIOCCHANGEADDR_error:
 		struct pfioc_ruleset	*pr = (struct pfioc_ruleset *)addr;
 		struct pf_kruleset	*ruleset;
 		struct pf_kanchor	*anchor;
-		u_int32_t		 nr = 0;
+		uint32_t		 nr = 0;
 
 		pr->path[sizeof(pr->path) - 1] = 0;
 
@@ -5373,7 +5373,7 @@ DIOCCHANGEADDR_error:
 		break;
 
 	case DIOCSETHOSTID: {
-		u_int32_t	*hostid = (u_int32_t *)addr;
+		uint32_t	*hostid = (uint32_t *)addr;
 
 		PF_RULES_WLOCK();
 		if (*hostid == 0)
@@ -5444,7 +5444,7 @@ DIOCCHANGEADDR_error:
 	}
 
 	case DIOCSETREASS: {
-		u_int32_t	*reass = (u_int32_t *)addr;
+		uint32_t	*reass = (uint32_t *)addr;
 
 		V_pf_status.reass = *reass & (PF_REASS_ENABLED|PF_REASS_NODF);
 		/* Removal of DF flag without reassembly enabled is not a
@@ -6232,7 +6232,7 @@ static int
 shutdown_pf(void)
 {
 	int error = 0;
-	u_int32_t t[5];
+	uint32_t t[5];
 	char nn = '\0';
 	struct pf_kanchor *anchor;
 	struct pf_keth_anchor *eth_anchor;

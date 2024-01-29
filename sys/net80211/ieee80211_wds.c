@@ -746,11 +746,11 @@ wds_recv_mgmt(struct ieee80211_node *ni, struct mbuf *m0, int subtype,
 	struct ieee80211vap *vap = ni->ni_vap;
 	struct ieee80211com *ic = ni->ni_ic;
 	struct ieee80211_frame *wh;
-	u_int8_t *frm, *efrm;
+	uint8_t *frm, *efrm;
 
 	wh = mtod(m0, struct ieee80211_frame *);
-	frm = (u_int8_t *)&wh[1];
-	efrm = mtod(m0, u_int8_t *) + m0->m_len;
+	frm = (uint8_t *)&wh[1];
+	efrm = mtod(m0, uint8_t *) + m0->m_len;
 	switch (subtype) {
 	case IEEE80211_FC0_SUBTYPE_ACTION:
 	case IEEE80211_FC0_SUBTYPE_ACTION_NOACK:

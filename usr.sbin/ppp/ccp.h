@@ -109,8 +109,8 @@ struct ccp {
     struct ccp_opt *opt;	/* Set by implementation's OptInit() */
   } out;
 
-  u_int32_t his_reject;		/* Request codes rejected by peer */
-  u_int32_t my_reject;		/* Request codes I have rejected */
+  uint32_t his_reject;		/* Request codes rejected by peer */
+  uint32_t my_reject;		/* Request codes I have rejected */
 
   u_long uncompout, compout;	/* Outgoing bytes before/after compression */
   u_long uncompin, compin;	/* Incoming bytes after/before decompression */

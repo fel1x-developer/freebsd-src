@@ -100,7 +100,7 @@ static int	tumbler_uninit(struct snd_mixer *m);
 static int	tumbler_reinit(struct snd_mixer *m);
 static int	tumbler_set(struct snd_mixer *m, unsigned dev, unsigned left,
 		    unsigned right);
-static u_int32_t	tumbler_setrecsrc(struct snd_mixer *m, u_int32_t src);
+static uint32_t	tumbler_setrecsrc(struct snd_mixer *m, uint32_t src);
 
 static device_method_t tumbler_methods[] = {
 	/* Device interface. */
@@ -428,8 +428,8 @@ tumbler_set(struct snd_mixer *m, unsigned dev, unsigned left, unsigned right)
 	return (0);
 }
 
-static u_int32_t
-tumbler_setrecsrc(struct snd_mixer *m, u_int32_t src)
+static uint32_t
+tumbler_setrecsrc(struct snd_mixer *m, uint32_t src)
 {
 	return (0);
 }

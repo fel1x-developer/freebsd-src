@@ -58,7 +58,7 @@ atan2(double y, double x)
 {
 	double z;
 	int32_t k,m,hx,hy,ix,iy;
-	u_int32_t lx,ly;
+	uint32_t lx,ly;
 
 	EXTRACT_WORDS(hx,lx,x);
 	ix = hx&0x7fffffff;

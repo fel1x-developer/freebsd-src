@@ -41,28 +41,28 @@
 
 typedef struct
 {
-    u_int8_t	bus;
-    u_int8_t	dev_fn;
-    u_int32_t	board_id;
+    uint8_t	bus;
+    uint8_t	dev_fn;
+    uint32_t	board_id;
 } cciss_pci_info_struct; 
 
 typedef struct
 {
-    u_int32_t	delay;
-    u_int32_t	count;
+    uint32_t	delay;
+    uint32_t	count;
 } cciss_coalint_struct;
 
 typedef char		NodeName_type[16];
-typedef u_int32_t	Heartbeat_type;
+typedef uint32_t	Heartbeat_type;
 
 #define CISS_PARSCSIU2	0x0001
 #define CISS_PARCSCIU3	0x0002
 #define CISS_FIBRE1G	0x0100
 #define CISS_FIBRE2G	0x0200
-typedef u_int32_t	BusTypes_type;
+typedef uint32_t	BusTypes_type;
 
 typedef char		FirmwareVer_type[4];
-typedef u_int32_t	DriverVer_type;
+typedef uint32_t	DriverVer_type;
 
 /* passthrough command definitions */
 #define SENSEINFOBYTES          32
@@ -105,83 +105,83 @@ typedef u_int32_t	DriverVer_type;
 /* command list structure */
 typedef union {
     struct {
-	u_int8_t	Dev;
-	u_int8_t	Bus:6;
-	u_int8_t	Mode:2;
+	uint8_t	Dev;
+	uint8_t	Bus:6;
+	uint8_t	Mode:2;
     } __packed PeripDev;
     struct {
-	u_int8_t	DevLSB;
-	u_int8_t	DevMSB:6;
-	u_int8_t	Mode:2;
+	uint8_t	DevLSB;
+	uint8_t	DevMSB:6;
+	uint8_t	Mode:2;
     } __packed LogDev;
     struct {
-	u_int8_t	Dev:5;
-	u_int8_t	Bus:3;
-	u_int8_t	Targ:6;
-	u_int8_t	Mode:2;
+	uint8_t	Dev:5;
+	uint8_t	Bus:3;
+	uint8_t	Targ:6;
+	uint8_t	Mode:2;
     } __packed LogUnit;
 } SCSI3Addr_struct;
 
 typedef struct {
-    u_int32_t		TargetId:24;
-    u_int32_t		Bus:6;
-    u_int32_t		Mode:2;
+    uint32_t		TargetId:24;
+    uint32_t		Bus:6;
+    uint32_t		Mode:2;
     SCSI3Addr_struct	Target[2];
 } __packed PhysDevAddr_struct;
   
 typedef struct {
-    u_int32_t		VolId:30;
-    u_int32_t		Mode:2;
-    u_int8_t		reserved[4];
+    uint32_t		VolId:30;
+    uint32_t		Mode:2;
+    uint8_t		reserved[4];
 } __packed LogDevAddr_struct;
 
 typedef union {
-    u_int8_t		LunAddrBytes[8];
+    uint8_t		LunAddrBytes[8];
     SCSI3Addr_struct	SCSI3Lun[4];
     PhysDevAddr_struct	PhysDev;
     LogDevAddr_struct	LogDev;
 } __packed LUNAddr_struct;
 
 typedef struct {
-    u_int8_t	CDBLen;
+    uint8_t	CDBLen;
     struct {
-	u_int8_t	Type:3;
-	u_int8_t	Attribute:3;
-	u_int8_t	Direction:2;
+	uint8_t	Type:3;
+	uint8_t	Attribute:3;
+	uint8_t	Direction:2;
     } __packed Type;
-    u_int16_t	Timeout;
-    u_int8_t	CDB[16];
+    uint16_t	Timeout;
+    uint8_t	CDB[16];
 } __packed RequestBlock_struct;
 
 typedef union {
     struct {
-	u_int8_t	Reserved[3];
-	u_int8_t	Type;
-	u_int32_t	ErrorInfo;
+	uint8_t	Reserved[3];
+	uint8_t	Type;
+	uint32_t	ErrorInfo;
     } __packed Common_Info;
     struct {
-	u_int8_t	Reserved[2];
-	u_int8_t	offense_size;
-	u_int8_t	offense_num;
-	u_int32_t	offense_value;
+	uint8_t	Reserved[2];
+	uint8_t	offense_size;
+	uint8_t	offense_num;
+	uint32_t	offense_value;
     } __packed Invalid_Cmd;
 } __packed MoreErrInfo_struct;
 
 typedef struct {
-    u_int8_t		ScsiStatus;
-    u_int8_t		SenseLen;
-    u_int16_t		CommandStatus;
-    u_int32_t		ResidualCnt;
+    uint8_t		ScsiStatus;
+    uint8_t		SenseLen;
+    uint16_t		CommandStatus;
+    uint32_t		ResidualCnt;
     MoreErrInfo_struct	MoreErrInfo;
-    u_int8_t		SenseInfo[SENSEINFOBYTES];
+    uint8_t		SenseInfo[SENSEINFOBYTES];
 } __packed ErrorInfo_struct;
 
 typedef struct {
     LUNAddr_struct	LUN_info;	/* 8 */
     RequestBlock_struct	Request;	/* 20 */
     ErrorInfo_struct	error_info;	/* 48 */
-    u_int16_t		buf_size;	/* 2 */
-    u_int8_t		*buf;		/* 4 */
+    uint16_t		buf_size;	/* 2 */
+    uint8_t		*buf;		/* 4 */
 } __packed IOCTL_Command_struct;
 
 #ifdef __amd64__
@@ -189,8 +189,8 @@ typedef struct {
     LUNAddr_struct	LUN_info;	/* 8 */
     RequestBlock_struct	Request;	/* 20 */
     ErrorInfo_struct	error_info;	/* 48 */
-    u_int16_t		buf_size;	/* 2 */
-    u_int32_t		buf;		/* 4 */
+    uint16_t		buf_size;	/* 2 */
+    uint32_t		buf;		/* 4 */
 } __packed IOCTL_Command_struct32;
 #endif
 

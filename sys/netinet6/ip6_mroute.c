@@ -1361,7 +1361,7 @@ ip6_mdq(struct mbuf *m, struct ifnet *ifp, struct mf6c *rt)
 	struct mif6 *mifp;
 	int plen = m->m_pkthdr.len;
 	struct in6_addr src0, dst0; /* copies for local work */
-	u_int32_t iszone, idzone, oszone, odzone;
+	uint32_t iszone, idzone, oszone, odzone;
 	int error = 0;
 
 	/*
@@ -1776,14 +1776,14 @@ pim6_input(struct mbuf *m, int off, int proto, void *arg __unused)
 	if (pim->pim_type == PIM_REGISTER) {
 		/*
 		 * since this is a REGISTER, we'll make a copy of the register
-		 * headers ip6+pim+u_int32_t+encap_ip6, to be passed up to the
+		 * headers ip6+pim+uint32_t+encap_ip6, to be passed up to the
 		 * routing daemon.
 		 */
 		static struct sockaddr_in6 dst = { sizeof(dst), AF_INET6 };
 
 		struct mbuf *mcp;
 		struct ip6_hdr *eip6;
-		u_int32_t *reghdr;
+		uint32_t *reghdr;
 #ifdef MRT6DEBUG
 		char ip6bufs[INET6_ADDRSTRLEN], ip6bufd[INET6_ADDRSTRLEN];
 #endif
@@ -1797,7 +1797,7 @@ pim6_input(struct mbuf *m, int off, int proto, void *arg __unused)
 			return (IPPROTO_DONE);
 		}
 
-		reghdr = (u_int32_t *)(pim + 1);
+		reghdr = (uint32_t *)(pim + 1);
 
 		if ((ntohl(*reghdr) & PIM_NULL_REGISTER))
 			goto pim6_input_to_daemon;

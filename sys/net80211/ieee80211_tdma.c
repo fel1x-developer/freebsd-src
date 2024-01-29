@@ -117,7 +117,7 @@ static int tdma_update(struct ieee80211vap *vap,
 	const struct ieee80211_tdma_param *tdma, struct ieee80211_node *ni,
 	int pickslot);
 static int tdma_process_params(struct ieee80211_node *ni,
-	const u_int8_t *ie, int rssi, int nf, const struct ieee80211_frame *wh);
+	const uint8_t *ie, int rssi, int nf, const struct ieee80211_frame *wh);
 
 static void
 settxparms(struct ieee80211vap *vap, enum ieee80211_phymode mode, int rate)
@@ -517,7 +517,7 @@ tdma_update(struct ieee80211vap *vap, const struct ieee80211_tdma_param *tdma,
  * Process received TDMA parameters.
  */
 static int
-tdma_process_params(struct ieee80211_node *ni, const u_int8_t *ie,
+tdma_process_params(struct ieee80211_node *ni, const uint8_t *ie,
 	int rssi, int nf, const struct ieee80211_frame *wh)
 {
 	struct ieee80211vap *vap = ni->ni_vap;

@@ -6,18 +6,18 @@
 static int tigon2FwReleaseMajor = 0xc;
 static int tigon2FwReleaseMinor = 0x4;
 static int tigon2FwReleaseFix = 0xb;
-static u_int32_t tigon2FwStartAddr = 0x00004000;
-static u_int32_t tigon2FwTextAddr = 0x00004000;
+static uint32_t tigon2FwStartAddr = 0x00004000;
+static uint32_t tigon2FwTextAddr = 0x00004000;
 int tigon2FwTextLen = 0x132f8;
-static u_int32_t tigon2FwRodataAddr = 0x000172f8;
+static uint32_t tigon2FwRodataAddr = 0x000172f8;
 int tigon2FwRodataLen = 0x10da;
-static u_int32_t tigon2FwDataAddr = 0x000185c0;
+static uint32_t tigon2FwDataAddr = 0x000185c0;
 int tigon2FwDataLen = 0x17c;
-static u_int32_t tigon2FwSbssAddr = 0x0001873c;
+static uint32_t tigon2FwSbssAddr = 0x0001873c;
 int tigon2FwSbssLen = 0xcc;
-static u_int32_t tigon2FwBssAddr = 0x00018810;
+static uint32_t tigon2FwBssAddr = 0x00018810;
 int tigon2FwBssLen = 0x20c0;
-static u_int32_t tigon2FwText[] = {
+static uint32_t tigon2FwText[] = {
 0x0, 
 0x10000003, 0x0, 0xd, 0xd, 
 0x3c1d0002, 0x8fbd8600, 0x3a0f021, 0x3c100000, 
@@ -4931,7 +4931,7 @@ static u_int32_t tigon2FwText[] = {
 0x8f820044, 0x451024, 0xaf820044, 0x24630001, 
 0x64102b, 0x1440ffee, 0x0, 0x3e00008, 
 0x0, 0x0 };
-static u_int32_t tigon2FwRodata[] = {
+static uint32_t tigon2FwRodata[] = {
 0x24486561, 
 0x6465723a, 0x202f7072, 0x6f6a6563, 0x74732f72, 
 0x63732f73, 0x772f6765, 0x2f2e2f6e, 0x69632f66, 
@@ -5203,7 +5203,7 @@ static u_int32_t tigon2FwRodata[] = {
 0x0, 0x167cc, 0x167cc, 0x1647c, 
 0x164c8, 0x16514, 0x167cc, 0x7365746d, 
 0x61636163, 0x74000000, 0x0 };
-static u_int32_t tigon2FwData[] = {
+static uint32_t tigon2FwData[] = {
 0x1, 
 0x1, 0x1, 0xc001fc, 0x3ffc, 
 0xc00000, 0x416c7465, 0x6f6e2041, 0x63654e49, 

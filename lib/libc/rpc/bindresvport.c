@@ -74,7 +74,7 @@ bindresvport_sa(int sd, struct sockaddr *sa)
 	struct sockaddr_in6 *sin6;
 #endif
 	int proto, portrange, portlow;
-	u_int16_t *portp;
+	uint16_t *portp;
 	socklen_t salen;
 
 	if (sa == NULL) {

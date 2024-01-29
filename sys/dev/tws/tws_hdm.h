@@ -205,84 +205,84 @@ enum tws_sense_severity {
 #pragma pack(1)
 
 struct tws_cmd_init_connect {
-    u_int8_t        res1__opcode;   /* 3:5 */
-    u_int8_t        size;
-    u_int8_t        request_id;
-    u_int8_t        res2;
-    u_int8_t        status;
-    u_int8_t        flags;
-    u_int16_t       message_credits;
-    u_int32_t       features;
-    u_int16_t       fw_srl;
-    u_int16_t       fw_arch_id;
-    u_int16_t       fw_branch;
-    u_int16_t       fw_build;
-    u_int32_t       result;
+    uint8_t        res1__opcode;   /* 3:5 */
+    uint8_t        size;
+    uint8_t        request_id;
+    uint8_t        res2;
+    uint8_t        status;
+    uint8_t        flags;
+    uint16_t       message_credits;
+    uint32_t       features;
+    uint16_t       fw_srl;
+    uint16_t       fw_arch_id;
+    uint16_t       fw_branch;
+    uint16_t       fw_build;
+    uint32_t       result;
 };
 
 /* Structure for downloading firmware onto the controller. */
 struct tws_cmd_download_firmware {
-    u_int8_t        sgl_off__opcode;/* 3:5 */
-    u_int8_t        size;
-    u_int8_t        request_id;
-    u_int8_t        unit;
-    u_int8_t        status;
-    u_int8_t        flags;
-    u_int16_t       param;
-    u_int8_t        sgl[1];
+    uint8_t        sgl_off__opcode;/* 3:5 */
+    uint8_t        size;
+    uint8_t        request_id;
+    uint8_t        unit;
+    uint8_t        status;
+    uint8_t        flags;
+    uint16_t       param;
+    uint8_t        sgl[1];
 };
 
 /* Structure for hard resetting the controller. */
 struct tws_cmd_reset_firmware {
-    u_int8_t        res1__opcode;   /* 3:5 */
-    u_int8_t        size;
-    u_int8_t        request_id;
-    u_int8_t        unit;
-    u_int8_t        status;
-    u_int8_t        flags;
-    u_int8_t        res2;
-    u_int8_t        param;
+    uint8_t        res1__opcode;   /* 3:5 */
+    uint8_t        size;
+    uint8_t        request_id;
+    uint8_t        unit;
+    uint8_t        status;
+    uint8_t        flags;
+    uint8_t        res2;
+    uint8_t        param;
 };
 
 /* Structure for sending get/set param commands. */
 struct tws_cmd_param {
-    u_int8_t        sgl_off__opcode;/* 3:5 */
-    u_int8_t        size;
-    u_int8_t        request_id;
-    u_int8_t        host_id__unit;  /* 4:4 */
-    u_int8_t        status;
-    u_int8_t        flags;
-    u_int16_t       param_count;
-    u_int8_t        sgl[1];
+    uint8_t        sgl_off__opcode;/* 3:5 */
+    uint8_t        size;
+    uint8_t        request_id;
+    uint8_t        host_id__unit;  /* 4:4 */
+    uint8_t        status;
+    uint8_t        flags;
+    uint16_t       param_count;
+    uint8_t        sgl[1];
 };
 
 /* Generic command packet. */
 struct tws_cmd_generic {
-    u_int8_t        sgl_off__opcode;/* 3:5 */
-    u_int8_t        size;
-    u_int8_t        request_id;
-    u_int8_t        host_id__unit;  /* 4:4 */
-    u_int8_t        status;
-    u_int8_t        flags;
-    u_int16_t       count;  /* block cnt, parameter cnt, message credits */
+    uint8_t        sgl_off__opcode;/* 3:5 */
+    uint8_t        size;
+    uint8_t        request_id;
+    uint8_t        host_id__unit;  /* 4:4 */
+    uint8_t        status;
+    uint8_t        flags;
+    uint16_t       count;  /* block cnt, parameter cnt, message credits */
 };
 
 /* Command packet header. */
 struct tws_command_header {
-    u_int8_t        sense_data[TWS_SENSE_DATA_LENGTH];
+    uint8_t        sense_data[TWS_SENSE_DATA_LENGTH];
     struct { /* status block - additional sense data */
-        u_int16_t       srcnum;
-        u_int8_t        reserved;
-        u_int8_t        status;
-        u_int16_t       error;
-        u_int8_t        res__srcid;     /* 4:4 */
-        u_int8_t        res__severity;  /* 5:3 */
+        uint16_t       srcnum;
+        uint8_t        reserved;
+        uint8_t        status;
+        uint16_t       error;
+        uint8_t        res__srcid;     /* 4:4 */
+        uint8_t        res__severity;  /* 5:3 */
     } status_block;
-    u_int8_t        err_specific_desc[TWS_ERROR_SPECIFIC_DESC_LEN];
+    uint8_t        err_specific_desc[TWS_ERROR_SPECIFIC_DESC_LEN];
     struct { /* sense buffer descriptor */
-        u_int8_t        size_header;
-        u_int16_t       request_id;
-        u_int8_t        size_sense;
+        uint8_t        size_header;
+        uint16_t       request_id;
+        uint8_t        size_sense;
     } header_desc;
 };
 
@@ -293,22 +293,22 @@ union tws_command_giga {
     struct tws_cmd_reset_firmware     reset_fw;
     struct tws_cmd_param              param;
     struct tws_cmd_generic            generic;
-    u_int8_t        padding[1024 - sizeof(struct tws_command_header)];
+    uint8_t        padding[1024 - sizeof(struct tws_command_header)];
 };
     
 /* driver command pkt - 1024 byte size including header(128+24+744+128) */
 /* h/w & f/w supported command size excluding header 768 */
 struct tws_command_apache {
-    u_int8_t        res__opcode;    /* 3:5 */
-    u_int8_t        unit;
-    u_int16_t       lun_l4__req_id; /* 4:12 */
-    u_int8_t        status;
-    u_int8_t        sgl_offset;     /* offset (in bytes) to sg_list, 
+    uint8_t        res__opcode;    /* 3:5 */
+    uint8_t        unit;
+    uint16_t       lun_l4__req_id; /* 4:12 */
+    uint8_t        status;
+    uint8_t        sgl_offset;     /* offset (in bytes) to sg_list, 
                                      from the end of sgl_entries */
-    u_int16_t       lun_h4__sgl_entries;
-    u_int8_t        cdb[16];
-    u_int8_t        sg_list[744];   /* 768 - 24 */
-    u_int8_t        padding[128];   /* make it 1024 bytes */
+    uint16_t       lun_h4__sgl_entries;
+    uint8_t        cdb[16];
+    uint8_t        sg_list[744];   /* 768 - 24 */
+    uint8_t        padding[128];   /* make it 1024 bytes */
 };
 
 struct tws_command_packet {
@@ -321,34 +321,34 @@ struct tws_command_packet {
 
 /* Structure describing payload for get/set param commands. */
 struct tws_getset_param {
-    u_int16_t       table_id;
-    u_int8_t        parameter_id;
-    u_int8_t        reserved;
-    u_int16_t       parameter_size_bytes;
-    u_int16_t       parameter_actual_size_bytes;
-    u_int8_t        data[1];
+    uint16_t       table_id;
+    uint8_t        parameter_id;
+    uint8_t        reserved;
+    uint16_t       parameter_size_bytes;
+    uint16_t       parameter_actual_size_bytes;
+    uint8_t        data[1];
 };
 
 struct tws_outbound_response {
-    u_int32_t     not_mfa   :1;   /* 1 if the structure is valid else MFA */
-    u_int32_t     reserved  :7;   /* reserved bits */
-    u_int32_t     status    :8;   /* should be 0 */
-    u_int32_t     request_id:16;  /* request id */
+    uint32_t     not_mfa   :1;   /* 1 if the structure is valid else MFA */
+    uint32_t     reserved  :7;   /* reserved bits */
+    uint32_t     status    :8;   /* should be 0 */
+    uint32_t     request_id:16;  /* request id */
 };
 
 /* Scatter/Gather list entry with 32 bit addresses. */
 struct tws_sg_desc32 {
-    u_int32_t     address;
-    u_int32_t     length  :24;
-    u_int32_t     flag    :8;
+    uint32_t     address;
+    uint32_t     length  :24;
+    uint32_t     flag    :8;
 };
 
 /* Scatter/Gather list entry with 64 bit addresses. */
 struct tws_sg_desc64 {
-    u_int64_t     address;
-    u_int64_t     length   :32;
-    u_int64_t     reserved :24;
-    u_int64_t     flag     :8;
+    uint64_t     address;
+    uint64_t     length   :32;
+    uint64_t     reserved :24;
+    uint64_t     flag     :8;
 };
 
 /*
@@ -356,38 +356,38 @@ struct tws_sg_desc64 {
  * shared with user
  */
 struct tws_event_packet {
-    u_int32_t       sequence_id;
-    u_int32_t       time_stamp_sec;
-    u_int16_t       aen_code;
-    u_int8_t        severity;
-    u_int8_t        retrieved;
-    u_int8_t        repeat_count;
-    u_int8_t        parameter_len;
-    u_int8_t        parameter_data[TWS_ERROR_SPECIFIC_DESC_LEN];
-    u_int32_t       event_src;
-    u_int8_t        severity_str[20];
+    uint32_t       sequence_id;
+    uint32_t       time_stamp_sec;
+    uint16_t       aen_code;
+    uint8_t        severity;
+    uint8_t        retrieved;
+    uint8_t        repeat_count;
+    uint8_t        parameter_len;
+    uint8_t        parameter_data[TWS_ERROR_SPECIFIC_DESC_LEN];
+    uint32_t       event_src;
+    uint8_t        severity_str[20];
 };
 
 #pragma pack()
 
 struct tws_sense {
     struct tws_command_header *hdr;
-    u_int64_t  hdr_pkt_phy;
+    uint64_t  hdr_pkt_phy;
 };
 
 struct tws_request {
     struct tws_command_packet *cmd_pkt; /* command pkt */  
-    u_int64_t    cmd_pkt_phy;    /* cmd pkt physical address */       
+    uint64_t    cmd_pkt_phy;    /* cmd pkt physical address */       
     void         *data;          /* ptr to data being passed to fw */
-    u_int32_t    length;         /* length of data being passed to fw */
+    uint32_t    length;         /* length of data being passed to fw */
 
-    u_int32_t    state;          /* request state */
-    u_int32_t    type;           /* request type */
-    u_int32_t    flags;          /* request flags */
+    uint32_t    state;          /* request state */
+    uint32_t    type;           /* request type */
+    uint32_t    flags;          /* request flags */
 
-    u_int32_t    error_code;     /* error during request processing */
+    uint32_t    error_code;     /* error during request processing */
 
-    u_int32_t    request_id;     /* request id for tracking with fw */
+    uint32_t    request_id;     /* request id for tracking with fw */
     void         (*cb)(struct tws_request *);      /* callback func */
     bus_dmamap_t dma_map;        /* dma map */
     union ccb    *ccb_ptr;       /* pointer to ccb */

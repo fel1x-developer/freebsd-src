@@ -540,7 +540,7 @@ shortdump(struct sadb_msg *msg)
 
 	if ((sa = (struct sadb_sa *)mhp[SADB_EXT_SA]) != NULL) {
 		printf(" %-1s", STR_OR_ID(sa->sadb_sa_state, sastate));
-		printf(" %08x", (u_int32_t)ntohl(sa->sadb_sa_spi));
+		printf(" %08x", (uint32_t)ntohl(sa->sadb_sa_spi));
 	} else
 		printf("%-1s %-8s", "?", "?");
 
@@ -620,11 +620,11 @@ printdate(void)
 		/* Default */
 		s = (tp.tv_sec + thiszone ) % 86400;
 		(void)printf("%02d:%02d:%02d.%06u ",
-		    s / 3600, (s % 3600) / 60, s % 60, (u_int32_t)tp.tv_usec);
+		    s / 3600, (s % 3600) / 60, s % 60, (uint32_t)tp.tv_usec);
 	} else if (f_tflag > 1) {
 		/* Unix timeval style */
 		(void)printf("%u.%06u ",
-		    (u_int32_t)tp.tv_sec, (u_int32_t)tp.tv_usec);
+		    (uint32_t)tp.tv_sec, (uint32_t)tp.tv_usec);
 	}
 
 	printf("\n");

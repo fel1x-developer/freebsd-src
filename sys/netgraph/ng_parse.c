@@ -338,7 +338,7 @@ ng_int8_parse(const struct ng_parse_type *type,
 	char *eptr;
 
 	val = strtol(s + *off, &eptr, 0);
-	if (val < (int8_t)0x80 || val > (u_int8_t)0xff || eptr == s + *off)
+	if (val < (int8_t)0x80 || val > (uint8_t)0xff || eptr == s + *off)
 		return (EINVAL);
 	*off = eptr - s;
 	val8 = (int8_t)val;
@@ -364,11 +364,11 @@ ng_int8_unparse(const struct ng_parse_type *type,
 		break;
 	case INT_UNSIGNED:
 		fmt = "%u";
-		fval = (u_int8_t)val;
+		fval = (uint8_t)val;
 		break;
 	case INT_HEX:
 		fmt = "0x%x";
-		fval = (u_int8_t)val;
+		fval = (uint8_t)val;
 		break;
 	default:
 		panic("%s: unknown type", __func__);
@@ -434,7 +434,7 @@ ng_int16_parse(const struct ng_parse_type *type,
 
 	val = strtol(s + *off, &eptr, 0);
 	if (val < (int16_t)0x8000
-	    || val > (u_int16_t)0xffff || eptr == s + *off)
+	    || val > (uint16_t)0xffff || eptr == s + *off)
 		return (EINVAL);
 	*off = eptr - s;
 	val16 = (int16_t)val;
@@ -460,11 +460,11 @@ ng_int16_unparse(const struct ng_parse_type *type,
 		break;
 	case INT_UNSIGNED:
 		fmt = "%u";
-		fval = (u_int16_t)val;
+		fval = (uint16_t)val;
 		break;
 	case INT_HEX:
 		fmt = "0x%x";
-		fval = (u_int16_t)val;
+		fval = (uint16_t)val;
 		break;
 	default:
 		panic("%s: unknown type", __func__);
@@ -533,7 +533,7 @@ ng_int32_parse(const struct ng_parse_type *type,
 	else
 		val = strtoul(s + *off, &eptr, 0);
 	if (val < (int32_t)0x80000000
-	    || val > (u_int32_t)0xffffffff || eptr == s + *off)
+	    || val > (uint32_t)0xffffffff || eptr == s + *off)
 		return (EINVAL);
 	*off = eptr - s;
 	val32 = (int32_t)val;
@@ -559,11 +559,11 @@ ng_int32_unparse(const struct ng_parse_type *type,
 		break;
 	case INT_UNSIGNED:
 		fmt = "%lu";
-		fval = (u_int32_t)val;
+		fval = (uint32_t)val;
 		break;
 	case INT_HEX:
 		fmt = "0x%lx";
-		fval = (u_int32_t)val;
+		fval = (uint32_t)val;
 		break;
 	default:
 		panic("%s: unknown type", __func__);
@@ -654,11 +654,11 @@ ng_int64_unparse(const struct ng_parse_type *type,
 		break;
 	case INT_UNSIGNED:
 		fmt = "%llu";
-		fval = (u_int64_t)val;
+		fval = (uint64_t)val;
 		break;
 	case INT_HEX:
 		fmt = "0x%llx";
-		fval = (u_int64_t)val;
+		fval = (uint64_t)val;
 		break;
 	default:
 		panic("%s: unknown type", __func__);
@@ -896,7 +896,7 @@ ng_sizedstring_parse(const struct ng_parse_type *type,
 		return (EINVAL);
 	}
 	*off += len;
-	*((u_int16_t *)buf) = (u_int16_t)slen;
+	*((uint16_t *)buf) = (uint16_t)slen;
 	bcopy(sval, buf + 2, slen);
 	free(sval, M_NETGRAPH_PARSE);
 	*buflen = 2 + slen;
@@ -908,7 +908,7 @@ ng_sizedstring_unparse(const struct ng_parse_type *type,
 	const u_char *data, int *off, char *cbuf, int cbuflen)
 {
 	const char *const raw = (const char *)data + *off + 2;
-	const int slen = *((const u_int16_t *)(data + *off));
+	const int slen = *((const uint16_t *)(data + *off));
 	char *const s = ng_encode_string(raw, slen);
 	int error;
 

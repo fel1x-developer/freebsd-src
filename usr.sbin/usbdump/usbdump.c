@@ -421,7 +421,7 @@ hexdump(const uint8_t *region, uint32_t len)
 		for (x = 0; x < 16; x++) {
 		  if ((line + x) < (region + len)) {
 			hexbyte(linebuf + i,
-			    *(const u_int8_t *)(line + x));
+			    *(const uint8_t *)(line + x));
 		  } else {
 			  linebuf[i] = '-';
 			  linebuf[i + 1] = '-';
@@ -439,7 +439,7 @@ hexdump(const uint8_t *region, uint32_t len)
 		i += 2;
 		for (x = 0; x < 16; x++) {
 			if ((line + x) < (region + len)) {
-				c = *(const u_int8_t *)(line + x);
+				c = *(const uint8_t *)(line + x);
 				/* !isprint(c) */
 				if ((c < ' ') || (c > '~'))
 					c = '.';

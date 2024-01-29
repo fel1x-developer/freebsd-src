@@ -50,18 +50,18 @@
  * System segment descriptors (128 bit wide)
  */
 struct	system_segment_descriptor {
-	u_int64_t sd_lolimit:16;	/* segment extent (lsb) */
-	u_int64_t sd_lobase:24;		/* segment base address (lsb) */
-	u_int64_t sd_type:5;		/* segment type */
-	u_int64_t sd_dpl:2;		/* segment descriptor priority level */
-	u_int64_t sd_p:1;		/* segment descriptor present */
-	u_int64_t sd_hilimit:4;		/* segment extent (msb) */
-	u_int64_t sd_xx0:3;		/* unused */
-	u_int64_t sd_gran:1;		/* limit granularity (byte/page units)*/
-	u_int64_t sd_hibase:40 __packed;/* segment base address  (msb) */
-	u_int64_t sd_xx1:8;
-	u_int64_t sd_mbz:5;		/* MUST be zero */
-	u_int64_t sd_xx2:19;
+	uint64_t sd_lolimit:16;	/* segment extent (lsb) */
+	uint64_t sd_lobase:24;		/* segment base address (lsb) */
+	uint64_t sd_type:5;		/* segment type */
+	uint64_t sd_dpl:2;		/* segment descriptor priority level */
+	uint64_t sd_p:1;		/* segment descriptor present */
+	uint64_t sd_hilimit:4;		/* segment extent (msb) */
+	uint64_t sd_xx0:3;		/* unused */
+	uint64_t sd_gran:1;		/* limit granularity (byte/page units)*/
+	uint64_t sd_hibase:40 __packed;/* segment base address  (msb) */
+	uint64_t sd_xx1:8;
+	uint64_t sd_mbz:5;		/* MUST be zero */
+	uint64_t sd_xx2:19;
 } __packed;
 
 /*

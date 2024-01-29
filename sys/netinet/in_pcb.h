@@ -75,7 +75,7 @@ typedef	uint64_t	inp_gen_t;
  * which is done right after inpcb allocation and stays through its lifetime.
  */
 struct in_addr_4in6 {
-	u_int32_t	ia46_pad32[3];
+	uint32_t	ia46_pad32[3];
 	struct	in_addr	ia46_addr4;
 };
 
@@ -91,8 +91,8 @@ union in_dependaddr {
  * lport, faddr to generate hash, so these fields shouldn't be moved.
  */
 struct in_endpoints {
-	u_int16_t	ie_fport;		/* foreign port */
-	u_int16_t	ie_lport;		/* local port */
+	uint16_t	ie_fport;		/* foreign port */
+	uint16_t	ie_lport;		/* local port */
 	/* protocol dependent part, local and foreign addr */
 	union in_dependaddr ie_dependfaddr;	/* foreign host table entry */
 	union in_dependaddr ie_dependladdr;	/* local host table entry */
@@ -100,7 +100,7 @@ struct in_endpoints {
 #define	ie_laddr	ie_dependladdr.id46_addr.ia46_addr4
 #define	ie6_faddr	ie_dependfaddr.id6_addr
 #define	ie6_laddr	ie_dependladdr.id6_addr
-	u_int32_t	ie6_zoneid;		/* scope zone id */
+	uint32_t	ie6_zoneid;		/* scope zone id */
 };
 
 /*
@@ -108,9 +108,9 @@ struct in_endpoints {
  * references.
  */
 struct in_conninfo {
-	u_int8_t	inc_flags;
-	u_int8_t	inc_len;
-	u_int16_t	inc_fibnum;	/* XXX was pad, 16 bits is plenty */
+	uint8_t	inc_flags;
+	uint8_t	inc_len;
+	uint16_t	inc_fibnum;	/* XXX was pad, 16 bits is plenty */
 	/* protocol dependent part */
 	struct	in_endpoints inc_ie;
 };
@@ -181,7 +181,7 @@ struct inpcb {
 	struct	socket *inp_socket;	/* (i) back pointer to socket */
 	struct	inpcbinfo *inp_pcbinfo;	/* (c) PCB list info */
 	struct	ucred	*inp_cred;	/* (c) cache of socket cred */
-	u_int32_t inp_flow;		/* (i) IPv6 flow information */
+	uint32_t inp_flow;		/* (i) IPv6 flow information */
 	u_char	inp_vflag;		/* (i) IP version flag (v4/v6) */
 	u_char	inp_ip_ttl;		/* (i) time to live proto */
 	u_char	inp_ip_p;		/* (c) protocol proto */

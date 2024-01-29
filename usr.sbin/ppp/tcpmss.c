@@ -101,11 +101,11 @@
 }
 
 static void
-MSSFixup(struct tcphdr *tc, size_t pktlen, u_int16_t maxmss)
+MSSFixup(struct tcphdr *tc, size_t pktlen, uint16_t maxmss)
 {
   size_t hlen, olen, optlen;
   u_char *opt;
-  u_int16_t *mss;
+  uint16_t *mss;
   int accumulate;
 
   hlen = tc->th_off << 2;
@@ -131,7 +131,7 @@ MSSFixup(struct tcphdr *tc, size_t pktlen, u_int16_t maxmss)
       if (*opt == TCPOPT_MAXSEG) {
         if (optlen != TCPOLEN_MAXSEG)
           continue;
-        mss = (u_int16_t *)(opt + 2);
+        mss = (uint16_t *)(opt + 2);
         if (ntohs(*mss) > maxmss) {
           log_Printf(LogDEBUG, "MSS: %u -> %u\n",
                ntohs(*mss), maxmss);

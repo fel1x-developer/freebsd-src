@@ -1474,15 +1474,15 @@ xferrate_bailout:
 }
 
 static void
-atahpa_print(struct ata_params *parm, u_int64_t hpasize, int header)
+atahpa_print(struct ata_params *parm, uint64_t hpasize, int header)
 {
 	uint32_t lbasize = (uint32_t)parm->lba_size_1 |
 				((uint32_t)parm->lba_size_2 << 16);
 
-	u_int64_t lbasize48 = ((u_int64_t)parm->lba_size48_1) |
-				((u_int64_t)parm->lba_size48_2 << 16) |
-				((u_int64_t)parm->lba_size48_3 << 32) |
-				((u_int64_t)parm->lba_size48_4 << 48);
+	uint64_t lbasize48 = ((uint64_t)parm->lba_size48_1) |
+				((uint64_t)parm->lba_size48_2 << 16) |
+				((uint64_t)parm->lba_size48_3 << 32) |
+				((uint64_t)parm->lba_size48_4 << 48);
 
 	if (header) {
 		printf("\nFeature                      "
@@ -1491,7 +1491,7 @@ atahpa_print(struct ata_params *parm, u_int64_t hpasize, int header)
 
 	printf("Host Protected Area (HPA)      ");
 	if (parm->support.command1 & ATA_SUPPORT_PROTECTED) {
-		u_int64_t lba = lbasize48 ? lbasize48 : lbasize;
+		uint64_t lba = lbasize48 ? lbasize48 : lbasize;
 		printf("yes      %s     %ju/%ju\n", (hpasize > lba) ? "yes" : "no ",
 			lba, hpasize);
 
@@ -1507,15 +1507,15 @@ atahpa_print(struct ata_params *parm, u_int64_t hpasize, int header)
 }
 
 static void
-ataama_print(struct ata_params *parm, u_int64_t nativesize, int header)
+ataama_print(struct ata_params *parm, uint64_t nativesize, int header)
 {
 	uint32_t lbasize = (uint32_t)parm->lba_size_1 |
 				((uint32_t)parm->lba_size_2 << 16);
 
-	u_int64_t lbasize48 = ((u_int64_t)parm->lba_size48_1) |
-				((u_int64_t)parm->lba_size48_2 << 16) |
-				((u_int64_t)parm->lba_size48_3 << 32) |
-				((u_int64_t)parm->lba_size48_4 << 48);
+	uint64_t lbasize48 = ((uint64_t)parm->lba_size48_1) |
+				((uint64_t)parm->lba_size48_2 << 16) |
+				((uint64_t)parm->lba_size48_3 << 32) |
+				((uint64_t)parm->lba_size48_4 << 48);
 
 	if (header) {
 		printf("\nFeature                      "
@@ -1524,7 +1524,7 @@ ataama_print(struct ata_params *parm, u_int64_t nativesize, int header)
 
 	printf("Accessible Max Address Config  ");
 	if (parm->support2 & ATA_SUPPORT_AMAX_ADDR) {
-		u_int64_t lba = lbasize48 ? lbasize48 : lbasize;
+		uint64_t lba = lbasize48 ? lbasize48 : lbasize;
 		printf("yes      %s     %ju/%ju\n",
 		    (nativesize > lba) ? "yes" : "no ", lba, nativesize);
 	} else {
@@ -1551,10 +1551,10 @@ atacapprint(struct ata_params *parm)
 	uint32_t lbasize = (uint32_t)parm->lba_size_1 |
 				((uint32_t)parm->lba_size_2 << 16);
 
-	u_int64_t lbasize48 = ((u_int64_t)parm->lba_size48_1) |
-				((u_int64_t)parm->lba_size48_2 << 16) |
-				((u_int64_t)parm->lba_size48_3 << 32) |
-				((u_int64_t)parm->lba_size48_4 << 48);
+	uint64_t lbasize48 = ((uint64_t)parm->lba_size48_1) |
+				((uint64_t)parm->lba_size48_2 << 16) |
+				((uint64_t)parm->lba_size48_3 << 32) |
+				((uint64_t)parm->lba_size48_4 << 48);
 
 	printf("\n");
 	printf("protocol              ");
@@ -1923,7 +1923,7 @@ static int
 ata_do_pass_16(struct cam_device *device, union ccb *ccb, int retries,
 	       uint32_t flags, uint8_t protocol, uint8_t ata_flags,
 	       uint8_t tag_action, uint8_t command, uint16_t features,
-	       u_int64_t lba, uint16_t sector_count, uint8_t *data_ptr,
+	       uint64_t lba, uint16_t sector_count, uint8_t *data_ptr,
 	       uint16_t dxfer_len, int timeout)
 {
 	if (data_ptr != NULL) {
@@ -1980,7 +1980,7 @@ static int
 ata_do_cmd(struct cam_device *device, union ccb *ccb, int retries,
 	   uint32_t flags, uint8_t protocol, uint8_t ata_flags,
 	   uint8_t tag_action, uint8_t command, uint16_t features,
-	   u_int64_t lba, uint16_t sector_count, uint8_t *data_ptr,
+	   uint64_t lba, uint16_t sector_count, uint8_t *data_ptr,
 	   uint16_t dxfer_len, int timeout, int force48bit)
 {
 	int retval;
@@ -2034,7 +2034,7 @@ dump_data(uint16_t *ptr, uint32_t len)
 }
 
 static int
-atahpa_proc_resp(struct cam_device *device, union ccb *ccb, u_int64_t *hpasize)
+atahpa_proc_resp(struct cam_device *device, union ccb *ccb, uint64_t *hpasize)
 {
 	uint8_t error = 0, ata_device = 0, status = 0;
 	uint16_t count = 0;
@@ -2079,7 +2079,7 @@ atahpa_proc_resp(struct cam_device *device, union ccb *ccb, u_int64_t *hpasize)
 static int
 ata_read_native_max(struct cam_device *device, int retry_count,
 		      uint32_t timeout, union ccb *ccb,
-		      struct ata_params *parm, u_int64_t *hpasize)
+		      struct ata_params *parm, uint64_t *hpasize)
 {
 	int error;
 	u_int cmd, is48bit;
@@ -2120,7 +2120,7 @@ ata_read_native_max(struct cam_device *device, int retry_count,
 static int
 atahpa_set_max(struct cam_device *device, int retry_count,
 	      uint32_t timeout, union ccb *ccb,
-	      int is48bit, u_int64_t maxsize, int persist)
+	      int is48bit, uint64_t maxsize, int persist)
 {
 	int error;
 	u_int cmd;
@@ -2276,7 +2276,7 @@ atahpa_freeze_lock(struct cam_device *device, int retry_count,
 static int
 ata_get_native_max(struct cam_device *device, int retry_count,
 		      uint32_t timeout, union ccb *ccb,
-		      u_int64_t *nativesize)
+		      uint64_t *nativesize)
 {
 	int error;
 
@@ -2304,7 +2304,7 @@ ata_get_native_max(struct cam_device *device, int retry_count,
 
 static int
 ataama_set(struct cam_device *device, int retry_count,
-	      uint32_t timeout, union ccb *ccb, u_int64_t maxsize)
+	      uint32_t timeout, union ccb *ccb, uint64_t maxsize)
 {
 	int error;
 
@@ -2449,7 +2449,7 @@ ataidentify(struct cam_device *device, int retry_count, int timeout)
 {
 	union ccb *ccb;
 	struct ata_params *ident_buf;
-	u_int64_t hpasize = 0, nativesize = 0;
+	uint64_t hpasize = 0, nativesize = 0;
 
 	if ((ccb = cam_getccb(device)) == NULL) {
 		warnx("couldn't allocate CCB");
@@ -2860,7 +2860,7 @@ enum {
 
 static int
 atahpa_set_confirm(struct cam_device *device, struct ata_params* ident_buf,
-		   u_int64_t maxsize, int persist)
+		   uint64_t maxsize, int persist)
 {
 	printf("\nYou are about to configure HPA to limit the user accessible\n"
 	       "sectors to %ju %s on the device:\n%s%d,%s%d: ", maxsize,
@@ -2899,7 +2899,7 @@ atahpa(struct cam_device *device, int retry_count, int timeout,
 	struct ata_set_max_pwd pwd;
 	int error, confirm, quiet, c, action, actions, persist;
 	int security, is48bit, pwdsize;
-	u_int64_t hpasize, maxsize;
+	uint64_t hpasize, maxsize;
 
 	actions = 0;
 	confirm = 0;
@@ -3106,7 +3106,7 @@ ataama(struct cam_device *device, int retry_count, int timeout,
 	struct ata_params *ident_buf;
 	struct ccb_getdev cgd;
 	int error, quiet, c, action, actions;
-	u_int64_t nativesize, maxsize;
+	uint64_t nativesize, maxsize;
 
 	actions = 0;
 	quiet = 0;
@@ -6645,7 +6645,7 @@ doreport:
 				     ccb->csio.sense_resid, sks) == 0)
 				 && (quiet == 0)) {
 					uint32_t val;
-					u_int64_t percentage;
+					uint64_t percentage;
 
 					val = scsi_2btoul(&sks[1]);
 					percentage = 10000ull * val;

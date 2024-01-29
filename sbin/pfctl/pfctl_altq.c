@@ -61,7 +61,7 @@ static struct hsearch_data qid_map;
 
 static struct pfctl_altq *pfaltq_lookup(char *ifname);
 static struct pfctl_altq *qname_to_pfaltq(const char *, const char *);
-static u_int32_t	 qname_to_qid(char *);
+static uint32_t	 qname_to_qid(char *);
 
 static int	eval_pfqueue_cbq(struct pfctl *, struct pf_altq *,
 		    struct pfctl_altq *);
@@ -97,11 +97,11 @@ static int		 gsc_add_seg(struct gen_sc *, double, double, double,
 			     double);
 static double		 sc_x2y(struct service_curve *, double);
 
-u_int32_t	 getifspeed(char *);
+uint32_t	 getifspeed(char *);
 u_long		 getifmtu(char *);
 int		 eval_queue_opts(struct pf_altq *, struct node_queue_opt *,
-		     u_int64_t);
-u_int64_t	 eval_bwspec(struct node_queue_bw *, u_int64_t);
+		     uint64_t);
+uint64_t	 eval_bwspec(struct node_queue_bw *, uint64_t);
 void		 print_hfsc_sc(const char *, u_int, u_int, u_int,
 		     const struct node_hfsc_sc *);
 void		 print_fairq_sc(const char *, u_int, u_int, u_int,
@@ -185,7 +185,7 @@ qname_to_pfaltq(const char *qname, const char *ifname)
 	return (ret_item->data);
 }
 
-static u_int32_t
+static uint32_t
 qname_to_qid(char *qname)
 {
 	ENTRY	 item;
@@ -306,7 +306,7 @@ int
 eval_pfaltq(struct pfctl *pf, struct pf_altq *pa, struct node_queue_bw *bw,
     struct node_queue_opt *opts)
 {
-	u_int64_t	rate;
+	uint64_t	rate;
 	u_int		size, errors = 0;
 
 	if (bw->bw_absolute > 0)
@@ -1245,7 +1245,7 @@ rate2str(double rate)
 	return (buf);
 }
 
-u_int32_t
+uint32_t
 getifspeed(char *ifname)
 {
 	int		s;
@@ -1260,7 +1260,7 @@ getifspeed(char *ifname)
 	ifr.ifr_data = (caddr_t)&ifrdat;
 	if (ioctl(s, SIOCGIFDATA, (caddr_t)&ifr) == -1)
 		err(1, "SIOCGIFDATA");
-	return ((u_int32_t)ifrdat.ifi_baudrate);
+	return ((uint32_t)ifrdat.ifi_baudrate);
 }
 
 u_long
@@ -1290,7 +1290,7 @@ getifmtu(char *ifname)
 
 int
 eval_queue_opts(struct pf_altq *pa, struct node_queue_opt *opts,
-    u_int64_t ref_bw)
+    uint64_t ref_bw)
 {
 	int	errors = 0;
 
@@ -1376,8 +1376,8 @@ eval_queue_opts(struct pf_altq *pa, struct node_queue_opt *opts,
  * Otherwise, if the absolute bandwidth is not set, return given percentage
  * of reference bandwidth.
  */
-u_int64_t
-eval_bwspec(struct node_queue_bw *bw, u_int64_t ref_bw)
+uint64_t
+eval_bwspec(struct node_queue_bw *bw, uint64_t ref_bw)
 {
 	if (bw->bw_absolute > 0)
 		return (MIN(bw->bw_absolute, ref_bw));

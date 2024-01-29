@@ -67,7 +67,7 @@ struct connection {
 	int		conn_fd;
 	struct tcpp_header	conn_header;	/* Header buffer. */
 	u_int		conn_header_sent;	/* Header bytes sent. */
-	u_int64_t	conn_data_sent;		/* Data bytes sent.*/
+	uint64_t	conn_data_sent;		/* Data bytes sent.*/
 };
 
 static u_char			 buffer[256 * 1024];	/* Buffer to send. */

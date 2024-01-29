@@ -803,8 +803,8 @@ ieee80211_parse_action(struct ieee80211_node *ni, struct mbuf *m)
 	 *	[tlv] parameters
 	 */
 	wh = mtod(m, struct ieee80211_frame *);
-	frm = (u_int8_t *)&wh[1];
-	efrm = mtod(m, u_int8_t *) + m->m_len;
+	frm = (uint8_t *)&wh[1];
+	efrm = mtod(m, uint8_t *) + m->m_len;
 	IEEE80211_VERIFY_LENGTH(efrm - frm,
 		sizeof(struct ieee80211_action), return EINVAL);
 	ia = (const struct ieee80211_action *) frm;

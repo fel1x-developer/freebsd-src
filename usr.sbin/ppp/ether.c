@@ -104,7 +104,7 @@ struct etherdevice {
   int connected;			/* Are we connected yet ? */
   int timeout;				/* Seconds attempting to connect */
   char hook[sizeof TUN_NAME + 11];	/* Our socket node hook */
-  u_int32_t slot;			/* ifindex << 24 | unit */
+  uint32_t slot;			/* ifindex << 24 | unit */
 };
 
 #define device2ether(d) \
@@ -274,7 +274,7 @@ ether_MessageIn(struct etherdevice *dev)
         break;
       case NGM_PPPOE_SESSIONID:
         msg = "SESSIONID";
-        snprintf(sessionid, sizeof sessionid, "%04x", *(u_int16_t *)sts);
+        snprintf(sessionid, sizeof sessionid, "%04x", *(uint16_t *)sts);
         if (setenv("SESSIONID", sessionid, 1) != 0)
           syslog(LOG_WARNING, "setenv: cannot set SESSIONID=%s: %m",
                  sessionid);

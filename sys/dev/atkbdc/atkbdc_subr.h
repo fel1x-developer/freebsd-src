@@ -37,10 +37,10 @@ MALLOC_DECLARE(M_ATKBDDEV);
 typedef struct atkbdc_device {
 	struct resource_list resources;
 	int rid;
-	u_int32_t vendorid;
-	u_int32_t serial;
-	u_int32_t logicalid;
-	u_int32_t compatid;
+	uint32_t vendorid;
+	uint32_t serial;
+	uint32_t logicalid;
+	uint32_t compatid;
 } atkbdc_device_t;
 
 /* kbdc */

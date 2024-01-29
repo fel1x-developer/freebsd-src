@@ -325,23 +325,23 @@
 #define AHCI_UNIT		0xff		/* Channel number. */
 
 struct ahci_dma_prd {
-    u_int64_t                   dba;
-    u_int32_t                   reserved;
-    u_int32_t                   dbc;            /* 0 based */
+    uint64_t                   dba;
+    uint32_t                   reserved;
+    uint32_t                   dbc;            /* 0 based */
 #define AHCI_PRD_MASK		0x003fffff      /* max 4MB */
 #define AHCI_PRD_MAX		(AHCI_PRD_MASK + 1)
 #define AHCI_PRD_IPC		(1U << 31)
 } __packed;
 
 struct ahci_cmd_tab {
-    u_int8_t                    cfis[64];
-    u_int8_t                    acmd[32];
-    u_int8_t                    reserved[32];
+    uint8_t                    cfis[64];
+    uint8_t                    acmd[32];
+    uint8_t                    reserved[32];
     struct ahci_dma_prd         prd_tab[];
 } __packed;
 
 struct ahci_cmd_list {
-    u_int16_t                   cmd_flags;
+    uint16_t                   cmd_flags;
 #define AHCI_CMD_ATAPI		0x0020
 #define AHCI_CMD_WRITE		0x0040
 #define AHCI_CMD_PREFETCH		0x0080
@@ -349,9 +349,9 @@ struct ahci_cmd_list {
 #define AHCI_CMD_BIST		0x0200
 #define AHCI_CMD_CLR_BUSY		0x0400
 
-    u_int16_t                   prd_length;     /* PRD entries */
-    u_int32_t                   bytecount;
-    u_int64_t                   cmd_table_phys; /* 128byte aligned */
+    uint16_t                   prd_length;     /* PRD entries */
+    uint32_t                   bytecount;
+    uint64_t                   cmd_table_phys; /* 128byte aligned */
 } __packed;
 
 /* misc defines */
@@ -385,7 +385,7 @@ enum ahci_slot_states {
 
 struct ahci_slot {
     struct ahci_channel		*ch;		/* Channel */
-    u_int8_t			slot;           /* Number of this slot */
+    uint8_t			slot;           /* Number of this slot */
     enum ahci_slot_states	state;          /* Slot state */
     u_int			ct_offset;	/* cmd_tab offset */
     union ccb			*ccb;		/* CCB occupying slot */

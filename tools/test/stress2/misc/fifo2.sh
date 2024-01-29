@@ -95,9 +95,9 @@ EOF
 #include <string.h>
 #include <unistd.h>
 
-#define N (128 * 1024 / (int)sizeof(u_int32_t))
+#define N (128 * 1024 / (int)sizeof(uint32_t))
 static int debug; /* Set to 1 for debug output */
-u_int32_t r[N];
+uint32_t r[N];
 
 static void
 hand(int i __unused) {	/* handler */

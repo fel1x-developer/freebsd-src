@@ -407,7 +407,7 @@ tmp(void)
 static int
 byteorder(void)
 {
-	u_int32_t x;
+	uint32_t x;
 	u_char *p;
 
 	x = 0x01020304;

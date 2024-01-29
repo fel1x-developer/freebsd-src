@@ -111,7 +111,7 @@ ath_rate_node_cleanup(struct ath_softc *sc, struct ath_node *an)
 void
 ath_rate_findrate(struct ath_softc *sc, struct ath_node *an,
 	int shortPreamble, size_t frameLen, int tid, int is_aggr,
-	u_int8_t *rix, int *try0, u_int8_t *txrate, int *maxdur,
+	uint8_t *rix, int *try0, uint8_t *txrate, int *maxdur,
 	int *maxpktlen)
 {
 	struct onoe_node *on = ATH_NODE_ONOE(an);
@@ -153,7 +153,7 @@ ath_rate_getxtxrates(struct ath_softc *sc, struct ath_node *an,
 
 void
 ath_rate_setupxtxdesc(struct ath_softc *sc, struct ath_node *an,
-	struct ath_desc *ds, int shortPreamble, u_int8_t rix)
+	struct ath_desc *ds, int shortPreamble, uint8_t rix)
 {
 	struct onoe_node *on = ATH_NODE_ONOE(an);
 
@@ -202,7 +202,7 @@ ath_rate_update(struct ath_softc *sc, struct ieee80211_node *ni, int rate)
 	struct onoe_node *on = ATH_NODE_ONOE(an);
 	struct ieee80211vap *vap = ni->ni_vap;
 	const HAL_RATE_TABLE *rt = sc->sc_currates;
-	u_int8_t rix;
+	uint8_t rix;
 
 	KASSERT(rt != NULL, ("no rate table, mode %u", sc->sc_curmode));
 

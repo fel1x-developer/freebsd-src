@@ -169,8 +169,8 @@ void clock_unregister(device_t _clockdev);
 /* Traditional POSIX base year */
 #define	POSIX_BASE_YEAR	1970
 
-void timespec2fattime(const struct timespec *tsp, int utc, u_int16_t *ddp,
-    u_int16_t *dtp, u_int8_t *dhp);
+void timespec2fattime(const struct timespec *tsp, int utc, uint16_t *ddp,
+    uint16_t *dtp, uint8_t *dhp);
 void fattime2timespec(unsigned dd, unsigned dt, unsigned dh, int utc,
     struct timespec *tsp);
 

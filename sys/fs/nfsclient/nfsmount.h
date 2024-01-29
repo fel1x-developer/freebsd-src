@@ -68,7 +68,7 @@ struct	nfsmount {
 	short	nm_bufqlen;		/* number of buffers in queue */
 	short	nm_bufqwant;		/* process wants to add to the queue */
 	int	nm_bufqiods;		/* number of iods processing queue */
-	u_int64_t nm_maxfilesize;	/* maximum file size */
+	uint64_t nm_maxfilesize;	/* maximum file size */
 	int	nm_tprintf_initial_delay; /* initial delay */
 	int	nm_tprintf_delay;	/* interval for messages */
 	int	nm_nametimeo;		/* timeout for +ve entries (sec) */
@@ -79,17 +79,17 @@ struct	nfsmount {
 	struct	nfsclclient *nm_clp;
 	char	*nm_tlscertname;	/* TLS certificate file name */
 	uid_t	nm_uid;			/* Uid for SetClientID etc. */
-	u_int64_t nm_clval;		/* identifies which clientid */
-	u_int64_t nm_fsid[2];		/* NFSv4 fsid */
+	uint64_t nm_clval;		/* identifies which clientid */
+	uint64_t nm_fsid[2];		/* NFSv4 fsid */
 	int	nm_minorvers;		/* Minor version # for NFSv4 */
 	u_int	nm_aconnect;		/* additional TCP connections */
 	u_int	nm_nextaconn;		/* Next nm_aconn[] to use */
 					/* unclipped, wraps to 0 */
 	struct __rpc_client *nm_aconn[NFS_MAXNCONN - 1]; /* Additional nconn */
 					/* Locked via nm_sockreq.nr_mtx */
-	u_int16_t nm_krbnamelen;	/* Krb5 host principal, if any */
-	u_int16_t nm_dirpathlen;	/* and mount dirpath, for V4 */
-	u_int16_t nm_srvkrbnamelen;	/* and the server's target name */
+	uint16_t nm_krbnamelen;	/* Krb5 host principal, if any */
+	uint16_t nm_dirpathlen;	/* and mount dirpath, for V4 */
+	uint16_t nm_srvkrbnamelen;	/* and the server's target name */
 	u_char	nm_name[1];	/* malloc'd actual len of krbname + dirpath */
 };
 

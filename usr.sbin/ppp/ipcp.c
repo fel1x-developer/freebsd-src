@@ -518,7 +518,7 @@ ipcp_SetLink(struct ipcp *ipcp, struct link *l)
 }
 
 void
-ipcp_Setup(struct ipcp *ipcp, u_int32_t mask)
+ipcp_Setup(struct ipcp *ipcp, uint32_t mask)
 {
   struct iface *iface = ipcp->fsm.bundle->iface;
   struct ncpaddr ipaddr;
@@ -601,7 +601,7 @@ ipcp_Setup(struct ipcp *ipcp, u_int32_t mask)
 static int
 numaddresses(struct in_addr mask)
 {
-  u_int32_t bit, haddr;
+  uint32_t bit, haddr;
   int n;
 
   haddr = ntohl(mask.s_addr);
@@ -771,7 +771,7 @@ IpcpSendConfigReq(struct fsm *fp)
 
   if (ipcp->my_compproto && !REJECTED(ipcp, TY_COMPPROTO)) {
     if (ipcp->heis1172) {
-      u_int16_t proto = PROTO_VJCOMP;
+      uint16_t proto = PROTO_VJCOMP;
 
       ua_htons(&proto, o->data);
       INC_FSM_OPT(TY_COMPPROTO, 4, o);
@@ -1032,7 +1032,7 @@ ipcp_ValidateReq(struct ipcp *ipcp, struct in_addr ip, struct fsm_decode *dec)
     for (n = 0; n < iface->addrs; n++)
       if (ncprange_contains(&ipcp->cfg.peer_range, &iface->addr[n].peer)) {
         /* We prefer the already-configured address */
-        ncpaddr_getip4addr(&iface->addr[n].peer, (u_int32_t *)dec->nakend);
+        ncpaddr_getip4addr(&iface->addr[n].peer, (uint32_t *)dec->nakend);
         break;
       }
 
@@ -1058,7 +1058,7 @@ IpcpDecodeConfig(struct fsm *fp, u_char *cp, u_char *end, int mode_type,
   struct ncpaddr ncpaddr;
   struct ipcp *ipcp = fsm2ipcp(fp);
   int gotdnsnak;
-  u_int32_t compproto;
+  uint32_t compproto;
   struct compreq pcomp;
   struct in_addr ipaddr, dstipaddr, have_ip;
   char tbuff[100], tbuff2[100];
@@ -1415,7 +1415,7 @@ ipcp_UseHisaddr(struct bundle *bundle, const char *hisaddr, int setaddr)
 struct in_addr
 addr2mask(struct in_addr addr)
 {
-  u_int32_t haddr = ntohl(addr.s_addr);
+  uint32_t haddr = ntohl(addr.s_addr);
 
   haddr = IN_CLASSA(haddr) ? IN_CLASSA_NET :
           IN_CLASSB(haddr) ? IN_CLASSB_NET :
@@ -1445,7 +1445,7 @@ ipcp_PushPacket(struct ipcp *ipcp, struct link *l)
   struct mqueue *queue;
   struct mbuf *bp;
   int m_len;
-  u_int32_t secs = 0;
+  uint32_t secs = 0;
   unsigned alivesecs = 0;
 
   if (ipcp->fsm.state != ST_OPENED)

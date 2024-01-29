@@ -28,11 +28,11 @@
 
 /* structure holding chipset config info */
 struct ata_chip_id {
-    u_int32_t           chipid;
-    u_int8_t            chiprev;
+    uint32_t           chipid;
+    uint8_t            chiprev;
     int                 cfg1;
     int                 cfg2;
-    u_int8_t            max_dma;
+    uint8_t            max_dma;
     const char          *text;
 };
 

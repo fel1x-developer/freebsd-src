@@ -140,7 +140,7 @@ SYSCTL_INT(_net_graph_mppe, OID_AUTO, max_rekey, CTLFLAG_RWTUN,
 struct ng_mppc_dir {
 	struct ng_mppc_config	cfg;		/* configuration */
 	hook_p			hook;		/* netgraph hook */
-	u_int16_t		cc:12;		/* coherency count */
+	uint16_t		cc:12;		/* coherency count */
 	u_char			flushed;	/* clean history (xmit only) */
 #ifdef NETGRAPH_MPPC_COMPRESSION
 	u_char			*history;	/* compression history */
@@ -174,7 +174,7 @@ static int	ng_mppc_decompress(node_p node,
 			struct mbuf **datap);
 #ifdef NETGRAPH_MPPC_ENCRYPTION
 static void	ng_mppc_getkey(const u_char *h, u_char *h2, int len);
-static void	ng_mppc_updatekey(u_int32_t bits,
+static void	ng_mppc_updatekey(uint32_t bits,
 			u_char *key0, u_char *key, struct rc4_state *rc4);
 #endif
 static void	ng_mppc_reset_req(node_p node);
@@ -477,7 +477,7 @@ ng_mppc_compress(node_p node, struct mbuf **datap)
 {
 	const priv_p priv = NG_NODE_PRIVATE(node);
 	struct ng_mppc_dir *const d = &priv->xmit;
-	u_int16_t header;
+	uint16_t header;
 	struct mbuf *m = *datap;
 
 	/* We must own the mbuf chain exclusively to modify it. */
@@ -626,7 +626,7 @@ ng_mppc_decompress(node_p node, struct mbuf **datap)
 {
 	const priv_p priv = NG_NODE_PRIVATE(node);
 	struct ng_mppc_dir *const d = &priv->recv;
-	u_int16_t header, cc;
+	uint16_t header, cc;
 	u_int numLost;
 	struct mbuf *m = *datap;
 
@@ -887,7 +887,7 @@ ng_mppc_getkey(const u_char *h, u_char *h2, int len)
  * Update the encryption key
  */
 static void
-ng_mppc_updatekey(u_int32_t bits,
+ng_mppc_updatekey(uint32_t bits,
 	u_char *key0, u_char *key, struct rc4_state *rc4)
 { 
 	const int keylen = KEYLEN(bits);

@@ -57,15 +57,15 @@ struct cdr_track {
 };
 
 struct cdr_cue_entry {
-	u_int8_t adr:4;
-    	u_int8_t ctl:4;
-	u_int8_t track;
-	u_int8_t index;
-	u_int8_t dataform;
-	u_int8_t scms;
-	u_int8_t min;
-	u_int8_t sec;
-	u_int8_t frame;
+	uint8_t adr:4;
+    	uint8_t ctl:4;
+	uint8_t track;
+	uint8_t index;
+	uint8_t dataform;
+	uint8_t scms;
+	uint8_t min;
+	uint8_t sec;
+	uint8_t frame;
 };
 
 struct cdr_cuesheet {
@@ -86,33 +86,33 @@ struct cdr_cuesheet {
 };
 
 struct cdr_format_capacity {
-	u_int32_t blocks;
-	u_int32_t reserved:2;
-	u_int32_t type:6;
-	u_int32_t param:24;
+	uint32_t blocks;
+	uint32_t reserved:2;
+	uint32_t type:6;
+	uint32_t param:24;
 };
 
 struct cdr_format_capacities {
-	u_int8_t reserved1[3];
-	u_int8_t length;
-	u_int32_t blocks;
-	u_int32_t type:2;
-	u_int32_t reserved2:6;
-	u_int32_t block_size:24;
+	uint8_t reserved1[3];
+	uint8_t length;
+	uint32_t blocks;
+	uint32_t type:2;
+	uint32_t reserved2:6;
+	uint32_t block_size:24;
 	struct cdr_format_capacity format[32];
 };
 
 struct cdr_format_params {
-	u_int8_t reserved;
-	u_int8_t vs:1;
-	u_int8_t immed:1;
-	u_int8_t try_out:1;
-	u_int8_t ip:1;
-	u_int8_t stpf:1;
-	u_int8_t dcrt:1;
-	u_int8_t dpry:1;
-	u_int8_t fov:1;
-	u_int16_t length;
+	uint8_t reserved;
+	uint8_t vs:1;
+	uint8_t immed:1;
+	uint8_t try_out:1;
+	uint8_t ip:1;
+	uint8_t stpf:1;
+	uint8_t dcrt:1;
+	uint8_t dpry:1;
+	uint8_t fov:1;
+	uint16_t length;
 	struct cdr_format_capacity format;
 };
 

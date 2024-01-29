@@ -501,7 +501,7 @@ default: DBPRINT(sc, BCE_INSANE_PHY,					\
 
 #define HP_VENDORID				0x103C
 
-#define PCI_ANY_ID				(u_int16_t) (~0U)
+#define PCI_ANY_ID				(uint16_t) (~0U)
 
 /* chip num:16-31, rev:12-15, metal:4-11, bond_id:0-3 */
 
@@ -551,10 +551,10 @@ default: DBPRINT(sc, BCE_INSANE_PHY,					\
 #define BCE_CHIPREV_5701_AX		0x00
 
 struct bce_type {
-	u_int16_t bce_vid;
-	u_int16_t bce_did;
-	u_int16_t bce_svid;
-	u_int16_t bce_sdid;
+	uint16_t bce_vid;
+	uint16_t bce_did;
+	uint16_t bce_svid;
+	uint16_t bce_sdid;
 	const char *bce_name;
 };
 
@@ -6302,7 +6302,7 @@ struct bce_softc
 	device_t		bce_dev;
 
 	/* Interface number */
-	u_int8_t		bce_unit;
+	uint8_t		bce_unit;
 
 	/* Device resource handle */
 	struct resource		*bce_res_mem;

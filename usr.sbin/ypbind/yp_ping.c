@@ -199,7 +199,7 @@ ypproc_domain_nonack_2_recv(domainname *argp, CLIENT *clnt)
 
 struct ping_req {
 	struct sockaddr_in	sin;
-	u_int32_t		xid;
+	uint32_t		xid;
 };
 
 int
@@ -212,7 +212,7 @@ __yp_ping(struct in_addr *restricted_addrs, int cnt, char *dom, short *port)
 	struct sockaddr_in	sin, *any = NULL;
 	struct netbuf		addr;
 	int			winner = -1;
-	u_int32_t		xid_seed, xid_lookup;
+	uint32_t		xid_seed, xid_lookup;
 	int			sock, dontblock = 1;
 	CLIENT			*clnt;
 	char			*foo = dom;

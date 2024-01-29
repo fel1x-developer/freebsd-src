@@ -58,9 +58,9 @@
 #define ATOX(c) \
   (isdigit(c) ? (c - '0') : (isupper(c) ? (c - 'A' + 10) : (c - 'a' + 10)))
 
-u_int32_t p_spi;
+uint32_t p_spi;
 u_int p_ext, p_alg_enc, p_alg_auth, p_replay, p_mode;
-u_int32_t p_reqid;
+uint32_t p_reqid;
 u_int p_key_enc_len, p_key_auth_len;
 caddr_t p_key_enc, p_key_auth;
 time_t p_lt_hard, p_lt_soft;

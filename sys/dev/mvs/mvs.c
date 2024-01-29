@@ -590,12 +590,12 @@ DRIVER_MODULE(mvsch, mvs, mvsch_driver, 0, 0);
 DRIVER_MODULE(mvsch, sata, mvsch_driver, 0, 0);
 
 static void
-mvs_phy_check_events(device_t dev, u_int32_t serr)
+mvs_phy_check_events(device_t dev, uint32_t serr)
 {
 	struct mvs_channel *ch = device_get_softc(dev);
 
 	if (ch->pm_level == 0) {
-		u_int32_t status = ATA_INL(ch->r_mem, SATA_SS);
+		uint32_t status = ATA_INL(ch->r_mem, SATA_SS);
 		union ccb *ccb;
 
 		if (bootverbose) {
@@ -2153,7 +2153,7 @@ mvs_softreset(device_t dev, union ccb *ccb)
 static int
 mvs_sata_connect(struct mvs_channel *ch)
 {
-	u_int32_t status;
+	uint32_t status;
 	int timeout, found = 0;
 
 	/* Wait up to 100ms for "connect well" */

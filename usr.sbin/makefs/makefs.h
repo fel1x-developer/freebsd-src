@@ -293,11 +293,11 @@ extern	struct stat stampst;
 #define        cg_chkmagic_swap(cgp, ns) \
     (ufs_rw32((cgp)->cg_magic, (ns)) == CG_MAGIC)
 #define        cg_inosused_swap(cgp, ns) \
-    ((u_int8_t *)((u_int8_t *)(cgp) + ufs_rw32((cgp)->cg_iusedoff, (ns))))
+    ((uint8_t *)((uint8_t *)(cgp) + ufs_rw32((cgp)->cg_iusedoff, (ns))))
 #define        cg_blksfree_swap(cgp, ns) \
-    ((u_int8_t *)((u_int8_t *)(cgp) + ufs_rw32((cgp)->cg_freeoff, (ns))))
+    ((uint8_t *)((uint8_t *)(cgp) + ufs_rw32((cgp)->cg_freeoff, (ns))))
 #define        cg_clustersfree_swap(cgp, ns) \
-    ((u_int8_t *)((u_int8_t *)(cgp) + ufs_rw32((cgp)->cg_clusteroff, (ns))))
+    ((uint8_t *)((uint8_t *)(cgp) + ufs_rw32((cgp)->cg_clusteroff, (ns))))
 #define        cg_clustersum_swap(cgp, ns) \
     ((int32_t *)((uintptr_t)(cgp) + ufs_rw32((cgp)->cg_clustersumoff, ns)))
 

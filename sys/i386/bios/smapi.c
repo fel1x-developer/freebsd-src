@@ -63,7 +63,7 @@ struct smapi_softc {
 	struct resource *	res;
 	int			rid;
 
-	u_int32_t		smapi32_entry;
+	uint32_t		smapi32_entry;
 
 	struct smapi_bios_header *header;
 };
@@ -121,11 +121,11 @@ smapi_ioctl (struct cdev *dev, u_long cmd, caddr_t data, int fflag, struct threa
 static int
 smapi_header_cksum (struct smapi_bios_header *header)
 {
-	u_int8_t *ptr;
-	u_int8_t cksum;
+	uint8_t *ptr;
+	uint8_t cksum;
 	int i;
 
-	ptr = (u_int8_t *)header;
+	ptr = (uint8_t *)header;
 	cksum = 0;
 	for (i = 0; i < header->length; i++) {
 		cksum += ptr[i];	
@@ -138,7 +138,7 @@ static void
 smapi_identify (driver_t *driver, device_t parent)
 {
 	device_t child;
-	u_int32_t addr;
+	uint32_t addr;
 	int length;
 	int rid;
 
@@ -208,7 +208,7 @@ smapi_attach (device_t dev)
 		goto bad;
 	}
 	sc->header = (struct smapi_bios_header *)rman_get_virtual(sc->res);
-	sc->smapi32_entry = (u_int32_t)BIOS_PADDRTOVADDR(
+	sc->smapi32_entry = (uint32_t)BIOS_PADDRTOVADDR(
 					sc->header->prot32_segment +
 					sc->header->prot32_offset);
 

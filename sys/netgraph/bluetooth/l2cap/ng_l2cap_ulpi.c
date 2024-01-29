@@ -159,8 +159,8 @@ out:
  */
 
 int
-ng_l2cap_l2ca_con_rsp(ng_l2cap_chan_p ch, u_int32_t token, u_int16_t result,
-		u_int16_t status)
+ng_l2cap_l2ca_con_rsp(ng_l2cap_chan_p ch, uint32_t token, uint16_t result,
+		uint16_t status)
 {
 	ng_l2cap_p		 l2cap = ch->con->l2cap;
 	struct ng_mesg		*msg = NULL;
@@ -226,7 +226,7 @@ ng_l2cap_l2ca_con_rsp_req(ng_l2cap_p l2cap, struct ng_mesg *msg)
 	ng_l2cap_con_p			 con = NULL;
 	ng_l2cap_chan_p			 ch = NULL;
 	ng_l2cap_cmd_p			 cmd = NULL;
-	u_int16_t			 dcid;
+	uint16_t			 dcid;
 	int				 error = 0;
 
 	/* Check message */
@@ -386,7 +386,7 @@ int ng_l2cap_l2ca_encryption_change(ng_l2cap_chan_p ch, uint16_t result)
  */
 
 int
-ng_l2cap_l2ca_con_rsp_rsp(ng_l2cap_chan_p ch, u_int32_t token, u_int16_t result)
+ng_l2cap_l2ca_con_rsp_rsp(ng_l2cap_chan_p ch, uint32_t token, uint16_t result)
 {
 	ng_l2cap_p			 l2cap = ch->con->l2cap;
 	struct ng_mesg			*msg = NULL;
@@ -474,7 +474,7 @@ ng_l2cap_l2ca_cfg_req(ng_l2cap_p l2cap, struct ng_mesg *msg)
 	ng_l2cap_chan_p		 ch = NULL;
 	ng_l2cap_cmd_p		 cmd = NULL;
 	struct mbuf		*opt = NULL;
-        u_int16_t		*mtu = NULL, *flush_timo = NULL;
+        uint16_t		*mtu = NULL, *flush_timo = NULL;
         ng_l2cap_flow_p		 flow = NULL;
 	int			 error = 0;
 
@@ -577,7 +577,7 @@ out:
  */
 
 int
-ng_l2cap_l2ca_cfg_rsp(ng_l2cap_chan_p ch, u_int32_t token, u_int16_t result)
+ng_l2cap_l2ca_cfg_rsp(ng_l2cap_chan_p ch, uint32_t token, uint16_t result)
 {
 	ng_l2cap_p		 l2cap = ch->con->l2cap;
 	struct ng_mesg		*msg = NULL;
@@ -646,7 +646,7 @@ ng_l2cap_l2ca_cfg_rsp_req(ng_l2cap_p l2cap, struct ng_mesg *msg)
 	ng_l2cap_chan_p			 ch = NULL;
 	ng_l2cap_cmd_p			 cmd = NULL;
 	struct mbuf			*opt = NULL;
-	u_int16_t			*mtu = NULL;
+	uint16_t			*mtu = NULL;
 	ng_l2cap_flow_p			 flow = NULL;
 	int				 error = 0;
 
@@ -737,7 +737,7 @@ out:
  */
 
 int
-ng_l2cap_l2ca_cfg_rsp_rsp(ng_l2cap_chan_p ch, u_int32_t token, u_int16_t result)
+ng_l2cap_l2ca_cfg_rsp_rsp(ng_l2cap_chan_p ch, uint32_t token, uint16_t result)
 {
 	ng_l2cap_p			 l2cap = ch->con->l2cap;
 	struct ng_mesg			*msg = NULL;
@@ -836,7 +836,7 @@ ng_l2cap_l2ca_write_req(ng_l2cap_p l2cap, struct mbuf *m)
 	ng_l2cap_chan_p		 ch = NULL;
 	ng_l2cap_cmd_p		 cmd = NULL;
 	int			 error = 0;
-	u_int32_t		 token = 0;
+	uint32_t		 token = 0;
 
 	/* Make sure we can access L2CA data packet header */
 	if (m->m_pkthdr.len < sizeof(*l2ca_hdr)) {
@@ -930,8 +930,8 @@ drop:
  */
 
 int
-ng_l2cap_l2ca_write_rsp(ng_l2cap_chan_p ch, u_int32_t token, u_int16_t result,
-		u_int16_t length)
+ng_l2cap_l2ca_write_rsp(ng_l2cap_chan_p ch, uint32_t token, uint16_t result,
+		uint16_t length)
 {
 	ng_l2cap_p		 l2cap = ch->con->l2cap;
 	struct ng_mesg		*msg = NULL;
@@ -1325,7 +1325,7 @@ out:
  */
 
 int
-ng_l2cap_l2ca_discon_rsp(ng_l2cap_chan_p ch, u_int32_t token, u_int16_t result)
+ng_l2cap_l2ca_discon_rsp(ng_l2cap_chan_p ch, uint32_t token, uint16_t result)
 {
 	ng_l2cap_p		 l2cap = ch->con->l2cap;
 	struct ng_mesg		*msg = NULL;
@@ -1441,8 +1441,8 @@ ng_l2cap_l2ca_grp_add_member_req(ng_l2cap_p l2cap, struct ng_mesg *msg)
  */
 
 int
-ng_l2cap_l2ca_grp_add_member_rsp(ng_l2cap_chan_p ch, u_int32_t token,
-		u_int16_t result)
+ng_l2cap_l2ca_grp_add_member_rsp(ng_l2cap_chan_p ch, uint32_t token,
+		uint16_t result)
 {
 	return (0);
 } /* ng_l2cap_l2ca_grp_add_member_rsp */
@@ -1553,7 +1553,7 @@ out:
  */
 
 int
-ng_l2cap_l2ca_ping_rsp(ng_l2cap_con_p con, u_int32_t token, u_int16_t result,
+ng_l2cap_l2ca_ping_rsp(ng_l2cap_con_p con, uint32_t token, uint16_t result,
 		struct mbuf *data)
 {
 	ng_l2cap_p		 l2cap = con->l2cap;
@@ -1674,8 +1674,8 @@ out:
  */
 
 int
-ng_l2cap_l2ca_get_info_rsp(ng_l2cap_con_p con, u_int32_t token, 
-		u_int16_t result, struct mbuf *data)
+ng_l2cap_l2ca_get_info_rsp(ng_l2cap_con_p con, uint32_t token, 
+		uint16_t result, struct mbuf *data)
 {
 	ng_l2cap_p			 l2cap = con->l2cap;
 	struct ng_mesg			*msg = NULL;
@@ -1730,8 +1730,8 @@ ng_l2cap_l2ca_enable_clt(ng_l2cap_p l2cap, struct ng_mesg *msg)
 	int				 error = 0;
 #if 0
  *	ng_l2cap_l2ca_enable_clt_op	*op = NULL;
- *	u_int16_t			 result; 
- * 	u_int32_t			 token;
+ *	uint16_t			 result; 
+ * 	uint32_t			 token;
 #endif
 
 	/* Check message */

@@ -68,7 +68,7 @@ struct eventtimer {
 		 * another timecounter. Higher means better.
 		 */
 	int			et_active;
-	u_int64_t		et_frequency;
+	uint64_t		et_frequency;
 		/* Base frequency in Hz. */
 	sbintime_t		et_min_period;
 	sbintime_t		et_max_period;

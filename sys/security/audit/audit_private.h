@@ -107,7 +107,7 @@ struct vnode_au_info {
 	mode_t	vn_mode;
 	uid_t	vn_uid;
 	gid_t	vn_gid;
-	u_int32_t vn_dev;		/* XXX dev_t compatibility */
+	uint32_t vn_dev;		/* XXX dev_t compatibility */
 	long	vn_fsid;		/* XXX uint64_t compatibility */
 	long	vn_fileid;		/* XXX ino_t compatibility */
 	long	vn_gen;
@@ -133,11 +133,11 @@ struct socket_au_info {
  * userland.
  */
 struct au_qctrl64 {
-	u_int64_t	aq64_hiwater;
-	u_int64_t	aq64_lowater;
-	u_int64_t	aq64_bufsz;
-	u_int64_t	aq64_delay;
-	u_int64_t	aq64_minfree;
+	uint64_t	aq64_hiwater;
+	uint64_t	aq64_lowater;
+	uint64_t	aq64_bufsz;
+	uint64_t	aq64_delay;
+	uint64_t	aq64_minfree;
 };
 typedef	struct au_qctrl64	au_qctrl64_t;
 
@@ -170,13 +170,13 @@ struct posix_ipc_perm {
 
 struct audit_record {
 	/* Audit record header. */
-	u_int32_t		ar_magic;
+	uint32_t		ar_magic;
 	int			ar_event;
 	int			ar_retval; /* value returned to the process */
 	int			ar_errno;  /* return status of system call */
 	struct timespec		ar_starttime;
 	struct timespec		ar_endtime;
-	u_int64_t		ar_valid_arg;  /* Bitmask of valid arguments */
+	uint64_t		ar_valid_arg;  /* Bitmask of valid arguments */
 
 	/* Audit subject information. */
 	struct xucred		ar_subj_cred;
@@ -323,7 +323,7 @@ struct audit_record {
  */
 struct kaudit_record {
 	struct audit_record		 k_ar;
-	u_int32_t			 k_ar_commit;
+	uint32_t			 k_ar_commit;
 	void				*k_udata;	/* User data. */
 	u_int				 k_ulen;	/* User data length. */
 	struct uthread			*k_uthread;	/* Audited thread. */

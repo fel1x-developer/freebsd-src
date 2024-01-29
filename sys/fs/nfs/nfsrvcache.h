@@ -48,7 +48,7 @@ struct nfsrvcache {
 	LIST_ENTRY(nfsrvcache) rc_hash;		/* Hash chain */
 	LIST_ENTRY(nfsrvcache) rc_ahash;	/* ACK hash chain */
 	TAILQ_ENTRY(nfsrvcache)	rc_lru;		/* UDP lru chain */
-	u_int32_t	rc_xid;			/* rpc id number */
+	uint32_t	rc_xid;			/* rpc id number */
 	time_t		rc_timestamp;		/* Time done */
 	union {
 		struct mbuf *repmb;		/* Reply mbuf list OR */
@@ -59,17 +59,17 @@ struct nfsrvcache {
 			union nethostaddr haddr; /* Host address */
 		} udp;
 		struct {
-			u_int64_t	sockref;
-			u_int32_t	len;
-			u_int32_t	tcpseq;
+			uint64_t	sockref;
+			uint32_t	len;
+			uint32_t	tcpseq;
 			int16_t		refcnt;
-			u_int16_t	cksum;
+			uint16_t	cksum;
 			time_t		cachetime;
 			int		acked;
 		} ot;
 	} rc_un2;
-	u_int16_t	rc_proc;		/* rpc proc number */
-	u_int16_t	rc_flag;		/* Flag bits */
+	uint16_t	rc_proc;		/* rpc proc number */
+	uint16_t	rc_flag;		/* Flag bits */
 };
 
 #define	rc_reply	rc_un.repmb

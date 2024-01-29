@@ -78,7 +78,7 @@
 # define	U_32_T	1
 # if defined(__NetBSD__) || defined(__OpenBSD__) || defined(__FreeBSD__) || \
     defined(__sgi)
-typedef	u_int32_t	u_32_t;
+typedef	uint32_t	u_32_t;
 # else
 #  if defined(__alpha__) || defined(__alpha) || defined(_LP64)
 typedef unsigned int	u_32_t;

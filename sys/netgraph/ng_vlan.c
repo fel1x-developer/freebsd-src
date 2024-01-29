@@ -83,7 +83,7 @@ ng_vlan_getTableLength(const struct ng_parse_type *type,
     const u_char *start, const u_char *buf)
 {
 	const struct ng_vlan_table *const table =
-	    (const struct ng_vlan_table *)(buf - sizeof(u_int32_t));
+	    (const struct ng_vlan_table *)(buf - sizeof(uint32_t));
 
 	return table->n;
 }

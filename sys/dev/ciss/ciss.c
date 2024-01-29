@@ -285,8 +285,8 @@ TUNABLE_INT("hw.ciss.force_interrupt", &ciss_force_interrupt);
 
 static struct
 {
-    u_int16_t	subvendor;
-    u_int16_t	subdevice;
+    uint16_t	subvendor;
+    uint16_t	subdevice;
     int		flags;
     char	*desc;
 } ciss_vendor_data[] = {
@@ -1599,7 +1599,7 @@ out:
 static int
 ciss_filter_physical(struct ciss_softc *sc, struct ciss_lun_report *cll)
 {
-    u_int32_t ea;
+    uint32_t ea;
     int i, nphys;
     int	bus, target;
 
@@ -2109,7 +2109,7 @@ ciss_done(struct ciss_softc *sc, cr_qhead_t *qh)
 {
     struct ciss_request	*cr;
     struct ciss_command	*cc;
-    u_int32_t		tag, index;
+    uint32_t		tag, index;
 
     debug_called(3);
 
@@ -2141,7 +2141,7 @@ ciss_perf_done(struct ciss_softc *sc, cr_qhead_t *qh)
 {
     struct ciss_request	*cr;
     struct ciss_command	*cc;
-    u_int32_t		tag, index;
+    uint32_t		tag, index;
 
     debug_called(3);
 
@@ -2504,7 +2504,7 @@ static void
 ciss_preen_command(struct ciss_request *cr)
 {
     struct ciss_command	*cc;
-    u_int32_t		cmdphys;
+    uint32_t		cmdphys;
 
     /*
      * Clean up the command structure.
@@ -2600,7 +2600,7 @@ ciss_get_bmic_request(struct ciss_softc *sc, struct ciss_request **crp,
     bzero(cbc, sizeof(*cbc));
     cbc->opcode = dataout ? CISS_ARRAY_CONTROLLER_WRITE : CISS_ARRAY_CONTROLLER_READ;
     cbc->bmic_opcode = opcode;
-    cbc->size = htons((u_int16_t)bufsize);
+    cbc->size = htons((uint16_t)bufsize);
 
 out:
     if (error) {
@@ -2993,7 +2993,7 @@ ciss_cam_action(struct cam_sim *sim, union ccb *ccb)
 	 * is invalid.
 	 */
 	if (physical || ld->cl_geometry.fault_tolerance == 0xFF) {
-	    u_int32_t			secs_per_cylinder;
+	    uint32_t			secs_per_cylinder;
 
 	    ccg->heads = 255;
 	    ccg->secs_per_track = 32;
@@ -3200,12 +3200,12 @@ static int
 ciss_cam_emulate(struct ciss_softc *sc, struct ccb_scsiio *csio)
 {
     int		bus, target;
-    u_int8_t	opcode;
+    uint8_t	opcode;
 
     target = csio->ccb_h.target_id;
     bus = cam_sim_bus(xpt_path_sim(csio->ccb_h.path));
     opcode = (csio->ccb_h.flags & CAM_CDB_POINTER) ?
-	*(u_int8_t *)csio->cdb_io.cdb_ptr : csio->cdb_io.cdb_bytes[0];
+	*(uint8_t *)csio->cdb_io.cdb_ptr : csio->cdb_io.cdb_bytes[0];
 
     if (CISS_IS_PHYSICAL(bus)) {
 	if (sc->ciss_physical[CISS_CAM_TO_PBUS(bus)][target].cp_online != 1) {
@@ -3234,7 +3234,7 @@ ciss_cam_emulate(struct ciss_softc *sc, struct ccb_scsiio *csio)
 	 * a device is closed, flush the adapter and complete now.
 	 */
 	if (((csio->ccb_h.flags & CAM_CDB_POINTER) ?
-	     *(u_int8_t *)csio->cdb_io.cdb_ptr : csio->cdb_io.cdb_bytes[0]) == SYNCHRONIZE_CACHE) {
+	     *(uint8_t *)csio->cdb_io.cdb_ptr : csio->cdb_io.cdb_bytes[0]) == SYNCHRONIZE_CACHE) {
 	    ciss_flush_adapter(sc);
 	    csio->ccb_h.status |= CAM_REQ_CMP;
 	    xpt_done((union ccb *)csio);
@@ -4249,7 +4249,7 @@ ciss_print_request(struct ciss_request *cr)
 	for (i = 0; i < cc->header.sg_in_list; i++) {
 	    if ((i % 4) == 0)
 		ciss_printf(sc, "   ");
-	    printf("0x%08x/%d ", (u_int32_t)cc->sg[i].address, cc->sg[i].length);
+	    printf("0x%08x/%d ", (uint32_t)cc->sg[i].address, cc->sg[i].length);
 	    if ((((i + 1) % 4) == 0) || (i == (cc->header.sg_in_list - 1)))
 		printf("\n");
 	}
@@ -4665,7 +4665,7 @@ ciss_ioctl(struct cdev *dev, u_long cmd, caddr_t addr, int32_t flag, struct thre
 	ioc_swab.Request	= ioc32->Request;
 	ioc_swab.error_info	= ioc32->error_info;
 	ioc_swab.buf_size	= ioc32->buf_size;
-	ioc_swab.buf		= (u_int8_t *)(uintptr_t)ioc32->buf;
+	ioc_swab.buf		= (uint8_t *)(uintptr_t)ioc32->buf;
 	ioc			= &ioc_swab;
 	/* FALLTHROUGH */
 #endif

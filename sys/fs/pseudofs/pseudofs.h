@@ -231,7 +231,7 @@ struct pfs_node {
 	pfs_destroy_t		 pn_destroy;
 
 	struct pfs_info		*pn_info;
-	u_int32_t		 pn_fileno;		/* (o) */
+	uint32_t		 pn_fileno;		/* (o) */
 
 	struct pfs_node		*pn_parent;		/* (o) */
 	struct pfs_node		*pn_nodes;		/* (o) */

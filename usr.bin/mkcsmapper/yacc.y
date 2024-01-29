@@ -66,12 +66,12 @@ static char		*output = NULL;
 static void		*table = NULL;
 static size_t		 rowcol_len = 0;
 static size_t		 table_size;
-static u_int32_t	 done_flag = 0;
-static u_int32_t	 dst_ilseq, dst_invalid, dst_unit_bits, oob_mode;
-static u_int32_t	 rowcol_bits = 0, rowcol_mask = 0;
-static u_int32_t	 src_next;
+static uint32_t	 done_flag = 0;
+static uint32_t	 dst_ilseq, dst_invalid, dst_unit_bits, oob_mode;
+static uint32_t	 rowcol_bits = 0, rowcol_mask = 0;
+static uint32_t	 src_next;
 static int		 map_type;
-static void		 (*putfunc)(void *, size_t, u_int32_t) = NULL;
+static void		 (*putfunc)(void *, size_t, uint32_t) = NULL;
 
 #define DF_TYPE			0x00000001
 #define DF_NAME			0x00000002
@@ -85,22 +85,22 @@ static void	dump_file(void);
 static void	setup_map(void);
 static void	set_type(int);
 static void	set_name(char *);
-static void	set_src_zone(u_int32_t);
-static void	set_dst_invalid(u_int32_t);
-static void	set_dst_ilseq(u_int32_t);
-static void	set_dst_unit_bits(u_int32_t);
-static void	set_oob_mode(u_int32_t);
-static int	check_src(u_int32_t, u_int32_t);
-static void	store(const linear_zone_t *, u_int32_t, int);
-static void	put8(void *, size_t, u_int32_t);
-static void	put16(void *, size_t, u_int32_t);
-static void	put32(void *, size_t, u_int32_t);
-static void	set_range(u_int32_t, u_int32_t);
-static void	set_src(linear_zone_t *, u_int32_t, u_int32_t);
+static void	set_src_zone(uint32_t);
+static void	set_dst_invalid(uint32_t);
+static void	set_dst_ilseq(uint32_t);
+static void	set_dst_unit_bits(uint32_t);
+static void	set_oob_mode(uint32_t);
+static int	check_src(uint32_t, uint32_t);
+static void	store(const linear_zone_t *, uint32_t, int);
+static void	put8(void *, size_t, uint32_t);
+static void	put16(void *, size_t, uint32_t);
+static void	put32(void *, size_t, uint32_t);
+static void	set_range(uint32_t, uint32_t);
+static void	set_src(linear_zone_t *, uint32_t, uint32_t);
 %}
 
 %union {
-	u_int32_t	 i_value;
+	uint32_t	 i_value;
 	char		*s_value;
 	linear_zone_t	 lz_value;
 }
@@ -215,26 +215,26 @@ yyerror(const char *s)
 }
 
 void
-put8(void *ptr, size_t ofs, u_int32_t val)
+put8(void *ptr, size_t ofs, uint32_t val)
 {
 
-	*((u_int8_t *)ptr + ofs) = val;
+	*((uint8_t *)ptr + ofs) = val;
 }
 
 void
-put16(void *ptr, size_t ofs, u_int32_t val)
+put16(void *ptr, size_t ofs, uint32_t val)
 {
 
-	u_int16_t oval = htons(val);
-	memcpy((u_int16_t *)ptr + ofs, &oval, 2);
+	uint16_t oval = htons(val);
+	memcpy((uint16_t *)ptr + ofs, &oval, 2);
 }
 
 void
-put32(void *ptr, size_t ofs, u_int32_t val)
+put32(void *ptr, size_t ofs, uint32_t val)
 {
 
-	u_int32_t oval = htonl(val);
-	memcpy((u_int32_t *)ptr + ofs, &oval, 4);
+	uint32_t oval = htonl(val);
+	memcpy((uint32_t *)ptr + ofs, &oval, 4);
 }
 
 static void
@@ -441,7 +441,7 @@ set_name(char *str)
 }
 
 static void
-set_src_zone(u_int32_t val)
+set_src_zone(uint32_t val)
 {
 	linear_zone_t *p;
 	size_t i;
@@ -476,7 +476,7 @@ bad:
 }
 
 static void
-set_dst_invalid(u_int32_t val)
+set_dst_invalid(uint32_t val)
 {
 
 	if (done_flag & DF_DST_INVALID) {
@@ -490,7 +490,7 @@ set_dst_invalid(u_int32_t val)
 }
 
 static void
-set_dst_ilseq(u_int32_t val)
+set_dst_ilseq(uint32_t val)
 {
 
 	if (done_flag & DF_DST_ILSEQ) {
@@ -504,7 +504,7 @@ set_dst_ilseq(u_int32_t val)
 }
 
 static void
-set_oob_mode(u_int32_t val)
+set_oob_mode(uint32_t val)
 {
 
 	if (done_flag & DF_OOB_MODE) {
@@ -518,7 +518,7 @@ set_oob_mode(u_int32_t val)
 }
 
 static void
-set_dst_unit_bits(u_int32_t val)
+set_dst_unit_bits(uint32_t val)
 {
 
 	if (done_flag & DF_DST_UNIT_BITS) {
@@ -546,11 +546,11 @@ set_dst_unit_bits(u_int32_t val)
 }
 
 static int
-check_src(u_int32_t begin, u_int32_t end)
+check_src(uint32_t begin, uint32_t end)
 {
 	linear_zone_t *p;
 	size_t i;
-	u_int32_t m, n;
+	uint32_t m, n;
 
 	if (begin > end)
 		return (1);
@@ -576,11 +576,11 @@ check_src(u_int32_t begin, u_int32_t end)
 }
 
 static void
-store(const linear_zone_t *lz, u_int32_t dst, int inc)
+store(const linear_zone_t *lz, uint32_t dst, int inc)
 {
 	linear_zone_t *p;
 	size_t i, ofs;
-	u_int32_t n;
+	uint32_t n;
 
 	ofs = 0;
 	for (i = rowcol_len * rowcol_bits, p = &rowcol[0]; i > 0; ++p) {
@@ -597,7 +597,7 @@ store(const linear_zone_t *lz, u_int32_t dst, int inc)
 }
 
 static void
-set_range(u_int32_t begin, u_int32_t end)
+set_range(uint32_t begin, uint32_t end)
 {
 	linear_zone_t *p;
 
@@ -617,7 +617,7 @@ bad:
 }
 
 static void
-set_src(linear_zone_t *lz, u_int32_t begin, u_int32_t end)
+set_src(linear_zone_t *lz, uint32_t begin, uint32_t end)
 {
 
 	if (check_src(begin, end) != 0)

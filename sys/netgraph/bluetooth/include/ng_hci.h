@@ -407,41 +407,41 @@
 #define NG_HCI_CMD_PKT			0x01
 #define NG_HCI_CMD_PKT_SIZE		0xff /* without header */
 typedef struct {
-	u_int8_t	type;   /* MUST be 0x1 */
-	u_int16_t	opcode; /* OpCode */
-	u_int8_t	length; /* parameter(s) length in bytes */
+	uint8_t	type;   /* MUST be 0x1 */
+	uint16_t	opcode; /* OpCode */
+	uint8_t	length; /* parameter(s) length in bytes */
 } __attribute__ ((packed)) ng_hci_cmd_pkt_t;
 
 /* ACL data packet header */
 #define NG_HCI_ACL_DATA_PKT		0x02
 #define NG_HCI_ACL_PKT_SIZE		0xffff /* without header */
 typedef struct {
-	u_int8_t	type;        /* MUST be 0x2 */
-	u_int16_t	con_handle;  /* connection handle + PB + BC flags */
-	u_int16_t	length;      /* payload length in bytes */
+	uint8_t	type;        /* MUST be 0x2 */
+	uint16_t	con_handle;  /* connection handle + PB + BC flags */
+	uint16_t	length;      /* payload length in bytes */
 } __attribute__ ((packed)) ng_hci_acldata_pkt_t;
 
 /* SCO data packet header */
 #define NG_HCI_SCO_DATA_PKT		0x03
 #define NG_HCI_SCO_PKT_SIZE		0xff /* without header */
 typedef struct {
-	u_int8_t	type;       /* MUST be 0x3 */
-	u_int16_t	con_handle; /* connection handle + reserved bits */
-	u_int8_t	length;     /* payload length in bytes */
+	uint8_t	type;       /* MUST be 0x3 */
+	uint16_t	con_handle; /* connection handle + reserved bits */
+	uint8_t	length;     /* payload length in bytes */
 } __attribute__ ((packed)) ng_hci_scodata_pkt_t;
 
 /* HCI event packet header */
 #define NG_HCI_EVENT_PKT		0x04
 #define NG_HCI_EVENT_PKT_SIZE		0xff /* without header */
 typedef struct {
-	u_int8_t	type;   /* MUST be 0x4 */
-	u_int8_t	event;  /* event */
-	u_int8_t	length; /* parameter(s) length in bytes */
+	uint8_t	type;   /* MUST be 0x4 */
+	uint8_t	event;  /* event */
+	uint8_t	length; /* parameter(s) length in bytes */
 } __attribute__ ((packed)) ng_hci_event_pkt_t;
 
 /* Bluetooth unit address */
 typedef struct {
-	u_int8_t	b[NG_HCI_BDADDR_SIZE];
+	uint8_t	b[NG_HCI_BDADDR_SIZE];
 } __attribute__ ((packed)) bdaddr_t;
 typedef bdaddr_t *	bdaddr_p;
 
@@ -450,7 +450,7 @@ typedef bdaddr_t *	bdaddr_p;
 
 /* HCI status return parameter */
 typedef struct {
-	u_int8_t	status; /* 0x00 - success */
+	uint8_t	status; /* 0x00 - success */
 } __attribute__ ((packed)) ng_hci_status_rp;
 
 /**************************************************************************
@@ -462,7 +462,7 @@ typedef struct {
 /* Connection Request Event */
 #define NGM_HCI_LP_CON_REQ			1  /* Upper -> HCI */
 typedef struct {
-	u_int16_t	link_type; /* type of connection */
+	uint16_t	link_type; /* type of connection */
 	bdaddr_t	bdaddr;    /* remote unit address */
 } ng_hci_lp_con_req_ep;
 
@@ -474,66 +474,66 @@ typedef struct {
  */
 #define NGM_HCI_LP_DISCON_REQ			2 /* Upper -> HCI */
 typedef struct {
-	u_int16_t	con_handle; /* connection handle */
-	u_int16_t	reason;	    /* reason to disconnect (only low byte) */
+	uint16_t	con_handle; /* connection handle */
+	uint16_t	reason;	    /* reason to disconnect (only low byte) */
 } ng_hci_lp_discon_req_ep;
 
 /* Connection Confirmation Event */
 #define NGM_HCI_LP_CON_CFM			3  /* HCI -> Upper */
 typedef struct {
-	u_int8_t	status;     /* 0x00 - success */
-	u_int8_t	link_type;  /* link type */
-	u_int16_t	con_handle; /* con_handle */
+	uint8_t	status;     /* 0x00 - success */
+	uint8_t	link_type;  /* link type */
+	uint16_t	con_handle; /* con_handle */
 	bdaddr_t	bdaddr;     /* remote unit address */
 } ng_hci_lp_con_cfm_ep;
 
 /* Connection Indication Event */
 #define NGM_HCI_LP_CON_IND			4  /* HCI -> Upper */
 typedef struct {
-	u_int8_t	link_type;                 /* link type */
-	u_int8_t	uclass[NG_HCI_CLASS_SIZE]; /* unit class */
+	uint8_t	link_type;                 /* link type */
+	uint8_t	uclass[NG_HCI_CLASS_SIZE]; /* unit class */
 	bdaddr_t	bdaddr;                    /* remote unit address */
 } ng_hci_lp_con_ind_ep;
 
 /* Connection Response Event */
 #define NGM_HCI_LP_CON_RSP			5  /* Upper -> HCI */
 typedef struct {
-	u_int8_t	status;    /* 0x00 - accept connection */
-	u_int8_t	link_type; /* link type */
+	uint8_t	status;    /* 0x00 - accept connection */
+	uint8_t	link_type; /* link type */
 	bdaddr_t	bdaddr;    /* remote unit address */
 } ng_hci_lp_con_rsp_ep;
 
 /* Disconnection Indication Event */
 #define NGM_HCI_LP_DISCON_IND			6  /* HCI -> Upper */
 typedef struct {
-	u_int8_t	reason;     /* reason to disconnect (only low byte) */
-	u_int8_t	link_type;  /* link type */
-	u_int16_t	con_handle; /* connection handle */
+	uint8_t	reason;     /* reason to disconnect (only low byte) */
+	uint8_t	link_type;  /* link type */
+	uint16_t	con_handle; /* connection handle */
 } ng_hci_lp_discon_ind_ep;
 
 /* QoS Setup Request Event */
 #define NGM_HCI_LP_QOS_REQ			7  /* Upper -> HCI */
 typedef struct {
-	u_int16_t	con_handle;      /* connection handle */
-	u_int8_t	flags;           /* reserved */
-	u_int8_t	service_type;    /* service type */
-	u_int32_t	token_rate;      /* bytes/sec */
-	u_int32_t	peak_bandwidth;  /* bytes/sec */
-	u_int32_t	latency;         /* msec */
-	u_int32_t	delay_variation; /* msec */
+	uint16_t	con_handle;      /* connection handle */
+	uint8_t	flags;           /* reserved */
+	uint8_t	service_type;    /* service type */
+	uint32_t	token_rate;      /* bytes/sec */
+	uint32_t	peak_bandwidth;  /* bytes/sec */
+	uint32_t	latency;         /* msec */
+	uint32_t	delay_variation; /* msec */
 } ng_hci_lp_qos_req_ep;
 
 /* QoS Conformition Event */
 #define NGM_HCI_LP_QOS_CFM			8  /* HCI -> Upper */
 typedef struct {
-	u_int16_t	status;          /* 0x00 - success  (only low byte) */
-	u_int16_t	con_handle;      /* connection handle */
+	uint16_t	status;          /* 0x00 - success  (only low byte) */
+	uint16_t	con_handle;      /* connection handle */
 } ng_hci_lp_qos_cfm_ep;
 
 /* QoS Violation Indication Event */
 #define NGM_HCI_LP_QOS_IND			9  /* HCI -> Upper */
 typedef struct {
-	u_int16_t	con_handle; /* connection handle */
+	uint16_t	con_handle; /* connection handle */
 } ng_hci_lp_qos_ind_ep;
 /*Encryption Change event*/
 #define NGM_HCI_LP_ENC_CHG 			10 /* HCI->Upper*/
@@ -568,7 +568,7 @@ typedef struct {
 
 /* Get HCI node (unit) state (see states above) */
 #define NGM_HCI_NODE_GET_STATE			100  /* HCI -> User */
-typedef u_int16_t	ng_hci_node_state_ep;
+typedef uint16_t	ng_hci_node_state_ep;
 
 /* Turn on "inited" bit */
 #define NGM_HCI_NODE_INIT			101 /* User -> HCI */
@@ -577,18 +577,18 @@ typedef u_int16_t	ng_hci_node_state_ep;
 /* Get/Set node debug level (see debug levels above) */
 #define NGM_HCI_NODE_GET_DEBUG			102 /* HCI -> User */
 #define NGM_HCI_NODE_SET_DEBUG			103 /* User -> HCI */
-typedef u_int16_t	ng_hci_node_debug_ep;
+typedef uint16_t	ng_hci_node_debug_ep;
 
 /* Get node buffer info */
 #define NGM_HCI_NODE_GET_BUFFER			104 /* HCI -> User */
 typedef struct {
-	u_int8_t	cmd_free; /* number of free command packets */
-	u_int8_t	sco_size; /* max. size of SCO packet */
-	u_int16_t	sco_pkts; /* number of SCO packets */
-	u_int16_t	sco_free; /* number of free SCO packets */
-	u_int16_t	acl_size; /* max. size of ACL packet */
-	u_int16_t	acl_pkts; /* number of ACL packets */
-	u_int16_t	acl_free; /* number of free ACL packets */
+	uint8_t	cmd_free; /* number of free command packets */
+	uint8_t	sco_size; /* max. size of SCO packet */
+	uint16_t	sco_pkts; /* number of SCO packets */
+	uint16_t	sco_free; /* number of free SCO packets */
+	uint16_t	acl_size; /* max. size of ACL packet */
+	uint16_t	acl_pkts; /* number of ACL packets */
+	uint16_t	acl_free; /* number of free ACL packets */
 } ng_hci_node_buffer_ep;
 
 /* Get BDADDR */
@@ -601,14 +601,14 @@ typedef struct {
 
 #define NGM_HCI_NODE_GET_STAT			107 /* HCI -> User */
 typedef struct {
-	u_int32_t	cmd_sent;   /* number of HCI commands sent */
-	u_int32_t	evnt_recv;  /* number of HCI events received */
-	u_int32_t	acl_recv;   /* number of ACL packets received */
-	u_int32_t	acl_sent;   /* number of ACL packets sent */
-	u_int32_t	sco_recv;   /* number of SCO packets received */
-	u_int32_t	sco_sent;   /* number of SCO packets sent */
-	u_int32_t	bytes_recv; /* total number of bytes received */
-	u_int32_t	bytes_sent; /* total number of bytes sent */
+	uint32_t	cmd_sent;   /* number of HCI commands sent */
+	uint32_t	evnt_recv;  /* number of HCI events received */
+	uint32_t	acl_recv;   /* number of ACL packets received */
+	uint32_t	acl_sent;   /* number of ACL packets sent */
+	uint32_t	sco_recv;   /* number of SCO packets received */
+	uint32_t	sco_sent;   /* number of SCO packets sent */
+	uint32_t	bytes_recv; /* total number of bytes received */
+	uint32_t	bytes_sent; /* total number of bytes sent */
 } ng_hci_node_stat_ep;
 
 #define NGM_HCI_NODE_RESET_STAT			108 /* User -> HCI */
@@ -618,15 +618,15 @@ typedef struct {
 
 #define NGM_HCI_NODE_GET_NEIGHBOR_CACHE		110 /* HCI -> User */
 typedef struct {
-	u_int32_t	num_entries;	/* number of entries */
+	uint32_t	num_entries;	/* number of entries */
 } ng_hci_node_get_neighbor_cache_ep;
 
 typedef struct {
-	u_int16_t	page_scan_rep_mode;             /* page rep scan mode */
-	u_int16_t	page_scan_mode;                 /* page scan mode */
-	u_int16_t	clock_offset;                   /* clock offset */
+	uint16_t	page_scan_rep_mode;             /* page rep scan mode */
+	uint16_t	page_scan_mode;                 /* page scan mode */
+	uint16_t	clock_offset;                   /* clock offset */
 	bdaddr_t	bdaddr;                         /* bdaddr */
-	u_int8_t	features[NG_HCI_FEATURES_SIZE]; /* features */
+	uint8_t	features[NG_HCI_FEATURES_SIZE]; /* features */
 	uint8_t 	addrtype;
 	uint8_t		extinq_size; /* MAX 240*/
 	uint8_t		extinq_data[NG_HCI_EXTINQ_MAX];
@@ -637,19 +637,19 @@ typedef struct {
 
 #define NGM_HCI_NODE_GET_CON_LIST		111 /* HCI -> User */
 typedef struct {
-	u_int32_t	num_connections; /* number of connections */
+	uint32_t	num_connections; /* number of connections */
 } ng_hci_node_con_list_ep;
 
 typedef struct {
-	u_int8_t	link_type;       /* ACL or SCO */
-	u_int8_t	encryption_mode; /* none, p2p, ... */
-	u_int8_t	mode;            /* ACTIVE, HOLD ... */
-	u_int8_t	role;            /* MASTER/SLAVE */
-	u_int16_t	state;           /* connection state */
-	u_int16_t	reserved;        /* place holder */
-	u_int16_t	pending;         /* number of pending packets */
-	u_int16_t	queue_len;       /* number of packets in queue */
-	u_int16_t	con_handle;      /* connection handle */
+	uint8_t	link_type;       /* ACL or SCO */
+	uint8_t	encryption_mode; /* none, p2p, ... */
+	uint8_t	mode;            /* ACTIVE, HOLD ... */
+	uint8_t	role;            /* MASTER/SLAVE */
+	uint16_t	state;           /* connection state */
+	uint16_t	reserved;        /* place holder */
+	uint16_t	pending;         /* number of pending packets */
+	uint16_t	queue_len;       /* number of packets in queue */
+	uint16_t	con_handle;      /* connection handle */
 	bdaddr_t	bdaddr;          /* remote bdaddr */
 } ng_hci_node_con_ep;
 
@@ -658,29 +658,29 @@ typedef struct {
 
 #define NGM_HCI_NODE_UP				112 /* HCI -> Upper */
 typedef struct {
-	u_int16_t	pkt_size; /* max. ACL/SCO packet size (w/out header) */
-	u_int16_t	num_pkts; /* ACL/SCO packet queue size */
-	u_int16_t	reserved; /* place holder */
+	uint16_t	pkt_size; /* max. ACL/SCO packet size (w/out header) */
+	uint16_t	num_pkts; /* ACL/SCO packet queue size */
+	uint16_t	reserved; /* place holder */
 	bdaddr_t	bdaddr;	  /* bdaddr */
 } ng_hci_node_up_ep;
 
 #define NGM_HCI_SYNC_CON_QUEUE			113 /* HCI -> Upper */
 typedef struct {
-	u_int16_t	con_handle; /* connection handle */
-	u_int16_t	completed;  /* number of completed packets */
+	uint16_t	con_handle; /* connection handle */
+	uint16_t	completed;  /* number of completed packets */
 } ng_hci_sync_con_queue_ep;
 
 #define NGM_HCI_NODE_GET_LINK_POLICY_SETTINGS_MASK	114 /* HCI -> User */
 #define NGM_HCI_NODE_SET_LINK_POLICY_SETTINGS_MASK	115 /* User -> HCI */
-typedef u_int16_t	ng_hci_node_link_policy_mask_ep;
+typedef uint16_t	ng_hci_node_link_policy_mask_ep;
 
 #define NGM_HCI_NODE_GET_PACKET_MASK		116 /* HCI -> User */
 #define NGM_HCI_NODE_SET_PACKET_MASK		117 /* User -> HCI */
-typedef u_int16_t	ng_hci_node_packet_mask_ep;
+typedef uint16_t	ng_hci_node_packet_mask_ep;
 
 #define NGM_HCI_NODE_GET_ROLE_SWITCH		118 /* HCI -> User */
 #define NGM_HCI_NODE_SET_ROLE_SWITCH		119 /* User -> HCI */
-typedef u_int16_t	ng_hci_node_role_switch_ep;
+typedef uint16_t	ng_hci_node_role_switch_ep;
 
 #define	NGM_HCI_NODE_LIST_NAMES			200 /* HCI -> User */
 
@@ -694,9 +694,9 @@ typedef u_int16_t	ng_hci_node_role_switch_ep;
 
 #define NG_HCI_OCF_INQUIRY			0x0001
 typedef struct {
-	u_int8_t	lap[NG_HCI_LAP_SIZE]; /* LAP */
-	u_int8_t	inquiry_length; /* (N x 1.28) sec */
-	u_int8_t	num_responses;  /* Max. # of responses before halted */
+	uint8_t	lap[NG_HCI_LAP_SIZE]; /* LAP */
+	uint8_t	inquiry_length; /* (N x 1.28) sec */
+	uint8_t	num_responses;  /* Max. # of responses before halted */
 } __attribute__ ((packed)) ng_hci_inquiry_cp;
 /* No return parameter(s) */
 
@@ -706,11 +706,11 @@ typedef ng_hci_status_rp	ng_hci_inquiry_cancel_rp;
 
 #define NG_HCI_OCF_PERIODIC_INQUIRY		0x0003
 typedef struct {
-	u_int16_t	max_period_length; /* Max. and min. amount of time */
-	u_int16_t	min_period_length; /* between consecutive inquiries */
-	u_int8_t	lap[NG_HCI_LAP_SIZE]; /* LAP */
-	u_int8_t	inquiry_length;    /* (inquiry_length * 1.28) sec */
-	u_int8_t	num_responses;     /* Max. # of responses */
+	uint16_t	max_period_length; /* Max. and min. amount of time */
+	uint16_t	min_period_length; /* between consecutive inquiries */
+	uint8_t	lap[NG_HCI_LAP_SIZE]; /* LAP */
+	uint8_t	inquiry_length;    /* (inquiry_length * 1.28) sec */
+	uint8_t	num_responses;     /* Max. # of responses */
 } __attribute__ ((packed)) ng_hci_periodic_inquiry_cp;
 
 typedef ng_hci_status_rp	ng_hci_periodic_inquiry_rp;
@@ -722,50 +722,50 @@ typedef ng_hci_status_rp	ng_hci_exit_periodic_inquiry_rp;
 #define NG_HCI_OCF_CREATE_CON			0x0005
 typedef struct {
 	bdaddr_t	bdaddr;             /* destination address */
-	u_int16_t	pkt_type;           /* packet type */
-	u_int8_t	page_scan_rep_mode; /* page scan repetition mode */
-	u_int8_t	page_scan_mode;     /* page scan mode */
-	u_int16_t	clock_offset;       /* clock offset */
-	u_int8_t	accept_role_switch; /* accept role switch? 0x00 - no */
+	uint16_t	pkt_type;           /* packet type */
+	uint8_t	page_scan_rep_mode; /* page scan repetition mode */
+	uint8_t	page_scan_mode;     /* page scan mode */
+	uint16_t	clock_offset;       /* clock offset */
+	uint8_t	accept_role_switch; /* accept role switch? 0x00 - no */
 } __attribute__ ((packed)) ng_hci_create_con_cp;
 /* No return parameter(s) */
 
 #define NG_HCI_OCF_DISCON			0x0006
 typedef struct {
-	u_int16_t	con_handle; /* connection handle */
-	u_int8_t	reason;     /* reason to disconnect */
+	uint16_t	con_handle; /* connection handle */
+	uint8_t	reason;     /* reason to disconnect */
 } __attribute__ ((packed)) ng_hci_discon_cp;
 /* No return parameter(s) */
 
 #define NG_HCI_OCF_ADD_SCO_CON			0x0007
 typedef struct {
-	u_int16_t	con_handle; /* connection handle */
-	u_int16_t	pkt_type;   /* packet type */
+	uint16_t	con_handle; /* connection handle */
+	uint16_t	pkt_type;   /* packet type */
 } __attribute__ ((packed)) ng_hci_add_sco_con_cp;
 /* No return parameter(s) */
 
 #define NG_HCI_OCF_ACCEPT_CON			0x0009
 typedef struct {
 	bdaddr_t	bdaddr; /* address of unit to be connected */
-	u_int8_t	role;   /* connection role */
+	uint8_t	role;   /* connection role */
 } __attribute__ ((packed)) ng_hci_accept_con_cp;
 /* No return parameter(s) */
 
 #define NG_HCI_OCF_REJECT_CON			0x000a
 typedef struct {
 	bdaddr_t	bdaddr; /* remote address */
-	u_int8_t	reason; /* reason to reject */
+	uint8_t	reason; /* reason to reject */
 } __attribute__ ((packed)) ng_hci_reject_con_cp;
 /* No return parameter(s) */
 
 #define NG_HCI_OCF_LINK_KEY_REP			0x000b
 typedef struct {
 	bdaddr_t	bdaddr;               /* remote address */
-	u_int8_t	key[NG_HCI_KEY_SIZE]; /* key */
+	uint8_t	key[NG_HCI_KEY_SIZE]; /* key */
 } __attribute__ ((packed)) ng_hci_link_key_rep_cp;
 
 typedef struct {
-	u_int8_t	status; /* 0x00 - success */
+	uint8_t	status; /* 0x00 - success */
 	bdaddr_t	bdaddr; /* unit address */
 } __attribute__ ((packed)) ng_hci_link_key_rep_rp;
 
@@ -775,19 +775,19 @@ typedef struct {
 } __attribute__ ((packed)) ng_hci_link_key_neg_rep_cp;
 
 typedef struct {
-	u_int8_t	status; /* 0x00 - success */
+	uint8_t	status; /* 0x00 - success */
 	bdaddr_t	bdaddr; /* unit address */
 } __attribute__ ((packed)) ng_hci_link_key_neg_rep_rp;
 
 #define NG_HCI_OCF_PIN_CODE_REP			0x000d
 typedef struct {
 	bdaddr_t	bdaddr;               /* remote address */
-	u_int8_t	pin_size;             /* pin code length (in bytes) */
-	u_int8_t	pin[NG_HCI_PIN_SIZE]; /* pin code */
+	uint8_t	pin_size;             /* pin code length (in bytes) */
+	uint8_t	pin[NG_HCI_PIN_SIZE]; /* pin code */
 } __attribute__ ((packed)) ng_hci_pin_code_rep_cp;
 
 typedef struct {
-	u_int8_t	status; /* 0x00 - success */
+	uint8_t	status; /* 0x00 - success */
 	bdaddr_t	bdaddr; /* unit address */
 } __attribute__ ((packed)) ng_hci_pin_code_rep_rp;
 
@@ -797,66 +797,66 @@ typedef struct {
 } __attribute__ ((packed)) ng_hci_pin_code_neg_rep_cp;
 
 typedef struct {
-	u_int8_t	status; /* 0x00 - success */
+	uint8_t	status; /* 0x00 - success */
 	bdaddr_t	bdaddr; /* unit address */
 } __attribute__ ((packed)) ng_hci_pin_code_neg_rep_rp;
 
 #define NG_HCI_OCF_CHANGE_CON_PKT_TYPE		0x000f
 typedef struct {
-	u_int16_t	con_handle; /* connection handle */
-	u_int16_t	pkt_type;   /* packet type */
+	uint16_t	con_handle; /* connection handle */
+	uint16_t	pkt_type;   /* packet type */
 } __attribute__ ((packed)) ng_hci_change_con_pkt_type_cp;
 /* No return parameter(s) */
 
 #define NG_HCI_OCF_AUTH_REQ			0x0011
 typedef struct {
-	u_int16_t	con_handle; /* connection handle */
+	uint16_t	con_handle; /* connection handle */
 } __attribute__ ((packed)) ng_hci_auth_req_cp;
 /* No return parameter(s) */
 
 #define NG_HCI_OCF_SET_CON_ENCRYPTION		0x0013
 typedef struct {
-	u_int16_t	con_handle;        /* connection handle */
-	u_int8_t	encryption_enable; /* 0x00 - disable, 0x01 - enable */
+	uint16_t	con_handle;        /* connection handle */
+	uint8_t	encryption_enable; /* 0x00 - disable, 0x01 - enable */
 } __attribute__ ((packed)) ng_hci_set_con_encryption_cp;
 /* No return parameter(s) */
 
 #define NG_HCI_OCF_CHANGE_CON_LINK_KEY		0x0015
 typedef struct {
-	u_int16_t	con_handle; /* connection handle */
+	uint16_t	con_handle; /* connection handle */
 } __attribute__ ((packed)) ng_hci_change_con_link_key_cp;
 /* No return parameter(s) */
 
 #define NG_HCI_OCF_MASTER_LINK_KEY		0x0017
 typedef struct {
-	u_int8_t	key_flag; /* key flag */
+	uint8_t	key_flag; /* key flag */
 } __attribute__ ((packed)) ng_hci_master_link_key_cp;
 /* No return parameter(s) */
 
 #define NG_HCI_OCF_REMOTE_NAME_REQ		0x0019
 typedef struct {
 	bdaddr_t	bdaddr;             /* remote address */
-	u_int8_t	page_scan_rep_mode; /* page scan repetition mode */
-	u_int8_t	page_scan_mode;     /* page scan mode */
-	u_int16_t	clock_offset;       /* clock offset */
+	uint8_t	page_scan_rep_mode; /* page scan repetition mode */
+	uint8_t	page_scan_mode;     /* page scan mode */
+	uint16_t	clock_offset;       /* clock offset */
 } __attribute__ ((packed)) ng_hci_remote_name_req_cp;
 /* No return parameter(s) */
 
 #define NG_HCI_OCF_READ_REMOTE_FEATURES		0x001b
 typedef struct {
-	u_int16_t	con_handle; /* connection handle */
+	uint16_t	con_handle; /* connection handle */
 } __attribute__ ((packed)) ng_hci_read_remote_features_cp;
 /* No return parameter(s) */
 
 #define NG_HCI_OCF_READ_REMOTE_VER_INFO		0x001d
 typedef struct {
-	u_int16_t	con_handle; /* connection handle */
+	uint16_t	con_handle; /* connection handle */
 } __attribute__ ((packed)) ng_hci_read_remote_ver_info_cp;
 /* No return parameter(s) */
 
 #define NG_HCI_OCF_READ_CLOCK_OFFSET		 0x001f
 typedef struct {
-	u_int16_t	con_handle; /* connection handle */
+	uint16_t	con_handle; /* connection handle */
 } __attribute__ ((packed)) ng_hci_read_clock_offset_cp;
 /* No return parameter(s) */
 
@@ -870,92 +870,92 @@ typedef struct {
 
 #define NG_HCI_OCF_HOLD_MODE			0x0001
 typedef struct {
-	u_int16_t	con_handle;   /* connection handle */
-	u_int16_t	max_interval; /* (max_interval * 0.625) msec */
-	u_int16_t	min_interval; /* (max_interval * 0.625) msec */
+	uint16_t	con_handle;   /* connection handle */
+	uint16_t	max_interval; /* (max_interval * 0.625) msec */
+	uint16_t	min_interval; /* (max_interval * 0.625) msec */
 } __attribute__ ((packed)) ng_hci_hold_mode_cp;
 /* No return parameter(s) */
 
 #define NG_HCI_OCF_SNIFF_MODE			0x0003
 typedef struct {
-	u_int16_t	con_handle;   /* connection handle */
-	u_int16_t	max_interval; /* (max_interval * 0.625) msec */
-	u_int16_t	min_interval; /* (max_interval * 0.625) msec */
-	u_int16_t	attempt;      /* (2 * attempt - 1) * 0.625 msec */
-	u_int16_t	timeout;      /* (2 * attempt - 1) * 0.625 msec */
+	uint16_t	con_handle;   /* connection handle */
+	uint16_t	max_interval; /* (max_interval * 0.625) msec */
+	uint16_t	min_interval; /* (max_interval * 0.625) msec */
+	uint16_t	attempt;      /* (2 * attempt - 1) * 0.625 msec */
+	uint16_t	timeout;      /* (2 * attempt - 1) * 0.625 msec */
 } __attribute__ ((packed)) ng_hci_sniff_mode_cp;
 /* No return parameter(s) */
 
 #define NG_HCI_OCF_EXIT_SNIFF_MODE		0x0004
 typedef struct {
-	u_int16_t	con_handle; /* connection handle */
+	uint16_t	con_handle; /* connection handle */
 } __attribute__ ((packed)) ng_hci_exit_sniff_mode_cp;
 /* No return parameter(s) */
 
 #define NG_HCI_OCF_PARK_MODE			0x0005
 typedef struct {
-	u_int16_t	con_handle;   /* connection handle */
-	u_int16_t	max_interval; /* (max_interval * 0.625) msec */
-	u_int16_t	min_interval; /* (max_interval * 0.625) msec */
+	uint16_t	con_handle;   /* connection handle */
+	uint16_t	max_interval; /* (max_interval * 0.625) msec */
+	uint16_t	min_interval; /* (max_interval * 0.625) msec */
 } __attribute__ ((packed)) ng_hci_park_mode_cp;
 /* No return parameter(s) */
 
 #define NG_HCI_OCF_EXIT_PARK_MODE		0x0006
 typedef struct {
-	u_int16_t	con_handle; /* connection handle */
+	uint16_t	con_handle; /* connection handle */
 } __attribute__ ((packed)) ng_hci_exit_park_mode_cp;
 /* No return parameter(s) */
 
 #define NG_HCI_OCF_QOS_SETUP			0x0007
 typedef struct {
-	u_int16_t	con_handle;      /* connection handle */
-	u_int8_t	flags;           /* reserved for future use */
-	u_int8_t	service_type;    /* service type */
-	u_int32_t	token_rate;      /* bytes per second */
-	u_int32_t	peak_bandwidth;  /* bytes per second */
-	u_int32_t	latency;         /* microseconds */
-	u_int32_t	delay_variation; /* microseconds */
+	uint16_t	con_handle;      /* connection handle */
+	uint8_t	flags;           /* reserved for future use */
+	uint8_t	service_type;    /* service type */
+	uint32_t	token_rate;      /* bytes per second */
+	uint32_t	peak_bandwidth;  /* bytes per second */
+	uint32_t	latency;         /* microseconds */
+	uint32_t	delay_variation; /* microseconds */
 } __attribute__ ((packed)) ng_hci_qos_setup_cp;
 /* No return parameter(s) */
 
 #define NG_HCI_OCF_ROLE_DISCOVERY		0x0009
 typedef struct {
-	u_int16_t	con_handle; /* connection handle */
+	uint16_t	con_handle; /* connection handle */
 } __attribute__ ((packed)) ng_hci_role_discovery_cp;
 
 typedef struct {
-	u_int8_t	status;     /* 0x00 - success */
-	u_int16_t	con_handle; /* connection handle */
-	u_int8_t	role;       /* role for the connection handle */
+	uint8_t	status;     /* 0x00 - success */
+	uint16_t	con_handle; /* connection handle */
+	uint8_t	role;       /* role for the connection handle */
 } __attribute__ ((packed)) ng_hci_role_discovery_rp;
 
 #define NG_HCI_OCF_SWITCH_ROLE			0x000b
 typedef struct {
 	bdaddr_t	bdaddr; /* remote address */
-	u_int8_t	role;   /* new local role */
+	uint8_t	role;   /* new local role */
 } __attribute__ ((packed)) ng_hci_switch_role_cp;
 /* No return parameter(s) */
 
 #define NG_HCI_OCF_READ_LINK_POLICY_SETTINGS	0x000c
 typedef struct {
-	u_int16_t	con_handle; /* connection handle */
+	uint16_t	con_handle; /* connection handle */
 } __attribute__ ((packed)) ng_hci_read_link_policy_settings_cp;
 
 typedef struct {
-	u_int8_t	status;     /* 0x00 - success */
-	u_int16_t	con_handle; /* connection handle */
-	u_int16_t	settings;   /* link policy settings */
+	uint8_t	status;     /* 0x00 - success */
+	uint16_t	con_handle; /* connection handle */
+	uint16_t	settings;   /* link policy settings */
 } __attribute__ ((packed)) ng_hci_read_link_policy_settings_rp;
 
 #define NG_HCI_OCF_WRITE_LINK_POLICY_SETTINGS	0x000d
 typedef struct {
-	u_int16_t	con_handle; /* connection handle */
-	u_int16_t	settings;   /* link policy settings */
+	uint16_t	con_handle; /* connection handle */
+	uint16_t	settings;   /* link policy settings */
 } __attribute__ ((packed)) ng_hci_write_link_policy_settings_cp;
 
 typedef struct {
-	u_int8_t	status;     /* 0x00 - success */
-	u_int16_t	con_handle; /* connection handle */
+	uint8_t	status;     /* 0x00 - success */
+	uint16_t	con_handle; /* connection handle */
 } __attribute__ ((packed)) ng_hci_write_link_policy_settings_rp;
 
 /**************************************************************************
@@ -968,7 +968,7 @@ typedef struct {
 
 #define NG_HCI_OCF_SET_EVENT_MASK		0x0001
 typedef struct {
-	u_int8_t	event_mask[NG_HCI_EVENT_MASK_SIZE]; /* event_mask */
+	uint8_t	event_mask[NG_HCI_EVENT_MASK_SIZE]; /* event_mask */
 } __attribute__ ((packed)) ng_hci_set_event_mask_cp;
 
 typedef ng_hci_status_rp	ng_hci_set_event_mask_rp;
@@ -981,33 +981,33 @@ typedef ng_hci_status_rp	ng_hci_reset_rp;
 
 #define NG_HCI_OCF_SET_EVENT_FILTER		0x0005
 typedef struct {
-	u_int8_t	filter_type;           /* filter type */
-	u_int8_t	filter_condition_type; /* filter condition type */
-	u_int8_t	condition[0];          /* conditions - variable size */
+	uint8_t	filter_type;           /* filter type */
+	uint8_t	filter_condition_type; /* filter condition type */
+	uint8_t	condition[0];          /* conditions - variable size */
 } __attribute__ ((packed)) ng_hci_set_event_filter_cp;
 
 typedef ng_hci_status_rp	ng_hci_set_event_filter_rp;
 
 #define NG_HCI_OCF_FLUSH			0x0008
 typedef struct {
-	u_int16_t	con_handle; /* connection handle */
+	uint16_t	con_handle; /* connection handle */
 } __attribute__ ((packed)) ng_hci_flush_cp;
 
 typedef struct {
-	u_int8_t	status;     /* 0x00 - success */
-	u_int16_t	con_handle; /* connection handle */
+	uint8_t	status;     /* 0x00 - success */
+	uint16_t	con_handle; /* connection handle */
 } __attribute__ ((packed)) ng_hci_flush_rp;
 
 #define NG_HCI_OCF_READ_PIN_TYPE		0x0009
 /* No command parameter(s) */
 typedef struct {
-	u_int8_t	status;   /* 0x00 - success */
-	u_int8_t	pin_type; /* PIN type */
+	uint8_t	status;   /* 0x00 - success */
+	uint8_t	pin_type; /* PIN type */
 } __attribute__ ((packed)) ng_hci_read_pin_type_rp;
 
 #define NG_HCI_OCF_WRITE_PIN_TYPE		0x000a
 typedef struct {
-	u_int8_t	pin_type; /* PIN type */
+	uint8_t	pin_type; /* PIN type */
 } __attribute__ ((packed)) ng_hci_write_pin_type_cp;
 
 typedef ng_hci_status_rp	ng_hci_write_pin_type_rp;
@@ -1019,37 +1019,37 @@ typedef ng_hci_status_rp	ng_hci_create_new_unit_key_rp;
 #define NG_HCI_OCF_READ_STORED_LINK_KEY		0x000d
 typedef struct {
 	bdaddr_t	bdaddr;   /* address */
-	u_int8_t	read_all; /* read all keys? 0x01 - yes */
+	uint8_t	read_all; /* read all keys? 0x01 - yes */
 } __attribute__ ((packed)) ng_hci_read_stored_link_key_cp;
 
 typedef struct {
-	u_int8_t	status;        /* 0x00 - success */
-	u_int16_t	max_num_keys;  /* Max. number of keys */
-	u_int16_t	num_keys_read; /* Number of stored keys */
+	uint8_t	status;        /* 0x00 - success */
+	uint16_t	max_num_keys;  /* Max. number of keys */
+	uint16_t	num_keys_read; /* Number of stored keys */
 } __attribute__ ((packed)) ng_hci_read_stored_link_key_rp;
 
 #define NG_HCI_OCF_WRITE_STORED_LINK_KEY	0x0011
 typedef struct {
-	u_int8_t	num_keys_write; /* # of keys to write */
+	uint8_t	num_keys_write; /* # of keys to write */
 /* these are repeated "num_keys_write" times 
 	bdaddr_t	bdaddr;                --- remote address(es)
-	u_int8_t	key[NG_HCI_KEY_SIZE];  --- key(s) */
+	uint8_t	key[NG_HCI_KEY_SIZE];  --- key(s) */
 } __attribute__ ((packed)) ng_hci_write_stored_link_key_cp;
 
 typedef struct {
-	u_int8_t	status;           /* 0x00 - success */
-	u_int8_t	num_keys_written; /* # of keys successfully written */
+	uint8_t	status;           /* 0x00 - success */
+	uint8_t	num_keys_written; /* # of keys successfully written */
 } __attribute__ ((packed)) ng_hci_write_stored_link_key_rp;
 
 #define NG_HCI_OCF_DELETE_STORED_LINK_KEY	0x0012
 typedef struct {
 	bdaddr_t	bdaddr;     /* address */
-	u_int8_t	delete_all; /* delete all keys? 0x01 - yes */
+	uint8_t	delete_all; /* delete all keys? 0x01 - yes */
 } __attribute__ ((packed)) ng_hci_delete_stored_link_key_cp;
 
 typedef struct {
-	u_int8_t	status;           /* 0x00 - success */
-	u_int16_t	num_keys_deleted; /* Number of keys deleted */
+	uint8_t	status;           /* 0x00 - success */
+	uint16_t	num_keys_deleted; /* Number of keys deleted */
 } __attribute__ ((packed)) ng_hci_delete_stored_link_key_rp;
 
 #define NG_HCI_OCF_CHANGE_LOCAL_NAME		0x0013
@@ -1062,20 +1062,20 @@ typedef ng_hci_status_rp	ng_hci_change_local_name_rp;
 #define NG_HCI_OCF_READ_LOCAL_NAME		0x0014
 /* No command parameter(s) */
 typedef struct {
-	u_int8_t	status;  /* 0x00 - success */
+	uint8_t	status;  /* 0x00 - success */
 	char		name[NG_HCI_UNIT_NAME_SIZE]; /* unit name */
 } __attribute__ ((packed)) ng_hci_read_local_name_rp;
 
 #define NG_HCI_OCF_READ_CON_ACCEPT_TIMO		0x0015
 /* No command parameter(s) */
 typedef struct {
-	u_int8_t	status;  /* 0x00 - success */
-	u_int16_t	timeout; /* (timeout * 0.625) msec */
+	uint8_t	status;  /* 0x00 - success */
+	uint16_t	timeout; /* (timeout * 0.625) msec */
 } __attribute__ ((packed)) ng_hci_read_con_accept_timo_rp;
 
 #define NG_HCI_OCF_WRITE_CON_ACCEPT_TIMO	0x0016
 typedef struct {
-	u_int16_t	timeout; /* (timeout * 0.625) msec */
+	uint16_t	timeout; /* (timeout * 0.625) msec */
 } __attribute__ ((packed)) ng_hci_write_con_accept_timo_cp;
 
 typedef ng_hci_status_rp	ng_hci_write_con_accept_timo_rp;
@@ -1083,13 +1083,13 @@ typedef ng_hci_status_rp	ng_hci_write_con_accept_timo_rp;
 #define NG_HCI_OCF_READ_PAGE_TIMO		0x0017
 /* No command parameter(s) */
 typedef struct {
-	u_int8_t	status;  /* 0x00 - success */
-	u_int16_t	timeout; /* (timeout * 0.625) msec */
+	uint8_t	status;  /* 0x00 - success */
+	uint16_t	timeout; /* (timeout * 0.625) msec */
 } __attribute__ ((packed)) ng_hci_read_page_timo_rp;
 
 #define NG_HCI_OCF_WRITE_PAGE_TIMO		0x0018
 typedef struct {
-	u_int16_t	timeout; /* (timeout * 0.625) msec */
+	uint16_t	timeout; /* (timeout * 0.625) msec */
 } __attribute__ ((packed)) ng_hci_write_page_timo_cp;
 
 typedef ng_hci_status_rp	ng_hci_write_page_timo_rp;
@@ -1097,13 +1097,13 @@ typedef ng_hci_status_rp	ng_hci_write_page_timo_rp;
 #define NG_HCI_OCF_READ_SCAN_ENABLE		0x0019
 /* No command parameter(s) */
 typedef struct {
-	u_int8_t	status;      /* 0x00 - success */
-	u_int8_t	scan_enable; /* Scan enable */
+	uint8_t	status;      /* 0x00 - success */
+	uint8_t	scan_enable; /* Scan enable */
 } __attribute__ ((packed)) ng_hci_read_scan_enable_rp;
 
 #define NG_HCI_OCF_WRITE_SCAN_ENABLE		0x001a
 typedef struct {
-	u_int8_t	scan_enable; /* Scan enable */
+	uint8_t	scan_enable; /* Scan enable */
 } __attribute__ ((packed)) ng_hci_write_scan_enable_cp;
 
 typedef ng_hci_status_rp	ng_hci_write_scan_enable_rp;
@@ -1111,15 +1111,15 @@ typedef ng_hci_status_rp	ng_hci_write_scan_enable_rp;
 #define NG_HCI_OCF_READ_PAGE_SCAN_ACTIVITY	0x001b
 /* No command parameter(s) */
 typedef struct {
-	u_int8_t	status;             /* 0x00 - success */
-	u_int16_t	page_scan_interval; /* interval * 0.625 msec */
-	u_int16_t	page_scan_window;   /* window * 0.625 msec */
+	uint8_t	status;             /* 0x00 - success */
+	uint16_t	page_scan_interval; /* interval * 0.625 msec */
+	uint16_t	page_scan_window;   /* window * 0.625 msec */
 } __attribute__ ((packed)) ng_hci_read_page_scan_activity_rp;
 
 #define NG_HCI_OCF_WRITE_PAGE_SCAN_ACTIVITY	0x001c
 typedef struct {
-	u_int16_t	page_scan_interval; /* interval * 0.625 msec */
-	u_int16_t	page_scan_window;   /* window * 0.625 msec */
+	uint16_t	page_scan_interval; /* interval * 0.625 msec */
+	uint16_t	page_scan_window;   /* window * 0.625 msec */
 } __attribute__ ((packed)) ng_hci_write_page_scan_activity_cp;
 
 typedef ng_hci_status_rp	ng_hci_write_page_scan_activity_rp;
@@ -1127,15 +1127,15 @@ typedef ng_hci_status_rp	ng_hci_write_page_scan_activity_rp;
 #define NG_HCI_OCF_READ_INQUIRY_SCAN_ACTIVITY	0x001d
 /* No command parameter(s) */
 typedef struct {
-	u_int8_t	status;                /* 0x00 - success */
-	u_int16_t	inquiry_scan_interval; /* interval * 0.625 msec */
-	u_int16_t	inquiry_scan_window;   /* window * 0.625 msec */
+	uint8_t	status;                /* 0x00 - success */
+	uint16_t	inquiry_scan_interval; /* interval * 0.625 msec */
+	uint16_t	inquiry_scan_window;   /* window * 0.625 msec */
 } __attribute__ ((packed)) ng_hci_read_inquiry_scan_activity_rp;
 
 #define NG_HCI_OCF_WRITE_INQUIRY_SCAN_ACTIVITY	0x001e
 typedef struct {
-	u_int16_t	inquiry_scan_interval; /* interval * 0.625 msec */
-	u_int16_t	inquiry_scan_window;   /* window * 0.625 msec */
+	uint16_t	inquiry_scan_interval; /* interval * 0.625 msec */
+	uint16_t	inquiry_scan_window;   /* window * 0.625 msec */
 } __attribute__ ((packed)) ng_hci_write_inquiry_scan_activity_cp;
 
 typedef ng_hci_status_rp	ng_hci_write_inquiry_scan_activity_rp;
@@ -1143,13 +1143,13 @@ typedef ng_hci_status_rp	ng_hci_write_inquiry_scan_activity_rp;
 #define NG_HCI_OCF_READ_AUTH_ENABLE		0x001f
 /* No command parameter(s) */
 typedef struct {
-	u_int8_t	status;      /* 0x00 - success */
-	u_int8_t	auth_enable; /* 0x01 - enabled */
+	uint8_t	status;      /* 0x00 - success */
+	uint8_t	auth_enable; /* 0x01 - enabled */
 } __attribute__ ((packed)) ng_hci_read_auth_enable_rp;
 
 #define NG_HCI_OCF_WRITE_AUTH_ENABLE		0x0020
 typedef struct {
-	u_int8_t	auth_enable; /* 0x01 - enabled */
+	uint8_t	auth_enable; /* 0x01 - enabled */
 } __attribute__ ((packed)) ng_hci_write_auth_enable_cp;
 
 typedef ng_hci_status_rp	ng_hci_write_auth_enable_rp;
@@ -1157,13 +1157,13 @@ typedef ng_hci_status_rp	ng_hci_write_auth_enable_rp;
 #define NG_HCI_OCF_READ_ENCRYPTION_MODE		0x0021
 /* No command parameter(s) */
 typedef struct {
-	u_int8_t	status;          /* 0x00 - success */
-	u_int8_t	encryption_mode; /* encryption mode */
+	uint8_t	status;          /* 0x00 - success */
+	uint8_t	encryption_mode; /* encryption mode */
 } __attribute__ ((packed)) ng_hci_read_encryption_mode_rp;
 
 #define NG_HCI_OCF_WRITE_ENCRYPTION_MODE	0x0022
 typedef struct {
-	u_int8_t	encryption_mode; /* encryption mode */
+	uint8_t	encryption_mode; /* encryption mode */
 } __attribute__ ((packed)) ng_hci_write_encryption_mode_cp;
 
 typedef ng_hci_status_rp	ng_hci_write_encryption_mode_rp;
@@ -1171,13 +1171,13 @@ typedef ng_hci_status_rp	ng_hci_write_encryption_mode_rp;
 #define NG_HCI_OCF_READ_UNIT_CLASS		0x0023
 /* No command parameter(s) */
 typedef struct {
-	u_int8_t	status;                    /* 0x00 - success */
-	u_int8_t	uclass[NG_HCI_CLASS_SIZE]; /* unit class */
+	uint8_t	status;                    /* 0x00 - success */
+	uint8_t	uclass[NG_HCI_CLASS_SIZE]; /* unit class */
 } __attribute__ ((packed)) ng_hci_read_unit_class_rp;
 
 #define NG_HCI_OCF_WRITE_UNIT_CLASS		0x0024
 typedef struct {
-	u_int8_t	uclass[NG_HCI_CLASS_SIZE]; /* unit class */
+	uint8_t	uclass[NG_HCI_CLASS_SIZE]; /* unit class */
 } __attribute__ ((packed)) ng_hci_write_unit_class_cp;
 
 typedef ng_hci_status_rp	ng_hci_write_unit_class_rp;
@@ -1185,49 +1185,49 @@ typedef ng_hci_status_rp	ng_hci_write_unit_class_rp;
 #define NG_HCI_OCF_READ_VOICE_SETTINGS		0x0025
 /* No command parameter(s) */
 typedef struct {
-	u_int8_t	status;   /* 0x00 - success */
-	u_int16_t	settings; /* voice settings */
+	uint8_t	status;   /* 0x00 - success */
+	uint16_t	settings; /* voice settings */
 } __attribute__ ((packed)) ng_hci_read_voice_settings_rp;
 
 #define NG_HCI_OCF_WRITE_VOICE_SETTINGS		0x0026
 typedef struct {
-	u_int16_t	settings; /* voice settings */
+	uint16_t	settings; /* voice settings */
 } __attribute__ ((packed)) ng_hci_write_voice_settings_cp;
 
 typedef ng_hci_status_rp	ng_hci_write_voice_settings_rp;
 
 #define NG_HCI_OCF_READ_AUTO_FLUSH_TIMO		0x0027
 typedef struct {
-	u_int16_t	con_handle; /* connection handle */
+	uint16_t	con_handle; /* connection handle */
 } __attribute__ ((packed)) ng_hci_read_auto_flush_timo_cp;
 
 typedef struct {
-	u_int8_t	status;     /* 0x00 - success */
-	u_int16_t	con_handle; /* connection handle */
-	u_int16_t	timeout;    /* 0x00 - no flush, timeout * 0.625 msec */
+	uint8_t	status;     /* 0x00 - success */
+	uint16_t	con_handle; /* connection handle */
+	uint16_t	timeout;    /* 0x00 - no flush, timeout * 0.625 msec */
 } __attribute__ ((packed)) ng_hci_read_auto_flush_timo_rp;
 
 #define NG_HCI_OCF_WRITE_AUTO_FLUSH_TIMO	0x0028
 typedef struct {
-	u_int16_t	con_handle; /* connection handle */
-	u_int16_t	timeout;    /* 0x00 - no flush, timeout * 0.625 msec */
+	uint16_t	con_handle; /* connection handle */
+	uint16_t	timeout;    /* 0x00 - no flush, timeout * 0.625 msec */
 } __attribute__ ((packed)) ng_hci_write_auto_flush_timo_cp;
 
 typedef struct {
-	u_int8_t	status;     /* 0x00 - success */
-	u_int16_t	con_handle; /* connection handle */
+	uint8_t	status;     /* 0x00 - success */
+	uint16_t	con_handle; /* connection handle */
 } __attribute__ ((packed)) ng_hci_write_auto_flush_timo_rp;
 
 #define NG_HCI_OCF_READ_NUM_BROADCAST_RETRANS	0x0029
 /* No command parameter(s) */
 typedef struct {
-	u_int8_t	status;  /* 0x00 - success */
-	u_int8_t	counter; /* number of broadcast retransmissions */
+	uint8_t	status;  /* 0x00 - success */
+	uint8_t	counter; /* number of broadcast retransmissions */
 } __attribute__ ((packed)) ng_hci_read_num_broadcast_retrans_rp;
 
 #define NG_HCI_OCF_WRITE_NUM_BROADCAST_RETRANS	0x002a
 typedef struct {
-	u_int8_t	counter; /* number of broadcast retransmissions */
+	uint8_t	counter; /* number of broadcast retransmissions */
 } __attribute__ ((packed)) ng_hci_write_num_broadcast_retrans_cp;
 
 typedef ng_hci_status_rp	ng_hci_write_num_broadcast_retrans_rp;
@@ -1235,112 +1235,112 @@ typedef ng_hci_status_rp	ng_hci_write_num_broadcast_retrans_rp;
 #define NG_HCI_OCF_READ_HOLD_MODE_ACTIVITY	0x002b
 /* No command parameter(s) */
 typedef struct {
-	u_int8_t	status;             /* 0x00 - success */
-	u_int8_t	hold_mode_activity; /* Hold mode activities */
+	uint8_t	status;             /* 0x00 - success */
+	uint8_t	hold_mode_activity; /* Hold mode activities */
 } __attribute__ ((packed)) ng_hci_read_hold_mode_activity_rp;
 
 #define NG_HCI_OCF_WRITE_HOLD_MODE_ACTIVITY	0x002c
 typedef struct {
-	u_int8_t	hold_mode_activity; /* Hold mode activities */
+	uint8_t	hold_mode_activity; /* Hold mode activities */
 } __attribute__ ((packed)) ng_hci_write_hold_mode_activity_cp;
 
 typedef ng_hci_status_rp	ng_hci_write_hold_mode_activity_rp;
 
 #define NG_HCI_OCF_READ_XMIT_LEVEL		0x002d
 typedef struct {
-	u_int16_t	con_handle; /* connection handle */
-	u_int8_t	type;       /* Xmit level type */
+	uint16_t	con_handle; /* connection handle */
+	uint8_t	type;       /* Xmit level type */
 } __attribute__ ((packed)) ng_hci_read_xmit_level_cp;
 
 typedef struct {
-	u_int8_t	status;     /* 0x00 - success */
-	u_int16_t	con_handle; /* connection handle */
+	uint8_t	status;     /* 0x00 - success */
+	uint16_t	con_handle; /* connection handle */
 	char		level;      /* -30 <= level <= 30 dBm */
 } __attribute__ ((packed)) ng_hci_read_xmit_level_rp;
 
 #define NG_HCI_OCF_READ_SCO_FLOW_CONTROL	0x002e
 /* No command parameter(s) */
 typedef struct {
-	u_int8_t	status;       /* 0x00 - success */
-	u_int8_t	flow_control; /* 0x00 - disabled */
+	uint8_t	status;       /* 0x00 - success */
+	uint8_t	flow_control; /* 0x00 - disabled */
 } __attribute__ ((packed)) ng_hci_read_sco_flow_control_rp;
 
 #define NG_HCI_OCF_WRITE_SCO_FLOW_CONTROL	0x002f
 typedef struct {
-	u_int8_t	flow_control; /* 0x00 - disabled */
+	uint8_t	flow_control; /* 0x00 - disabled */
 } __attribute__ ((packed)) ng_hci_write_sco_flow_control_cp;
 
 typedef ng_hci_status_rp	ng_hci_write_sco_flow_control_rp;
 
 #define NG_HCI_OCF_H2HC_FLOW_CONTROL		0x0031
 typedef struct {
-	u_int8_t	h2hc_flow; /* Host to Host controller flow control */
+	uint8_t	h2hc_flow; /* Host to Host controller flow control */
 } __attribute__ ((packed)) ng_hci_h2hc_flow_control_cp;
 
 typedef ng_hci_status_rp	ng_hci_h2hc_flow_control_rp;
 
 #define NG_HCI_OCF_HOST_BUFFER_SIZE		0x0033
 typedef struct {
-	u_int16_t	max_acl_size; /* Max. size of ACL packet (bytes) */
-	u_int8_t	max_sco_size; /* Max. size of SCO packet (bytes) */
-	u_int16_t	num_acl_pkt;  /* Max. number of ACL packets */
-	u_int16_t	num_sco_pkt;  /* Max. number of SCO packets */
+	uint16_t	max_acl_size; /* Max. size of ACL packet (bytes) */
+	uint8_t	max_sco_size; /* Max. size of SCO packet (bytes) */
+	uint16_t	num_acl_pkt;  /* Max. number of ACL packets */
+	uint16_t	num_sco_pkt;  /* Max. number of SCO packets */
 } __attribute__ ((packed)) ng_hci_host_buffer_size_cp;
 
 typedef ng_hci_status_rp	ng_hci_host_buffer_size_rp;
 
 #define NG_HCI_OCF_HOST_NUM_COMPL_PKTS		0x0035
 typedef struct {
-	u_int8_t	num_con_handles; /* # of connection handles */
+	uint8_t	num_con_handles; /* # of connection handles */
 /* these are repeated "num_con_handles" times
-	u_int16_t	con_handle; --- connection handle(s)
-	u_int16_t	compl_pkt;  --- # of completed packets */
+	uint16_t	con_handle; --- connection handle(s)
+	uint16_t	compl_pkt;  --- # of completed packets */
 } __attribute__ ((packed)) ng_hci_host_num_compl_pkts_cp;
 /* No return parameter(s) */
 
 #define NG_HCI_OCF_READ_LINK_SUPERVISION_TIMO	0x0036
 typedef struct {
-	u_int16_t	con_handle; /* connection handle */
+	uint16_t	con_handle; /* connection handle */
 } __attribute__ ((packed)) ng_hci_read_link_supervision_timo_cp;
 
 typedef struct {
-	u_int8_t	status;     /* 0x00 - success */
-	u_int16_t	con_handle; /* connection handle */
-	u_int16_t	timeout;    /* Link supervision timeout * 0.625 msec */
+	uint8_t	status;     /* 0x00 - success */
+	uint16_t	con_handle; /* connection handle */
+	uint16_t	timeout;    /* Link supervision timeout * 0.625 msec */
 } __attribute__ ((packed)) ng_hci_read_link_supervision_timo_rp;
 
 #define NG_HCI_OCF_WRITE_LINK_SUPERVISION_TIMO	0x0037
 typedef struct {
-	u_int16_t	con_handle; /* connection handle */
-	u_int16_t	timeout;    /* Link supervision timeout * 0.625 msec */
+	uint16_t	con_handle; /* connection handle */
+	uint16_t	timeout;    /* Link supervision timeout * 0.625 msec */
 } __attribute__ ((packed)) ng_hci_write_link_supervision_timo_cp;
 
 typedef struct {
-	u_int8_t	status;     /* 0x00 - success */
-	u_int16_t	con_handle; /* connection handle */
+	uint8_t	status;     /* 0x00 - success */
+	uint16_t	con_handle; /* connection handle */
 } __attribute__ ((packed)) ng_hci_write_link_supervision_timo_rp;
 
 #define NG_HCI_OCF_READ_SUPPORTED_IAC_NUM	0x0038
 /* No command parameter(s) */
 typedef struct {
-	u_int8_t	status;  /* 0x00 - success */
-	u_int8_t	num_iac; /* # of supported IAC during scan */
+	uint8_t	status;  /* 0x00 - success */
+	uint8_t	num_iac; /* # of supported IAC during scan */
 } __attribute__ ((packed)) ng_hci_read_supported_iac_num_rp;
 
 #define NG_HCI_OCF_READ_IAC_LAP			0x0039
 /* No command parameter(s) */
 typedef struct {
-	u_int8_t	status;  /* 0x00 - success */
-	u_int8_t	num_iac; /* # of IAC */
+	uint8_t	status;  /* 0x00 - success */
+	uint8_t	num_iac; /* # of IAC */
 /* these are repeated "num_iac" times 
-	u_int8_t	laps[NG_HCI_LAP_SIZE]; --- LAPs */
+	uint8_t	laps[NG_HCI_LAP_SIZE]; --- LAPs */
 } __attribute__ ((packed)) ng_hci_read_iac_lap_rp;
 
 #define NG_HCI_OCF_WRITE_IAC_LAP		0x003a
 typedef struct {
-	u_int8_t	num_iac; /* # of IAC */
+	uint8_t	num_iac; /* # of IAC */
 /* these are repeated "num_iac" times 
-	u_int8_t	laps[NG_HCI_LAP_SIZE]; --- LAPs */
+	uint8_t	laps[NG_HCI_LAP_SIZE]; --- LAPs */
 } __attribute__ ((packed)) ng_hci_write_iac_lap_cp;
 
 typedef ng_hci_status_rp	ng_hci_write_iac_lap_rp;
@@ -1349,13 +1349,13 @@ typedef ng_hci_status_rp	ng_hci_write_iac_lap_rp;
 #define NG_HCI_OCF_READ_PAGE_SCAN_PERIOD	0x003b
 /* No command parameter(s) */
 typedef struct {
-	u_int8_t	status;                /* 0x00 - success */
-	u_int8_t	page_scan_period_mode; /* Page scan period mode */
+	uint8_t	status;                /* 0x00 - success */
+	uint8_t	page_scan_period_mode; /* Page scan period mode */
 } __attribute__ ((packed)) ng_hci_read_page_scan_period_rp;
 
 #define NG_HCI_OCF_WRITE_PAGE_SCAN_PERIOD	0x003c
 typedef struct {
-	u_int8_t	page_scan_period_mode; /* Page scan period mode */
+	uint8_t	page_scan_period_mode; /* Page scan period mode */
 } __attribute__ ((packed)) ng_hci_write_page_scan_period_cp;
 
 typedef ng_hci_status_rp	ng_hci_write_page_scan_period_rp;
@@ -1363,28 +1363,28 @@ typedef ng_hci_status_rp	ng_hci_write_page_scan_period_rp;
 #define NG_HCI_OCF_READ_PAGE_SCAN		0x003d
 /* No command parameter(s) */
 typedef struct {
-	u_int8_t	status;         /* 0x00 - success */
-	u_int8_t	page_scan_mode; /* Page scan mode */
+	uint8_t	status;         /* 0x00 - success */
+	uint8_t	page_scan_mode; /* Page scan mode */
 } __attribute__ ((packed)) ng_hci_read_page_scan_rp;
 
 #define NG_HCI_OCF_WRITE_PAGE_SCAN		0x003e
 typedef struct {
-	u_int8_t	page_scan_mode; /* Page scan mode */
+	uint8_t	page_scan_mode; /* Page scan mode */
 } __attribute__ ((packed)) ng_hci_write_page_scan_cp;
 
 typedef ng_hci_status_rp	ng_hci_write_page_scan_rp;
 
 #define NG_HCI_OCF_READ_LE_HOST_SUPPORTED  0x6c
 typedef struct {
-	u_int8_t	status;         /* 0x00 - success */
-	u_int8_t	le_supported_host ;/* LE host supported?*/
-	u_int8_t	simultaneous_le_host; /* BR/LE simulateneous? */
+	uint8_t	status;         /* 0x00 - success */
+	uint8_t	le_supported_host ;/* LE host supported?*/
+	uint8_t	simultaneous_le_host; /* BR/LE simulateneous? */
 } __attribute__ ((packed)) ng_hci_read_le_host_supported_rp;
 
 #define NG_HCI_OCF_WRITE_LE_HOST_SUPPORTED  0x6d
 typedef struct {
-	u_int8_t	le_supported_host; /* LE host supported?*/
-	u_int8_t	simultaneous_le_host; /* LE host supported?*/
+	uint8_t	le_supported_host; /* LE host supported?*/
+	uint8_t	simultaneous_le_host; /* LE host supported?*/
 } __attribute__ ((packed)) ng_hci_write_le_host_supported_cp;
 
 typedef ng_hci_status_rp	ng_hci_write_le_host_supported_rp;
@@ -1400,44 +1400,44 @@ typedef ng_hci_status_rp	ng_hci_write_le_host_supported_rp;
 
 #define NG_HCI_OCF_READ_LOCAL_VER		0x0001
 typedef struct {
-	u_int8_t	status;         /* 0x00 - success */
-	u_int8_t	hci_version;    /* HCI version */
-	u_int16_t	hci_revision;   /* HCI revision */
-	u_int8_t	lmp_version;    /* LMP version */
-	u_int16_t	manufacturer;   /* Hardware manufacturer name */
-	u_int16_t	lmp_subversion; /* LMP sub-version */
+	uint8_t	status;         /* 0x00 - success */
+	uint8_t	hci_version;    /* HCI version */
+	uint16_t	hci_revision;   /* HCI revision */
+	uint8_t	lmp_version;    /* LMP version */
+	uint16_t	manufacturer;   /* Hardware manufacturer name */
+	uint16_t	lmp_subversion; /* LMP sub-version */
 } __attribute__ ((packed)) ng_hci_read_local_ver_rp;
 
 #define NG_HCI_OCF_READ_LOCAL_COMMANDS		0x0002
 typedef struct {
-	u_int8_t	status;                         /* 0x00 - success */
-	u_int8_t	features[NG_HCI_COMMANDS_SIZE]; /* command bitmsk*/
+	uint8_t	status;                         /* 0x00 - success */
+	uint8_t	features[NG_HCI_COMMANDS_SIZE]; /* command bitmsk*/
 } __attribute__ ((packed)) ng_hci_read_local_commands_rp;
 
 #define NG_HCI_OCF_READ_LOCAL_FEATURES		0x0003
 typedef struct {
-	u_int8_t	status;                         /* 0x00 - success */
-	u_int8_t	features[NG_HCI_FEATURES_SIZE]; /* LMP features bitmsk*/
+	uint8_t	status;                         /* 0x00 - success */
+	uint8_t	features[NG_HCI_FEATURES_SIZE]; /* LMP features bitmsk*/
 } __attribute__ ((packed)) ng_hci_read_local_features_rp;
 
 #define NG_HCI_OCF_READ_BUFFER_SIZE		0x0005
 typedef struct {
-	u_int8_t	status;       /* 0x00 - success */
-	u_int16_t	max_acl_size; /* Max. size of ACL packet (bytes) */
-	u_int8_t	max_sco_size; /* Max. size of SCO packet (bytes) */
-	u_int16_t	num_acl_pkt;  /* Max. number of ACL packets */
-	u_int16_t	num_sco_pkt;  /* Max. number of SCO packets */
+	uint8_t	status;       /* 0x00 - success */
+	uint16_t	max_acl_size; /* Max. size of ACL packet (bytes) */
+	uint8_t	max_sco_size; /* Max. size of SCO packet (bytes) */
+	uint16_t	num_acl_pkt;  /* Max. number of ACL packets */
+	uint16_t	num_sco_pkt;  /* Max. number of SCO packets */
 } __attribute__ ((packed)) ng_hci_read_buffer_size_rp;
 
 #define NG_HCI_OCF_READ_COUNTRY_CODE		0x0007
 typedef struct {
-	u_int8_t	status;       /* 0x00 - success */
-	u_int8_t	country_code; /* 0x00 - NAM, EUR, JP; 0x01 - France */
+	uint8_t	status;       /* 0x00 - success */
+	uint8_t	country_code; /* 0x00 - NAM, EUR, JP; 0x01 - France */
 } __attribute__ ((packed)) ng_hci_read_country_code_rp;
 
 #define NG_HCI_OCF_READ_BDADDR			0x0009
 typedef struct {
-	u_int8_t	status; /* 0x00 - success */
+	uint8_t	status; /* 0x00 - success */
 	bdaddr_t	bdaddr; /* unit address */
 } __attribute__ ((packed)) ng_hci_read_bdaddr_rp;
 
@@ -1451,44 +1451,44 @@ typedef struct {
 
 #define NG_HCI_OCF_READ_FAILED_CONTACT_CNTR	0x0001
 typedef struct {
-	u_int16_t	con_handle; /* connection handle */
+	uint16_t	con_handle; /* connection handle */
 } __attribute__ ((packed)) ng_hci_read_failed_contact_cntr_cp;
 
 typedef struct {
-	u_int8_t	status;     /* 0x00 - success */
-	u_int16_t	con_handle; /* connection handle */
-	u_int16_t	counter;    /* number of consecutive failed contacts */
+	uint8_t	status;     /* 0x00 - success */
+	uint16_t	con_handle; /* connection handle */
+	uint16_t	counter;    /* number of consecutive failed contacts */
 } __attribute__ ((packed)) ng_hci_read_failed_contact_cntr_rp;
 
 #define NG_HCI_OCF_RESET_FAILED_CONTACT_CNTR	0x0002
 typedef struct {
-	u_int16_t	con_handle; /* connection handle */
+	uint16_t	con_handle; /* connection handle */
 } __attribute__ ((packed)) ng_hci_reset_failed_contact_cntr_cp;
 
 typedef struct {
-	u_int8_t	status;     /* 0x00 - success */
-	u_int16_t	con_handle; /* connection handle */
+	uint8_t	status;     /* 0x00 - success */
+	uint16_t	con_handle; /* connection handle */
 } __attribute__ ((packed)) ng_hci_reset_failed_contact_cntr_rp;
 
 #define NG_HCI_OCF_GET_LINK_QUALITY		0x0003
 typedef struct {
-	u_int16_t	con_handle; /* connection handle */
+	uint16_t	con_handle; /* connection handle */
 } __attribute__ ((packed)) ng_hci_get_link_quality_cp;
 
 typedef struct {
-	u_int8_t	status;     /* 0x00 - success */
-	u_int16_t	con_handle; /* connection handle */
-	u_int8_t	quality;    /* higher value means better quality */
+	uint8_t	status;     /* 0x00 - success */
+	uint16_t	con_handle; /* connection handle */
+	uint8_t	quality;    /* higher value means better quality */
 } __attribute__ ((packed)) ng_hci_get_link_quality_rp;
 
 #define NG_HCI_OCF_READ_RSSI			0x0005
 typedef struct {
-	u_int16_t	con_handle; /* connection handle */
+	uint16_t	con_handle; /* connection handle */
 } __attribute__ ((packed)) ng_hci_read_rssi_cp;
 
 typedef struct {
-	u_int8_t	status;     /* 0x00 - success */
-	u_int16_t	con_handle; /* connection handle */
+	uint8_t	status;     /* 0x00 - success */
+	uint16_t	con_handle; /* connection handle */
 	char		rssi;       /* -127 <= rssi <= 127 dB */
 } __attribute__ ((packed)) ng_hci_read_rssi_rp;
 
@@ -1503,13 +1503,13 @@ typedef struct {
 #define NG_HCI_OCF_READ_LOOPBACK_MODE		0x0001
 /* No command parameter(s) */
 typedef struct {
-	u_int8_t	status; /* 0x00 - success */
-	u_int8_t	lbmode; /* loopback mode */
+	uint8_t	status; /* 0x00 - success */
+	uint8_t	lbmode; /* loopback mode */
 } __attribute__ ((packed)) ng_hci_read_loopback_mode_rp;
 
 #define NG_HCI_OCF_WRITE_LOOPBACK_MODE		0x0002
 typedef struct {
-	u_int8_t	lbmode; /* loopback mode */
+	uint8_t	lbmode; /* loopback mode */
 } __attribute__ ((packed)) ng_hci_write_loopback_mode_cp;
 
 typedef ng_hci_status_rp	ng_hci_write_loopback_mode_rp;
@@ -1527,7 +1527,7 @@ typedef ng_hci_status_rp	ng_hci_enable_unit_under_test_rp;
 #define NG_HCI_OGF_LE			0x08 /* OpCode Group Field */
 #define NG_HCI_OCF_LE_SET_EVENT_MASK			0x0001
 typedef struct {
-	u_int8_t	event_mask[NG_HCI_LE_EVENT_MASK_SIZE]; /* event_mask*/
+	uint8_t	event_mask[NG_HCI_LE_EVENT_MASK_SIZE]; /* event_mask*/
 
 } __attribute__ ((packed)) ng_hci_le_set_event_mask_cp;
 typedef ng_hci_status_rp	ng_hci_le_set_event_mask_rp;
@@ -1536,16 +1536,16 @@ typedef ng_hci_status_rp	ng_hci_le_set_event_mask_rp;
 #define NG_HCI_OCF_LE_READ_BUFFER_SIZE			0x0002
 /*No command parameter */
 typedef struct {
-	u_int8_t	status; /*status*/
-	u_int16_t 	hc_le_data_packet_length;
-	u_int8_t	hc_total_num_le_data_packets; 
+	uint8_t	status; /*status*/
+	uint16_t 	hc_le_data_packet_length;
+	uint8_t	hc_total_num_le_data_packets; 
 } __attribute__ ((packed)) ng_hci_le_read_buffer_size_rp;
 
 #define NG_HCI_OCF_LE_READ_LOCAL_SUPPORTED_FEATURES	0x0003
 /*No command parameter */
 typedef struct {
-	u_int8_t       	status; /*status*/
-	u_int64_t 	le_features;
+	uint8_t       	status; /*status*/
+	uint64_t 	le_features;
 } __attribute__ ((packed)) ng_hci_le_read_local_supported_features_rp;
 
 #define NG_HCI_OCF_LE_SET_RANDOM_ADDRESS		0x0005
@@ -1556,28 +1556,28 @@ typedef ng_hci_status_rp	ng_hci_le_set_random_address_rp;
 
 #define NG_HCI_OCF_LE_SET_ADVERTISING_PARAMETERS	0x0006
 typedef struct {
-	u_int16_t	advertising_interval_min;
-	u_int16_t 	advertising_interval_max;
-	u_int8_t	advertising_type;
-	u_int8_t 	own_address_type;
-	u_int8_t 	direct_address_type;
+	uint16_t	advertising_interval_min;
+	uint16_t 	advertising_interval_max;
+	uint8_t	advertising_type;
+	uint8_t 	own_address_type;
+	uint8_t 	direct_address_type;
 	bdaddr_t	direct_address;
-	u_int8_t	advertising_channel_map;
-	u_int8_t	advertising_filter_policy;
+	uint8_t	advertising_channel_map;
+	uint8_t	advertising_filter_policy;
 } __attribute__ ((packed)) ng_hci_le_set_advertising_parameters_cp;
 typedef ng_hci_status_rp	ng_hci_le_set_advertising_parameters_rp;
 
 #define NG_HCI_OCF_LE_READ_ADVERTISING_CHANNEL_TX_POWER	0x0007
 /*No command parameter*/
 typedef struct {
-	u_int8_t status;
-	u_int8_t transmit_power_level;
+	uint8_t status;
+	uint8_t transmit_power_level;
 } __attribute__ ((packed)) ng_hci_le_read_advertising_channel_tx_power_rp;
 
 #define NG_HCI_OCF_LE_SET_ADVERTISING_DATA		0x0008
 #define NG_HCI_ADVERTISING_DATA_SIZE 31
 typedef struct {
-	u_int8_t advertising_data_length;
+	uint8_t advertising_data_length;
 	char advertising_data[NG_HCI_ADVERTISING_DATA_SIZE];
 } __attribute__ ((packed)) ng_hci_le_set_advertising_data_cp;
 typedef ng_hci_status_rp	ng_hci_le_set_advertising_data_rp;
@@ -1585,48 +1585,48 @@ typedef ng_hci_status_rp	ng_hci_le_set_advertising_data_rp;
 #define NG_HCI_OCF_LE_SET_SCAN_RESPONSE_DATA		0x0009
 
 typedef struct {
-	u_int8_t scan_response_data_length;
+	uint8_t scan_response_data_length;
 	char scan_response_data[NG_HCI_ADVERTISING_DATA_SIZE];
 } __attribute__ ((packed)) ng_hci_le_set_scan_response_data_cp;
 typedef ng_hci_status_rp	ng_hci_le_set_scan_response_data_rp;
 
 #define NG_HCI_OCF_LE_SET_ADVERTISE_ENABLE		0x000a
 typedef struct {
-	u_int8_t advertising_enable;
+	uint8_t advertising_enable;
 }__attribute__ ((packed)) ng_hci_le_set_advertise_enable_cp;
 typedef ng_hci_status_rp	ng_hci_le_set_advertise_enable_rp;
 
 #define NG_HCI_OCF_LE_SET_SCAN_PARAMETERS		0x000b
 typedef struct {
-	u_int8_t le_scan_type;
-	u_int16_t le_scan_interval;
-	u_int16_t le_scan_window;
-	u_int8_t own_address_type;
-	u_int8_t scanning_filter_policy;
+	uint8_t le_scan_type;
+	uint16_t le_scan_interval;
+	uint16_t le_scan_window;
+	uint8_t own_address_type;
+	uint8_t scanning_filter_policy;
 }__attribute__ ((packed)) ng_hci_le_set_scan_parameters_cp;
 typedef ng_hci_status_rp	ng_hci_le_set_scan_parameters_rp;
 
 #define NG_HCI_OCF_LE_SET_SCAN_ENABLE			0x000c
 typedef struct {
-	u_int8_t le_scan_enable;
-	u_int8_t filter_duplicates;
+	uint8_t le_scan_enable;
+	uint8_t filter_duplicates;
 }__attribute__ ((packed)) ng_hci_le_set_scan_enable_cp;
 typedef ng_hci_status_rp	ng_hci_le_set_scan_enable_rp;
 
 #define NG_HCI_OCF_LE_CREATE_CONNECTION			0x000d
 typedef struct {
-	u_int16_t scan_interval;
-	u_int16_t scan_window;
-	u_int8_t filter_policy;
-	u_int8_t peer_addr_type;
+	uint16_t scan_interval;
+	uint16_t scan_window;
+	uint8_t filter_policy;
+	uint8_t peer_addr_type;
 	bdaddr_t peer_addr;
-	u_int8_t own_address_type;
-	u_int16_t conn_interval_min;
-	u_int16_t conn_interval_max;
-	u_int16_t conn_latency;
-	u_int16_t supervision_timeout;
-	u_int16_t min_ce_length;
-	u_int16_t max_ce_length;
+	uint8_t own_address_type;
+	uint16_t conn_interval_min;
+	uint16_t conn_interval_max;
+	uint16_t conn_latency;
+	uint16_t supervision_timeout;
+	uint16_t min_ce_length;
+	uint16_t max_ce_length;
 }__attribute__((packed)) ng_hci_le_create_connection_cp;
 /* No return parameters. */
 #define NG_HCI_OCF_LE_CREATE_CONNECTION_CANCEL		0x000e
@@ -1635,8 +1635,8 @@ typedef ng_hci_status_rp	ng_hci_le_create_connection_cancel_rp;
 #define NG_HCI_OCF_LE_READ_WHITE_LIST_SIZE		0x000f
 /*No command parameter*/	
 typedef struct {
-	u_int8_t status;
-	u_int8_t white_list_size;
+	uint8_t status;
+	uint8_t white_list_size;
 } __attribute__ ((packed)) ng_hci_le_read_white_list_size_rp;
 
 #define NG_HCI_OCF_LE_CLEAR_WHITE_LIST			0x0010
@@ -1644,147 +1644,147 @@ typedef struct {
 typedef ng_hci_status_rp	ng_hci_le_clear_white_list_rp;	
 #define NG_HCI_OCF_LE_ADD_DEVICE_TO_WHITE_LIST		0x0011
 typedef struct {
-	u_int8_t address_type;
+	uint8_t address_type;
 	bdaddr_t address;
 } __attribute__ ((packed)) ng_hci_le_add_device_to_white_list_cp;
 typedef ng_hci_status_rp	ng_hci_le_add_device_to_white_list_rp;	
 
 #define NG_HCI_OCF_LE_REMOVE_DEVICE_FROM_WHITE_LIST	0x0012
 typedef struct {
-	u_int8_t address_type;
+	uint8_t address_type;
 	bdaddr_t address;
 } __attribute__ ((packed)) ng_hci_le_remove_device_from_white_list_cp;
 typedef ng_hci_status_rp	ng_hci_le_remove_device_from_white_list_rp;
 
 #define NG_HCI_OCF_LE_CONNECTION_UPDATE			0x0013
 typedef struct {
-	u_int16_t connection_handle;
-	u_int16_t conn_interval_min;
-	u_int16_t conn_interval_max;
-	u_int16_t conn_latency;
-	u_int16_t supervision_timeout;
-	u_int16_t minimum_ce_length;
-	u_int16_t maximum_ce_length;
+	uint16_t connection_handle;
+	uint16_t conn_interval_min;
+	uint16_t conn_interval_max;
+	uint16_t conn_latency;
+	uint16_t supervision_timeout;
+	uint16_t minimum_ce_length;
+	uint16_t maximum_ce_length;
 }__attribute__ ((packed)) ng_hci_le_connection_update_cp;
 /*no return parameter*/
 
 #define NG_HCI_OCF_LE_SET_HOST_CHANNEL_CLASSIFICATION	0x0014
 typedef struct{
-	u_int8_t le_channel_map[5];
+	uint8_t le_channel_map[5];
 }__attribute__ ((packed)) ng_hci_le_set_host_channel_classification_cp;
 typedef ng_hci_status_rp	ng_hci_le_set_host_channel_classification_rp;
 
 #define NG_HCI_OCF_LE_READ_CHANNEL_MAP			0x0015
 typedef struct {
-	u_int16_t connection_handle;
+	uint16_t connection_handle;
 }__attribute__ ((packed)) ng_hci_le_read_channel_map_cp;
 typedef struct {
-	u_int8_t status;
-	u_int16_t connection_handle;
-	u_int8_t le_channel_map[5];
+	uint8_t status;
+	uint16_t connection_handle;
+	uint8_t le_channel_map[5];
 } __attribute__ ((packed)) ng_hci_le_read_channel_map_rp;
 
 #define NG_HCI_OCF_LE_READ_REMOTE_USED_FEATURES		0x0016
 typedef struct {
-	u_int16_t connection_handle;
+	uint16_t connection_handle;
 }__attribute__ ((packed)) ng_hci_le_read_remote_used_features_cp;
 /*No return parameter*/
 #define NG_HCI_128BIT 16
 #define NG_HCI_OCF_LE_ENCRYPT				0x0017
 typedef struct {
-	u_int8_t key[NG_HCI_128BIT];
-	u_int8_t plaintext_data[NG_HCI_128BIT];
+	uint8_t key[NG_HCI_128BIT];
+	uint8_t plaintext_data[NG_HCI_128BIT];
 }__attribute__ ((packed)) ng_hci_le_encrypt_cp;	
 typedef struct {
-	u_int8_t status;
-	u_int8_t plaintext_data[NG_HCI_128BIT];
+	uint8_t status;
+	uint8_t plaintext_data[NG_HCI_128BIT];
 }__attribute__ ((packed)) ng_hci_le_encrypt_rp;	
 
 #define NG_HCI_OCF_LE_RAND				0x0018
 /*No command parameter*/
 typedef struct {
-	u_int8_t status;
-	u_int64_t random_number;
+	uint8_t status;
+	uint64_t random_number;
 }__attribute__ ((packed)) ng_hci_le_rand_rp;	
 
 #define NG_HCI_OCF_LE_START_ENCRYPTION			0x0019
 typedef struct {
-	u_int16_t connection_handle;
-	u_int64_t random_number;
-	u_int16_t encrypted_diversifier;
-	u_int8_t long_term_key[NG_HCI_128BIT];
+	uint16_t connection_handle;
+	uint64_t random_number;
+	uint16_t encrypted_diversifier;
+	uint8_t long_term_key[NG_HCI_128BIT];
 }__attribute__ ((packed)) ng_hci_le_start_encryption_cp;	
 /*No return parameter*/
 #define NG_HCI_OCF_LE_LONG_TERM_KEY_REQUEST_REPLY	0x001a
 typedef struct {
-	u_int16_t connection_handle;
-	u_int8_t long_term_key[NG_HCI_128BIT];
+	uint16_t connection_handle;
+	uint8_t long_term_key[NG_HCI_128BIT];
 }__attribute__ ((packed)) ng_hci_le_long_term_key_request_reply_cp;	
 typedef struct {
-	u_int8_t status;
-	u_int16_t connection_handle;
+	uint8_t status;
+	uint16_t connection_handle;
 }__attribute__ ((packed)) ng_hci_le_long_term_key_request_reply_rp;	
 
 #define NG_HCI_OCF_LE_LONG_TERM_KEY_REQUEST_NEGATIVE_REPLY 0x001b
 typedef struct{
-	u_int16_t connection_handle;
+	uint16_t connection_handle;
 }__attribute__((packed)) ng_hci_le_long_term_key_request_negative_reply_cp;
 typedef struct {
-	u_int8_t status;
-	u_int16_t connection_handle;
+	uint8_t status;
+	uint16_t connection_handle;
 }__attribute__ ((packed)) ng_hci_le_long_term_key_request_negative_reply_rp;
 
 #define NG_HCI_OCF_LE_READ_SUGGESTED_DATA_LENGTH 	0x0023
 /*No command parameter*/
 typedef struct {
-	u_int8_t status;
-	u_int16_t suggested_max_tx_octets;
-	u_int16_t suggested_max_tx_time;
+	uint8_t status;
+	uint16_t suggested_max_tx_octets;
+	uint16_t suggested_max_tx_time;
 }__attribute__ ((packed)) ng_hci_le_read_suggested_data_length_rp;
 
 #define NG_HCI_OCF_LE_WRITE_SUGGESTED_DATA_LENGTH 	0x0024
 typedef struct {
-	u_int16_t suggested_max_tx_octets;
-	u_int16_t suggested_max_tx_time;
+	uint16_t suggested_max_tx_octets;
+	uint16_t suggested_max_tx_time;
 }__attribute__ ((packed)) ng_hci_le_write_suggested_data_length_cp;
 typedef ng_hci_status_rp	ng_hci_le_write_suggested_data_length_rp;
 
 #define NG_HCI_OCF_LE_READ_BUFFER_SIZE_V2		0x0060
 /*No command parameter */
 typedef struct {
-	u_int8_t	status;
-	u_int16_t 	hc_le_data_packet_length;
-	u_int8_t	hc_total_num_le_data_packets; 
-	u_int16_t 	hc_iso_data_packet_length;
-	u_int8_t	hc_total_num_iso_data_packets; 
+	uint8_t	status;
+	uint16_t 	hc_le_data_packet_length;
+	uint8_t	hc_total_num_le_data_packets; 
+	uint16_t 	hc_iso_data_packet_length;
+	uint8_t	hc_total_num_iso_data_packets; 
 } __attribute__ ((packed)) ng_hci_le_read_buffer_size_rp_v2;
 
 #define NG_HCI_OCF_LE_READ_SUPPORTED_STATES		0x001c
 /*No command parameter*/
 typedef struct {
-	u_int8_t status;
-	u_int64_t le_states;
+	uint8_t status;
+	uint64_t le_states;
 }__attribute__ ((packed)) ng_hci_le_read_supported_states_rp;
 
 #define NG_HCI_OCF_LE_RECEIVER_TEST			0x001d
 typedef struct{
-	u_int8_t rx_frequency;
+	uint8_t rx_frequency;
 } __attribute__((packed)) ng_le_receiver_test_cp;
 typedef ng_hci_status_rp	ng_hci_le_receiver_test_rp;
 
 #define NG_HCI_OCF_LE_TRANSMITTER_TEST			0x001e
 typedef struct{
-	u_int8_t tx_frequency;
-	u_int8_t length_of_test_data;
-	u_int8_t packet_payload;
+	uint8_t tx_frequency;
+	uint8_t length_of_test_data;
+	uint8_t packet_payload;
 } __attribute__((packed)) ng_le_transmitter_test_cp;
 typedef ng_hci_status_rp	ng_hci_le_transmitter_test_rp;
 
 #define NG_HCI_OCF_LE_TEST_END				0x001f
 /* No command parameter. */
 typedef struct {
-	u_int8_t status;
-	u_int16_t number_of_packets;
+	uint8_t status;
+	uint16_t number_of_packets;
 }__attribute__ ((packed)) ng_hci_le_test_end_rp;
 
 /**************************************************************************
@@ -1805,161 +1805,161 @@ typedef struct {
 
 #define NG_HCI_EVENT_INQUIRY_COMPL		0x01
 typedef struct {
-	u_int8_t	status; /* 0x00 - success */
+	uint8_t	status; /* 0x00 - success */
 } __attribute__ ((packed)) ng_hci_inquiry_compl_ep;
 
 #define NG_HCI_EVENT_INQUIRY_RESULT		0x02
 typedef struct {
-	u_int8_t	num_responses;      /* number of responses */
+	uint8_t	num_responses;      /* number of responses */
 /*	ng_hci_inquiry_response[num_responses]   -- see below */
 } __attribute__ ((packed)) ng_hci_inquiry_result_ep;
 
 typedef struct {
 	bdaddr_t	bdaddr;                   /* unit address */
-	u_int8_t	page_scan_rep_mode;       /* page scan rep. mode */
-	u_int8_t	page_scan_period_mode;    /* page scan period mode */
-	u_int8_t	page_scan_mode;           /* page scan mode */
-	u_int8_t	uclass[NG_HCI_CLASS_SIZE];/* unit class */
-	u_int16_t	clock_offset;             /* clock offset */
+	uint8_t	page_scan_rep_mode;       /* page scan rep. mode */
+	uint8_t	page_scan_period_mode;    /* page scan period mode */
+	uint8_t	page_scan_mode;           /* page scan mode */
+	uint8_t	uclass[NG_HCI_CLASS_SIZE];/* unit class */
+	uint16_t	clock_offset;             /* clock offset */
 } __attribute__ ((packed)) ng_hci_inquiry_response;
 
 #define NG_HCI_EVENT_CON_COMPL			0x03
 typedef struct {
-	u_int8_t	status;          /* 0x00 - success */
-	u_int16_t	con_handle;      /* Connection handle */
+	uint8_t	status;          /* 0x00 - success */
+	uint16_t	con_handle;      /* Connection handle */
 	bdaddr_t	bdaddr;          /* remote unit address */
-	u_int8_t	link_type;       /* Link type */
-	u_int8_t	encryption_mode; /* Encryption mode */
+	uint8_t	link_type;       /* Link type */
+	uint8_t	encryption_mode; /* Encryption mode */
 } __attribute__ ((packed)) ng_hci_con_compl_ep;
 
 #define NG_HCI_EVENT_CON_REQ			0x04
 typedef struct {
 	bdaddr_t	bdaddr;                    /* remote unit address */
-	u_int8_t	uclass[NG_HCI_CLASS_SIZE]; /* remote unit class */
-	u_int8_t	link_type;                 /* link type */
+	uint8_t	uclass[NG_HCI_CLASS_SIZE]; /* remote unit class */
+	uint8_t	link_type;                 /* link type */
 } __attribute__ ((packed)) ng_hci_con_req_ep;
 
 #define NG_HCI_EVENT_DISCON_COMPL		0x05
 typedef struct {
-	u_int8_t	status;     /* 0x00 - success */
-	u_int16_t	con_handle; /* connection handle */
-	u_int8_t	reason;     /* reason to disconnect */
+	uint8_t	status;     /* 0x00 - success */
+	uint16_t	con_handle; /* connection handle */
+	uint8_t	reason;     /* reason to disconnect */
 } __attribute__ ((packed)) ng_hci_discon_compl_ep;
 
 #define NG_HCI_EVENT_AUTH_COMPL			0x06
 typedef struct {
-	u_int8_t	status;     /* 0x00 - success */
-	u_int16_t	con_handle; /* connection handle */
+	uint8_t	status;     /* 0x00 - success */
+	uint16_t	con_handle; /* connection handle */
 } __attribute__ ((packed)) ng_hci_auth_compl_ep;
 
 #define NG_HCI_EVENT_REMOTE_NAME_REQ_COMPL	0x7
 typedef struct {
-	u_int8_t	status; /* 0x00 - success */
+	uint8_t	status; /* 0x00 - success */
 	bdaddr_t	bdaddr; /* remote unit address */
 	char		name[NG_HCI_UNIT_NAME_SIZE]; /* remote unit name */
 } __attribute__ ((packed)) ng_hci_remote_name_req_compl_ep;
 
 #define NG_HCI_EVENT_ENCRYPTION_CHANGE		0x08
 typedef struct {
-	u_int8_t	status;            /* 0x00 - success */
-	u_int16_t	con_handle;        /* Connection handle */
-	u_int8_t	encryption_enable; /* 0x00 - disable */
+	uint8_t	status;            /* 0x00 - success */
+	uint16_t	con_handle;        /* Connection handle */
+	uint8_t	encryption_enable; /* 0x00 - disable */
 } __attribute__ ((packed)) ng_hci_encryption_change_ep;
 
 #define NG_HCI_EVENT_CHANGE_CON_LINK_KEY_COMPL	0x09
 typedef struct {
-	u_int8_t	status;     /* 0x00 - success */
-	u_int16_t	con_handle; /* Connection handle */
+	uint8_t	status;     /* 0x00 - success */
+	uint16_t	con_handle; /* Connection handle */
 } __attribute__ ((packed)) ng_hci_change_con_link_key_compl_ep;
 
 #define NG_HCI_EVENT_MASTER_LINK_KEY_COMPL	0x0a
 typedef struct {
-	u_int8_t	status;     /* 0x00 - success */
-	u_int16_t	con_handle; /* Connection handle */
-	u_int8_t	key_flag;   /* Key flag */
+	uint8_t	status;     /* 0x00 - success */
+	uint16_t	con_handle; /* Connection handle */
+	uint8_t	key_flag;   /* Key flag */
 } __attribute__ ((packed)) ng_hci_master_link_key_compl_ep;
 
 #define NG_HCI_EVENT_READ_REMOTE_FEATURES_COMPL	0x0b
 typedef struct {
-	u_int8_t	status;                         /* 0x00 - success */
-	u_int16_t	con_handle;                     /* Connection handle */
-	u_int8_t	features[NG_HCI_FEATURES_SIZE]; /* LMP features bitmsk*/
+	uint8_t	status;                         /* 0x00 - success */
+	uint16_t	con_handle;                     /* Connection handle */
+	uint8_t	features[NG_HCI_FEATURES_SIZE]; /* LMP features bitmsk*/
 } __attribute__ ((packed)) ng_hci_read_remote_features_compl_ep;
 
 #define NG_HCI_EVENT_READ_REMOTE_VER_INFO_COMPL	0x0c
 typedef struct {
-	u_int8_t	status;         /* 0x00 - success */
-	u_int16_t	con_handle;     /* Connection handle */
-	u_int8_t	lmp_version;    /* LMP version */
-	u_int16_t	manufacturer;   /* Hardware manufacturer name */
-	u_int16_t	lmp_subversion; /* LMP sub-version */
+	uint8_t	status;         /* 0x00 - success */
+	uint16_t	con_handle;     /* Connection handle */
+	uint8_t	lmp_version;    /* LMP version */
+	uint16_t	manufacturer;   /* Hardware manufacturer name */
+	uint16_t	lmp_subversion; /* LMP sub-version */
 } __attribute__ ((packed)) ng_hci_read_remote_ver_info_compl_ep;
 
 #define NG_HCI_EVENT_QOS_SETUP_COMPL		0x0d
 typedef struct {
-	u_int8_t	status;          /* 0x00 - success */
-	u_int16_t	con_handle;      /* connection handle */
-	u_int8_t	flags;           /* reserved for future use */
-	u_int8_t	service_type;    /* service type */
-	u_int32_t	token_rate;      /* bytes per second */
-	u_int32_t	peak_bandwidth;  /* bytes per second */
-	u_int32_t	latency;         /* microseconds */
-	u_int32_t	delay_variation; /* microseconds */
+	uint8_t	status;          /* 0x00 - success */
+	uint16_t	con_handle;      /* connection handle */
+	uint8_t	flags;           /* reserved for future use */
+	uint8_t	service_type;    /* service type */
+	uint32_t	token_rate;      /* bytes per second */
+	uint32_t	peak_bandwidth;  /* bytes per second */
+	uint32_t	latency;         /* microseconds */
+	uint32_t	delay_variation; /* microseconds */
 } __attribute__ ((packed)) ng_hci_qos_setup_compl_ep;
 
 #define NG_HCI_EVENT_COMMAND_COMPL		0x0e
 typedef struct {
-	u_int8_t	num_cmd_pkts; /* # of HCI command packets */
-	u_int16_t	opcode;       /* command OpCode */
+	uint8_t	num_cmd_pkts; /* # of HCI command packets */
+	uint16_t	opcode;       /* command OpCode */
 	/* command return parameters (if any) */
 } __attribute__ ((packed)) ng_hci_command_compl_ep;
 
 #define NG_HCI_EVENT_COMMAND_STATUS		0x0f
 typedef struct {
-	u_int8_t	status;       /* 0x00 - pending */
-	u_int8_t	num_cmd_pkts; /* # of HCI command packets */
-	u_int16_t	opcode;       /* command OpCode */
+	uint8_t	status;       /* 0x00 - pending */
+	uint8_t	num_cmd_pkts; /* # of HCI command packets */
+	uint16_t	opcode;       /* command OpCode */
 } __attribute__ ((packed)) ng_hci_command_status_ep;
 
 #define NG_HCI_EVENT_HARDWARE_ERROR		0x10
 typedef struct {
-	u_int8_t	hardware_code; /* hardware error code */
+	uint8_t	hardware_code; /* hardware error code */
 } __attribute__ ((packed)) ng_hci_hardware_error_ep;
 
 #define NG_HCI_EVENT_FLUSH_OCCUR		0x11
 typedef struct {
-	u_int16_t	con_handle; /* connection handle */
+	uint16_t	con_handle; /* connection handle */
 } __attribute__ ((packed)) ng_hci_flush_occur_ep;
 
 #define NG_HCI_EVENT_ROLE_CHANGE		0x12
 typedef struct {
-	u_int8_t	status; /* 0x00 - success */
+	uint8_t	status; /* 0x00 - success */
 	bdaddr_t	bdaddr; /* address of remote unit */
-	u_int8_t	role;   /* new connection role */
+	uint8_t	role;   /* new connection role */
 } __attribute__ ((packed)) ng_hci_role_change_ep;
 
 #define NG_HCI_EVENT_NUM_COMPL_PKTS		0x13
 typedef struct {
-	u_int8_t	num_con_handles; /* # of connection handles */
+	uint8_t	num_con_handles; /* # of connection handles */
 /* these are repeated "num_con_handles" times 
-	u_int16_t	con_handle; --- connection handle(s)
-	u_int16_t	compl_pkt;  --- # of completed packets */
+	uint16_t	con_handle; --- connection handle(s)
+	uint16_t	compl_pkt;  --- # of completed packets */
 } __attribute__ ((packed)) ng_hci_num_compl_pkts_ep;
 
 #define NG_HCI_EVENT_MODE_CHANGE		0x14
 typedef struct {
-	u_int8_t	status;     /* 0x00 - success */
-	u_int16_t	con_handle; /* connection handle */
-	u_int8_t	unit_mode;  /* remote unit mode */
-	u_int16_t	interval;   /* interval * 0.625 msec */
+	uint8_t	status;     /* 0x00 - success */
+	uint16_t	con_handle; /* connection handle */
+	uint8_t	unit_mode;  /* remote unit mode */
+	uint16_t	interval;   /* interval * 0.625 msec */
 } __attribute__ ((packed)) ng_hci_mode_change_ep;
 
 #define NG_HCI_EVENT_RETURN_LINK_KEYS		0x15
 typedef struct {
-	u_int8_t	num_keys; /* # of keys */
+	uint8_t	num_keys; /* # of keys */
 /* these are repeated "num_keys" times 
 	bdaddr_t	bdaddr;               --- remote address(es)
-	u_int8_t	key[NG_HCI_KEY_SIZE]; --- key(s) */
+	uint8_t	key[NG_HCI_KEY_SIZE]; --- key(s) */
 } __attribute__ ((packed)) ng_hci_return_link_keys_ep;
 
 #define NG_HCI_EVENT_PIN_CODE_REQ		0x16
@@ -1975,158 +1975,158 @@ typedef struct {
 #define NG_HCI_EVENT_LINK_KEY_NOTIFICATION	0x18
 typedef struct {
 	bdaddr_t	bdaddr;               /* remote unit address */
-	u_int8_t	key[NG_HCI_KEY_SIZE]; /* link key */
-	u_int8_t	key_type;             /* type of the key */
+	uint8_t	key[NG_HCI_KEY_SIZE]; /* link key */
+	uint8_t	key_type;             /* type of the key */
 } __attribute__ ((packed)) ng_hci_link_key_notification_ep;
 
 #define NG_HCI_EVENT_LOOPBACK_COMMAND		0x19
 typedef struct {
-	u_int8_t	command[0]; /* Command packet */
+	uint8_t	command[0]; /* Command packet */
 } __attribute__ ((packed)) ng_hci_loopback_command_ep;
 
 #define NG_HCI_EVENT_DATA_BUFFER_OVERFLOW	0x1a
 typedef struct {
-	u_int8_t	link_type; /* Link type */
+	uint8_t	link_type; /* Link type */
 } __attribute__ ((packed)) ng_hci_data_buffer_overflow_ep;
 
 #define NG_HCI_EVENT_MAX_SLOT_CHANGE		0x1b
 typedef struct {
-	u_int16_t	con_handle;    /* connection handle */
-	u_int8_t	lmp_max_slots; /* Max. # of slots allowed */
+	uint16_t	con_handle;    /* connection handle */
+	uint8_t	lmp_max_slots; /* Max. # of slots allowed */
 } __attribute__ ((packed)) ng_hci_max_slot_change_ep;
 
 #define NG_HCI_EVENT_READ_CLOCK_OFFSET_COMPL	0x1c
 typedef struct {
-	u_int8_t	status;       /* 0x00 - success */
-	u_int16_t	con_handle;   /* Connection handle */
-	u_int16_t	clock_offset; /* Clock offset */
+	uint8_t	status;       /* 0x00 - success */
+	uint16_t	con_handle;   /* Connection handle */
+	uint16_t	clock_offset; /* Clock offset */
 } __attribute__ ((packed)) ng_hci_read_clock_offset_compl_ep;
 
 #define NG_HCI_EVENT_CON_PKT_TYPE_CHANGED	0x1d
 typedef struct {
-	u_int8_t	status;     /* 0x00 - success */
-	u_int16_t	con_handle; /* connection handle */
-	u_int16_t	pkt_type;   /* packet type */
+	uint8_t	status;     /* 0x00 - success */
+	uint16_t	con_handle; /* connection handle */
+	uint16_t	pkt_type;   /* packet type */
 } __attribute__ ((packed)) ng_hci_con_pkt_type_changed_ep;
 
 #define NG_HCI_EVENT_QOS_VIOLATION		0x1e
 typedef struct {
-	u_int16_t	con_handle; /* connection handle */
+	uint16_t	con_handle; /* connection handle */
 } __attribute__ ((packed)) ng_hci_qos_violation_ep;
 
 #define NG_HCI_EVENT_PAGE_SCAN_MODE_CHANGE	0x1f
 typedef struct {
 	bdaddr_t	bdaddr;         /* destination address */
-	u_int8_t	page_scan_mode; /* page scan mode */
+	uint8_t	page_scan_mode; /* page scan mode */
 } __attribute__ ((packed)) ng_hci_page_scan_mode_change_ep;
 
 #define NG_HCI_EVENT_PAGE_SCAN_REP_MODE_CHANGE	0x20
 typedef struct {
 	bdaddr_t	bdaddr;             /* destination address */
-	u_int8_t	page_scan_rep_mode; /* page scan repetition mode */
+	uint8_t	page_scan_rep_mode; /* page scan repetition mode */
 } __attribute__ ((packed)) ng_hci_page_scan_rep_mode_change_ep;
 #define NG_HCI_EVENT_LE				0x3e
 typedef struct {
-	u_int8_t	subevent_code;	
+	uint8_t	subevent_code;	
 }__attribute__ ((packed)) ng_hci_le_ep;
 
 #define NG_HCI_LEEV_CON_COMPL		0x01
 
 typedef struct {
-	u_int8_t	status;
-	u_int16_t	handle;
-	u_int8_t 	role;
-	u_int8_t 	address_type;
+	uint8_t	status;
+	uint16_t	handle;
+	uint8_t 	role;
+	uint8_t 	address_type;
 	bdaddr_t	address;
-	u_int16_t 	interval;
-	u_int8_t	latency;
-	u_int16_t	supervision_timeout;
-	u_int8_t	master_clock_accuracy;
+	uint16_t 	interval;
+	uint8_t	latency;
+	uint16_t	supervision_timeout;
+	uint8_t	master_clock_accuracy;
 
 } __attribute__ ((packed)) ng_hci_le_connection_complete_ep;
 
 #define NG_HCI_LEEV_ADVREP 0x02
 typedef struct {
-	u_int8_t num_reports;
+	uint8_t num_reports;
 
 }__attribute__ ((packed)) ng_hci_le_advertising_report_ep;
 #define NG_HCI_SCAN_RESPONSE_DATA_MAX 0x1f
 
 typedef struct {
-	u_int8_t event_type;
-	u_int8_t addr_type;
+	uint8_t event_type;
+	uint8_t addr_type;
 	bdaddr_t bdaddr;
-	u_int8_t length_data;
+	uint8_t length_data;
 	/* The last octet is for RSSI */
-	u_int8_t data[NG_HCI_SCAN_RESPONSE_DATA_MAX+1];
+	uint8_t data[NG_HCI_SCAN_RESPONSE_DATA_MAX+1];
 }__attribute__((packed)) ng_hci_le_advreport;
 
 #define NG_HCI_LEEV_CON_UPDATE_COMPL 0x03
 typedef struct {
-	u_int8_t status;
-	u_int16_t connection_handle;
-	u_int16_t conn_interval;
-	u_int16_t conn_latency;
-	u_int16_t supervision_timeout;
+	uint8_t status;
+	uint16_t connection_handle;
+	uint16_t conn_interval;
+	uint16_t conn_latency;
+	uint16_t supervision_timeout;
 }__attribute__((packed)) ng_hci_connection_update_complete_ep;
 
 #define NG_HCI_LEEV_READ_REMOTE_FEATURES_COMPL 0x04
 typedef struct {
-	u_int8_t 	status;
-	u_int16_t 	connection_handle;
-	u_int8_t	features[NG_HCI_FEATURES_SIZE];
+	uint8_t 	status;
+	uint16_t 	connection_handle;
+	uint8_t	features[NG_HCI_FEATURES_SIZE];
 }__attribute__((packed)) ng_hci_le_read_remote_features_ep;
 
 #define NG_HCI_LEEV_LONG_TERM_KEY_REQUEST 0x05
 typedef struct {
-	u_int16_t 	connection_handle;
-	u_int64_t 	random_number;
-	u_int16_t 	encrypted_diversifier;
+	uint16_t 	connection_handle;
+	uint64_t 	random_number;
+	uint16_t 	encrypted_diversifier;
 }__attribute__((packed)) ng_hci_le_long_term_key_request_ep;
 
 #define NG_HCI_LEEV_REMOTE_CONN_PARAM_REQUEST 0x06
 typedef struct {
-	u_int16_t 	connection_handle;
-	u_int16_t 	interval_min;
-	u_int16_t 	interval_max;
-	u_int16_t 	latency;
-	u_int16_t 	timeout;
+	uint16_t 	connection_handle;
+	uint16_t 	interval_min;
+	uint16_t 	interval_max;
+	uint16_t 	latency;
+	uint16_t 	timeout;
 }__attribute__((packed)) ng_hci_le_remote_conn_param_ep;
 
 #define NG_HCI_LEEV_DATA_LENGTH_CHANGE 0x07
 typedef struct {
-	u_int16_t 	connection_handle;
-	u_int16_t 	min_tx_octets;
-	u_int16_t 	max_tx_time;
-	u_int16_t 	max_rx_octets;
-	u_int16_t 	max_rx_time;
+	uint16_t 	connection_handle;
+	uint16_t 	min_tx_octets;
+	uint16_t 	max_tx_time;
+	uint16_t 	max_rx_octets;
+	uint16_t 	max_rx_time;
 }__attribute__((packed)) ng_hci_le_data_length_change_ep;
 
 #define NG_HCI_LEEV_READ_LOCAL_P256_PK_COMPL 0x08
 typedef struct {
-	u_int8_t 	status;
-	u_int8_t 	local_p256_pk[64];
+	uint8_t 	status;
+	uint8_t 	local_p256_pk[64];
 }__attribute__((packed)) ng_hci_le_read_local_p256_pk_compl_ep;
 
 #define NG_HCI_LEEV_GEN_DHKEY_COMPL 0x09
 typedef struct {
-	u_int8_t 	status;
-	u_int8_t 	dh_key[32];
+	uint8_t 	status;
+	uint8_t 	dh_key[32];
 }__attribute__((packed)) ng_hci_le_gen_dhkey_compl_ep;
 
 #define NG_HCI_LEEV_ENH_CONN_COMPL 0x0a
 typedef struct {
-	u_int8_t 	status;
-	u_int16_t 	connection_handle;
-	u_int8_t	role;
-	u_int8_t 	peer_addr_type;
+	uint8_t 	status;
+	uint16_t 	connection_handle;
+	uint8_t	role;
+	uint8_t 	peer_addr_type;
 	bdaddr_t 	peer_addr;
 	bdaddr_t 	local_res_private_addr;
 	bdaddr_t 	peer_res_private_addr;
-	u_int16_t 	conn_interval;
-	u_int16_t 	conn_latency;
-	u_int16_t 	supervision_timeout;
-	u_int8_t	master_clock_accuracy;
+	uint16_t 	conn_interval;
+	uint16_t 	conn_latency;
+	uint16_t 	supervision_timeout;
+	uint8_t	master_clock_accuracy;
 }__attribute__((packed)) ng_hci_le_enh_conn_compl_ep;
 
 #define NG_HCI_EVENT_BT_LOGO			0xfe

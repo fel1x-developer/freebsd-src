@@ -185,7 +185,7 @@ vj_LayerPull(struct bundle *bundle, struct link *l __unused, struct mbuf *bp,
 }
 
 const char *
-vj2asc(u_int32_t val)
+vj2asc(uint32_t val)
 {
   static char asc[50];		/* The return value is used immediately */
 

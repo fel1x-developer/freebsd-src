@@ -48,24 +48,24 @@
 	bus_write_4((ida)->regs, port, val)
 
 struct ida_hdr {
-	u_int8_t	drive;		/* logical drive */
-	u_int8_t	priority;	/* block priority */
-	u_int16_t	size;		/* size of request, in words */
+	uint8_t	drive;		/* logical drive */
+	uint8_t	priority;	/* block priority */
+	uint16_t	size;		/* size of request, in words */
 };
 
 struct ida_req {
-	u_int16_t	next;		/* offset of next request */
-	u_int8_t	command;	/* command */
-	u_int8_t	error;		/* return error code */
-	u_int32_t	blkno;		/* block number */
-	u_int16_t	bcount;		/* block count */
-	u_int8_t	sgcount;	/* number of scatter/gather entries */
-	u_int8_t	spare;		/* reserved */
+	uint16_t	next;		/* offset of next request */
+	uint8_t	command;	/* command */
+	uint8_t	error;		/* return error code */
+	uint32_t	blkno;		/* block number */
+	uint16_t	bcount;		/* block count */
+	uint8_t	sgcount;	/* number of scatter/gather entries */
+	uint8_t	spare;		/* reserved */
 };
 
 struct ida_sgb {
-	u_int32_t	length;		/* length of S/G segment */
-	u_int32_t	addr;		/* physical address of block */
+	uint32_t	length;		/* length of S/G segment */
+	uint32_t	addr;		/* physical address of block */
 };
 
 #define	IDA_NSEG	32		/* maximum number of segments */
@@ -187,7 +187,7 @@ struct idad_softc {
 };
 
 struct ida_board {
-	u_int32_t	board;
+	uint32_t	board;
 	char 		*desc;
 	struct		ida_access *accessor;
 	int		flags;
@@ -199,7 +199,7 @@ extern struct ida_softc *ida_alloc(device_t dev, struct resource *regs,
 extern void ida_free(struct ida_softc *ida);
 extern int ida_setup(struct ida_softc *ida);
 extern int ida_command(struct ida_softc *ida, int command, void *data,
-	int datasize, int drive, u_int32_t pblkno, int flags);
+	int datasize, int drive, uint32_t pblkno, int flags);
 extern void ida_submit_buf(struct ida_softc *ida, struct bio *bp);
 extern void ida_intr(void *data);
 

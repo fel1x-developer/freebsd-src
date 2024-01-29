@@ -61,7 +61,7 @@
 
 struct agp_nvidia_softc {
 	struct agp_softc	agp;
-	u_int32_t		initial_aperture; /* aperture size at startup */
+	uint32_t		initial_aperture; /* aperture size at startup */
 	struct agp_gatt *	gatt;
 
 	device_t		dev;		/* AGP Controller */
@@ -69,7 +69,7 @@ struct agp_nvidia_softc {
 	device_t		mc2_dev;	/* Memory Controller */
 	device_t		bdev;		/* Bridge */
 
-	u_int32_t		wbc_mask;
+	uint32_t		wbc_mask;
 	int			num_dirs;
 	int			num_active_entries;
 	off_t			pg_offset;
@@ -79,12 +79,12 @@ static const char *agp_nvidia_match(device_t dev);
 static int agp_nvidia_probe(device_t);
 static int agp_nvidia_attach(device_t);
 static int agp_nvidia_detach(device_t);
-static u_int32_t agp_nvidia_get_aperture(device_t);
-static int agp_nvidia_set_aperture(device_t, u_int32_t);
+static uint32_t agp_nvidia_get_aperture(device_t);
+static int agp_nvidia_set_aperture(device_t, uint32_t);
 static int agp_nvidia_bind_page(device_t, vm_offset_t, vm_offset_t);
 static int agp_nvidia_unbind_page(device_t, vm_offset_t);
 
-static int nvidia_init_iorr(u_int32_t, u_int32_t);
+static int nvidia_init_iorr(uint32_t, uint32_t);
 
 static const char *
 agp_nvidia_match (device_t dev)
@@ -123,9 +123,9 @@ agp_nvidia_attach (device_t dev)
 {
 	struct agp_nvidia_softc *sc = device_get_softc(dev);
 	struct agp_gatt *gatt;
-	u_int32_t apbase;
-	u_int32_t aplimit;
-	u_int32_t temp;
+	uint32_t apbase;
+	uint32_t aplimit;
+	uint32_t temp;
 	int size;
 	int i;
 	int error;
@@ -238,7 +238,7 @@ static int
 agp_nvidia_detach (device_t dev)
 {
 	struct agp_nvidia_softc *sc = device_get_softc(dev);
-	u_int32_t temp;
+	uint32_t temp;
 
 	agp_free_cdev(dev);
 
@@ -263,7 +263,7 @@ agp_nvidia_detach (device_t dev)
 	return (0);
 }
 
-static u_int32_t
+static uint32_t
 agp_nvidia_get_aperture(device_t dev)
 {
 	switch (pci_read_config(dev, AGP_NVIDIA_0_APSIZE, 1) & 0x0f) {
@@ -280,10 +280,10 @@ agp_nvidia_get_aperture(device_t dev)
 }
 
 static int
-agp_nvidia_set_aperture(device_t dev, u_int32_t aperture)
+agp_nvidia_set_aperture(device_t dev, uint32_t aperture)
 {
-	u_int8_t val;
-	u_int8_t key;
+	uint8_t val;
+	uint8_t key;
 
 	switch (aperture) {
 	case (512 * 1024 * 1024): key = 0; break;
@@ -306,7 +306,7 @@ static int
 agp_nvidia_bind_page(device_t dev, vm_offset_t offset, vm_offset_t physical)
 {
 	struct agp_nvidia_softc *sc = device_get_softc(dev);
-	u_int32_t index;
+	uint32_t index;
 
 	if (offset >= (sc->gatt->ag_entries << AGP_PAGE_SHIFT))
 		return (EINVAL);
@@ -321,7 +321,7 @@ static int
 agp_nvidia_unbind_page(device_t dev, vm_offset_t offset)
 {
 	struct agp_nvidia_softc *sc = device_get_softc(dev);
-	u_int32_t index;
+	uint32_t index;
 
 	if (offset >= (sc->gatt->ag_entries << AGP_PAGE_SHIFT))
 		return (EINVAL);
@@ -336,8 +336,8 @@ static void
 agp_nvidia_flush_tlb (device_t dev)
 {
 	struct agp_nvidia_softc *sc;
-	u_int32_t wbc_reg;
-	volatile u_int32_t *ag_virtual;
+	uint32_t wbc_reg;
+	volatile uint32_t *ag_virtual;
 	int i, pages;
 
 	sc = (struct agp_nvidia_softc *)device_get_softc(dev);
@@ -361,14 +361,14 @@ agp_nvidia_flush_tlb (device_t dev)
 				"TLB flush took more than 3 seconds.\n");
 	}
 
-	ag_virtual = (volatile u_int32_t *)sc->gatt->ag_virtual;
+	ag_virtual = (volatile uint32_t *)sc->gatt->ag_virtual;
 
 	/* Flush TLB entries. */
-	pages = sc->gatt->ag_entries * sizeof(u_int32_t) / PAGE_SIZE;
+	pages = sc->gatt->ag_entries * sizeof(uint32_t) / PAGE_SIZE;
 	for(i = 0; i < pages; i++)
-		(void)ag_virtual[i * PAGE_SIZE / sizeof(u_int32_t)];
+		(void)ag_virtual[i * PAGE_SIZE / sizeof(uint32_t)];
 	for(i = 0; i < pages; i++)
-		(void)ag_virtual[i * PAGE_SIZE / sizeof(u_int32_t)];
+		(void)ag_virtual[i * PAGE_SIZE / sizeof(uint32_t)];
 }
 
 #define	SYSCFG		0xC0010010
@@ -377,10 +377,10 @@ agp_nvidia_flush_tlb (device_t dev)
 #define	AMD_K7_NUM_IORR	2
 
 static int
-nvidia_init_iorr(u_int32_t addr, u_int32_t size)
+nvidia_init_iorr(uint32_t addr, uint32_t size)
 {
 	quad_t base, mask, sys;
-	u_int32_t iorr_addr, free_iorr_addr;
+	uint32_t iorr_addr, free_iorr_addr;
 
 	/* Find the iorr that is already used for the addr */
 	/* If not found, determine the uppermost available iorr */

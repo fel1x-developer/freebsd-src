@@ -84,7 +84,7 @@ extern int tc_min_ticktock_freq; /*
 				  * required to handle counter wraps.
 				  */
 
-u_int64_t tc_getfrequency(void);
+uint64_t tc_getfrequency(void);
 void	tc_init(struct timecounter *tc);
 void	tc_setclock(struct timespec *ts);
 void	tc_ticktock(int cnt);

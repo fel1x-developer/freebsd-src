@@ -950,7 +950,7 @@ FsmRecvEchoReq(struct fsm *fp, struct fsmheader *lhp, struct mbuf *bp)
 {
   struct lcp *lcp = fsm2lcp(fp);
   u_char *cp;
-  u_int32_t magic;
+  uint32_t magic;
 
   bp = m_pullup(bp);
   m_settype(bp, MB_ECHOIN);
@@ -992,7 +992,7 @@ FsmRecvDiscReq(struct fsm *fp __unused, struct fsmheader *lhp __unused,
 static void
 FsmRecvIdent(struct fsm *fp, struct fsmheader *lhp, struct mbuf *bp)
 {
-  u_int32_t magic;
+  uint32_t magic;
   u_short len;
   u_char *cp;
 

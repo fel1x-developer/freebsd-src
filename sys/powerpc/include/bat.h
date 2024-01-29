@@ -67,8 +67,8 @@
 
 #ifndef LOCORE
 struct bat {
-	u_int32_t batu;
-	u_int32_t batl;
+	uint32_t batu;
+	uint32_t batl;
 };
 #endif
 

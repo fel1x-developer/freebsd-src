@@ -74,7 +74,7 @@ struct cfg_redir {
 	uint16_t		pport_cnt;	/* number of public ports */
 	uint16_t		rport_cnt;	/* number of remote ports */
 	struct alias_link	**alink;	
-	u_int16_t		spool_cnt; /* num of entry in spool chain */
+	uint16_t		spool_cnt; /* num of entry in spool chain */
 	/* chain of spool instances */
 	LIST_HEAD(spool_chain, cfg_spool) spool_chain;
 };
@@ -900,7 +900,7 @@ struct cfg_spool_legacy {
 
 struct cfg_redir_legacy {
 	LIST_ENTRY(cfg_redir)   _next;
-	u_int16_t               mode;
+	uint16_t               mode;
 	struct in_addr	        laddr;
 	struct in_addr	        paddr;
 	struct in_addr	        raddr;
@@ -911,7 +911,7 @@ struct cfg_redir_legacy {
 	u_short                 rport_cnt;
 	int                     proto;
 	struct alias_link       **alink;
-	u_int16_t               spool_cnt;
+	uint16_t               spool_cnt;
 	LIST_HEAD(, cfg_spool_legacy) spool_chain;
 };
 

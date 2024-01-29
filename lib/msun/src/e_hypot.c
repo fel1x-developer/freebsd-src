@@ -64,7 +64,7 @@ hypot(double x, double y)
 	k=0;
 	if(ha > 0x5f300000) {	/* a>2**500 */
 	   if(ha >= 0x7ff00000) {	/* Inf or NaN */
-	       u_int32_t low;
+	       uint32_t low;
 	       /* Use original arg order iff result is NaN; quieten sNaNs. */
 	       w = fabsl(x+0.0L)-fabs(y+0);
 	       GET_LOW_WORD(low,a);
@@ -80,7 +80,7 @@ hypot(double x, double y)
 	}
 	if(hb < 0x20b00000) {	/* b < 2**-500 */
 	    if(hb <= 0x000fffff) {	/* subnormal b or 0 */
-	        u_int32_t low;
+	        uint32_t low;
 		GET_LOW_WORD(low,b);
 		if((hb|low)==0) return a;
 		t1=0;

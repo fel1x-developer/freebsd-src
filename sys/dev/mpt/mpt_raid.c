@@ -224,7 +224,7 @@ mpt_disk_prt(struct mpt_softc *mpt, struct mpt_raid_disk *disk,
 }
 
 static void
-mpt_raid_async(void *callback_arg, u_int32_t code,
+mpt_raid_async(void *callback_arg, uint32_t code,
 	       struct cam_path *path, void *arg)
 {
 	struct mpt_softc *mpt;

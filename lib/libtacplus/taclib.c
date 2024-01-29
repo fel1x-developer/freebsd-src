@@ -50,9 +50,9 @@
 
 #include "taclib_private.h"
 
-static int		 add_str_8(struct tac_handle *, u_int8_t *,
+static int		 add_str_8(struct tac_handle *, uint8_t *,
 			    struct tac_str *);
-static int		 add_str_16(struct tac_handle *, u_int16_t *,
+static int		 add_str_16(struct tac_handle *, uint16_t *,
 			    struct tac_str *);
 static int		 protocol_version(int, int, int);
 static void		 close_connection(struct tac_handle *);
@@ -90,9 +90,9 @@ static void              create_msg(struct tac_handle *, int, int, int);
  * for the next time.
  */
 static int
-add_str_8(struct tac_handle *h, u_int8_t *fld, struct tac_str *cs)
+add_str_8(struct tac_handle *h, uint8_t *fld, struct tac_str *cs)
 {
-	u_int16_t len;
+	uint16_t len;
 
 	if (add_str_16(h, &len, cs) == -1)
 		return -1;
@@ -114,7 +114,7 @@ add_str_8(struct tac_handle *h, u_int8_t *fld, struct tac_str *cs)
  * for the next time.
  */
 static int
-add_str_16(struct tac_handle *h, u_int16_t *fld, struct tac_str *cs)
+add_str_16(struct tac_handle *h, uint16_t *fld, struct tac_str *cs)
 {
 	size_t len;
 
@@ -542,7 +542,7 @@ recv_msg(struct tac_handle *h)
 {
 	struct timeval deadline;
 	struct tac_msg *msg;
-	u_int32_t len;
+	uint32_t len;
 
 	msg = &h->response;
 	gettimeofday(&deadline, NULL);

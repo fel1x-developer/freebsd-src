@@ -1191,7 +1191,7 @@ smartpqi_adjust_queue_depth(struct cam_path *path, uint32_t queue_depth)
  * Function to register async callback for setting queue depth
  */
 static void
-smartpqi_async(void *callback_arg, u_int32_t code,
+smartpqi_async(void *callback_arg, uint32_t code,
 		struct cam_path *path, void *arg)
 {
 	struct pqisrc_softstate *softs;

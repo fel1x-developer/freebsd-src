@@ -300,7 +300,7 @@ stf_clone_create(struct if_clone *ifc, char *name, size_t len,
 	ifp->if_output = stf_output;
 	ifp->if_snd.ifq_maxlen = ifqmaxlen;
 	if_attach(ifp);
-	bpfattach(ifp, DLT_NULL, sizeof(u_int32_t));
+	bpfattach(ifp, DLT_NULL, sizeof(uint32_t));
 	*ifpp = ifp;
 
 	return (0);
@@ -503,7 +503,7 @@ stf_output(struct ifnet *ifp, struct mbuf *m, const struct sockaddr *dst,
 	struct stf_softc *sc;
 	const struct sockaddr_in6 *dst6;
 	struct sockaddr_in dst4, src4;
-	u_int8_t tos;
+	uint8_t tos;
 	struct ip *ip;
 	struct ip6_hdr *ip6;
 	struct in6_addr addr6, mask6;
@@ -727,7 +727,7 @@ in_stf_input(struct mbuf *m, int off, int proto, void *arg)
 	struct stf_softc *sc = arg;
 	struct ip ip;
 	struct ip6_hdr *ip6;
-	u_int8_t otos, itos;
+	uint8_t otos, itos;
 	struct ifnet *ifp;
 	struct nhop_object *nh;
 
@@ -824,7 +824,7 @@ in_stf_input(struct mbuf *m, int off, int proto, void *arg)
 	else
 		ip_ecn_egress(ECN_NOCARE, &otos, &itos);
 	ip6->ip6_flow &= ~htonl(0xff << 20);
-	ip6->ip6_flow |= htonl((u_int32_t)itos << 20);
+	ip6->ip6_flow |= htonl((uint32_t)itos << 20);
 
 	m->m_pkthdr.rcvif = ifp;
 
@@ -836,7 +836,7 @@ in_stf_input(struct mbuf *m, int off, int proto, void *arg)
 		 * will only read from the mbuf (i.e., it won't
 		 * try to free it or keep a pointer a to it).
 		 */
-		u_int32_t af = AF_INET6;
+		uint32_t af = AF_INET6;
 		bpf_mtap2(ifp->if_bpf, &af, sizeof(af), m);
 	}
 

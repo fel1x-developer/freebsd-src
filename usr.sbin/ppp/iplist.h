@@ -31,7 +31,7 @@ struct iplist_cur {
   int pos;
   char *srcptr;
   u_long srcitem;
-  u_int32_t lstart;
+  uint32_t lstart;
   u_long nItems;
 };
 

@@ -87,7 +87,7 @@ static STAILQ_HEAD(, csock_buf) csock_bufs =
  * So we must keep a list of hook names and dispatch functions.
  */
 struct msgreg {
-	u_int32_t 	cookie;
+	uint32_t 	cookie;
 	ng_ID_t		id;
 	ng_cookie_f	*func;
 	void		*arg;
@@ -118,7 +118,7 @@ static void *csock_fd, *dsock_fd;
 static struct lmodule *module;
 
 /* statistics */
-static u_int32_t stats[LEAF_begemotNgTooLargeDatas+1];
+static uint32_t stats[LEAF_begemotNgTooLargeDatas+1];
 
 /* netgraph type list */
 struct ngtype {
@@ -136,7 +136,7 @@ static uint64_t ngtype_tick;
  * Register a function to receive unsolicited messages
  */
 void *
-ng_register_cookie(const struct lmodule *mod, u_int32_t cookie, ng_ID_t id,
+ng_register_cookie(const struct lmodule *mod, uint32_t cookie, ng_ID_t id,
     ng_cookie_f *func, void *arg)
 {
 	struct msgreg *d;
@@ -1621,7 +1621,7 @@ op_ng_hook(struct snmp_context *ctx __unused, struct snmp_value *value,
 	asn_subid_t which = value->var.subs[sub - 1];
 	struct linkinfo linkinfo;
 	struct nodeinfo nodeinfo;
-	u_int32_t lid;
+	uint32_t lid;
 	u_char *hook;
 	size_t hooklen;
 	u_int i;

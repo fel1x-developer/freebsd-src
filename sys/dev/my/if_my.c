@@ -124,7 +124,7 @@ static void     my_watchdog(void *);
 static int      my_shutdown(device_t);
 static int      my_ifmedia_upd(if_t);
 static void     my_ifmedia_sts(if_t, struct ifmediareq *);
-static u_int16_t my_phy_readreg(struct my_softc *, int);
+static uint16_t my_phy_readreg(struct my_softc *, int);
 static void     my_phy_writereg(struct my_softc *, int, int);
 static void     my_autoneg_xmit(struct my_softc *);
 static void     my_autoneg_mii(struct my_softc *, int, int);
@@ -214,7 +214,7 @@ my_send_cmd_to_phy(struct my_softc * sc, int opcode, int regad)
 	return miir;
 }
 
-static u_int16_t
+static uint16_t
 my_phy_readreg(struct my_softc * sc, int reg)
 {
 	long            miir;
@@ -254,7 +254,7 @@ my_phy_readreg(struct my_softc * sc, int reg)
 		CSR_WRITE_4(sc, MY_MANAGEMENT, miir);
 	}
 
-	return (u_int16_t) data;
+	return (uint16_t) data;
 }
 
 static void
@@ -317,8 +317,8 @@ static void
 my_setmulti(struct my_softc * sc)
 {
 	if_t		ifp;
-	u_int32_t       hashes[2] = {0, 0};
-	u_int32_t       rxfilt;
+	uint32_t       hashes[2] = {0, 0};
+	uint32_t       rxfilt;
 
 	MY_LOCK_ASSERT(sc);
 
@@ -354,7 +354,7 @@ my_setmulti(struct my_softc * sc)
 static void
 my_autoneg_xmit(struct my_softc * sc)
 {
-	u_int16_t       phy_sts = 0;
+	uint16_t       phy_sts = 0;
 
 	MY_LOCK_ASSERT(sc);
 
@@ -385,8 +385,8 @@ my_autoneg_timeout(void *arg)
 static void
 my_autoneg_mii(struct my_softc * sc, int flag, int verbose)
 {
-	u_int16_t       phy_sts = 0, media, advert, ability;
-	u_int16_t       ability2 = 0;
+	uint16_t       phy_sts = 0, media, advert, ability;
+	uint16_t       ability2 = 0;
 	if_t		ifp;
 	struct ifmedia *ifm;
 
@@ -551,7 +551,7 @@ my_autoneg_mii(struct my_softc * sc, int flag, int verbose)
 static void
 my_getmode_mii(struct my_softc * sc)
 {
-	u_int16_t       bmsr;
+	uint16_t       bmsr;
 	if_t		ifp;
 
 	MY_LOCK_ASSERT(sc);
@@ -648,7 +648,7 @@ my_getmode_mii(struct my_softc * sc)
 static void
 my_setmode_mii(struct my_softc * sc, int media)
 {
-	u_int16_t       bmcr;
+	uint16_t       bmcr;
 
 	MY_LOCK_ASSERT(sc);
 	/*
@@ -790,14 +790,14 @@ my_attach(device_t dev)
 {
 	int             i;
 	u_char          eaddr[ETHER_ADDR_LEN];
-	u_int32_t       iobase;
+	uint32_t       iobase;
 	struct my_softc *sc;
 	if_t		ifp;
 	int             media = IFM_ETHER | IFM_100_TX | IFM_FDX;
 	unsigned int    round;
 	caddr_t         roundptr;
 	struct my_type *p;
-	u_int16_t       phy_vid, phy_did, phy_sts = 0;
+	uint16_t       phy_vid, phy_did, phy_sts = 0;
 	int             rid, error = 0;
 
 	sc = device_get_softc(dev);
@@ -1099,7 +1099,7 @@ my_rxeof(struct my_softc * sc)
 	if_t		ifp;
 	struct my_chain_onefrag *cur_rx;
 	int             total_len = 0;
-	u_int32_t       rxstat;
+	uint32_t       rxstat;
 
 	MY_LOCK_ASSERT(sc);
 	ifp = sc->my_ifp;
@@ -1191,7 +1191,7 @@ my_txeof(struct my_softc * sc)
 	 * been transmitted.
 	 */
 	while (sc->my_cdata.my_tx_head->my_mbuf != NULL) {
-		u_int32_t       txstat;
+		uint32_t       txstat;
 
 		cur_tx = sc->my_cdata.my_tx_head;
 		txstat = MY_TXSTATUS(cur_tx);
@@ -1255,7 +1255,7 @@ my_intr(void *arg)
 {
 	struct my_softc *sc;
 	if_t		ifp;
-	u_int32_t       status;
+	uint32_t       status;
 
 	sc = arg;
 	MY_LOCK(sc);
@@ -1465,7 +1465,7 @@ static void
 my_init_locked(struct my_softc *sc)
 {
 	if_t		ifp = sc->my_ifp;
-	u_int16_t       phy_bmcr = 0;
+	uint16_t       phy_bmcr = 0;
 
 	MY_LOCK_ASSERT(sc);
 	if (sc->my_autoneg) {
@@ -1585,7 +1585,7 @@ static void
 my_ifmedia_sts(if_t ifp, struct ifmediareq * ifmr)
 {
 	struct my_softc *sc;
-	u_int16_t advert = 0, ability = 0;
+	uint16_t advert = 0, ability = 0;
 
 	sc = if_getsoftc(ifp);
 	MY_LOCK(sc);

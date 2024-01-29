@@ -56,7 +56,7 @@ static inline unsigned int
 kref_read(const struct kref *kref)
 {
 
-	return (refcount_load(__DECONST(u_int32_t *, &kref->refcount)));
+	return (refcount_load(__DECONST(uint32_t *, &kref->refcount)));
 }
 
 static inline void

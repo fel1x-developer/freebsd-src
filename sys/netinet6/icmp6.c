@@ -380,7 +380,7 @@ icmp6_error(struct mbuf *m, int type, int code, int param)
 	icmp6 = (struct icmp6_hdr *)(nip6 + 1);
 	icmp6->icmp6_type = type;
 	icmp6->icmp6_code = code;
-	icmp6->icmp6_pptr = htonl((u_int32_t)param);
+	icmp6->icmp6_pptr = htonl((uint32_t)param);
 
 	ICMP6STAT_INC(icp6s_outhist[type]);
 	NET_EPOCH_ENTER(et);
@@ -919,7 +919,7 @@ icmp6_notify_error(struct mbuf **mp, int off, int icmp6len)
 	struct mbuf *m;
 	struct icmp6_hdr *icmp6;
 	struct ip6_hdr *eip6;
-	u_int32_t notifymtu;
+	uint32_t notifymtu;
 	struct sockaddr_in6 icmp6src, icmp6dst;
 
 	m = *mp;
@@ -943,7 +943,7 @@ icmp6_notify_error(struct mbuf **mp, int off, int icmp6len)
 
 	/* Detect the upper level protocol */
 	{
-		u_int8_t nxt = eip6->ip6_nxt;
+		uint8_t nxt = eip6->ip6_nxt;
 		int eoff = off + sizeof(struct icmp6_hdr) +
 		    sizeof(struct ip6_hdr);
 		struct ip6ctlparam ip6cp;
@@ -1202,7 +1202,7 @@ ni6_input(struct mbuf *m, int off, struct prison *pr)
 {
 	struct icmp6_nodeinfo *ni6, *nni6;
 	struct mbuf *n = NULL;
-	u_int16_t qtype;
+	uint16_t qtype;
 	int subjlen;
 	int replylen = sizeof(struct ip6_hdr) + sizeof(struct icmp6_nodeinfo);
 	struct ni_reply_fqdn *fqdn;
@@ -1394,7 +1394,7 @@ ni6_input(struct mbuf *m, int off, struct prison *pr)
 	case NI_QTYPE_NOOP:
 		break;		/* no reply data */
 	case NI_QTYPE_SUPTYPES:
-		replylen += sizeof(u_int32_t);
+		replylen += sizeof(uint32_t);
 		break;
 	case NI_QTYPE_FQDN:
 		/* XXX will append an mbuf */
@@ -1403,7 +1403,7 @@ ni6_input(struct mbuf *m, int off, struct prison *pr)
 	case NI_QTYPE_NODEADDR:
 		addrs = ni6_addrs(ni6, m, &ifp, (struct in6_addr *)subj);
 		if ((replylen += addrs * (sizeof(struct in6_addr) +
-		    sizeof(u_int32_t))) > MCLBYTES)
+		    sizeof(uint32_t))) > MCLBYTES)
 			replylen = MCLBYTES; /* XXX: will truncate pkt later */
 		break;
 	case NI_QTYPE_IPV4ADDR:
@@ -1458,12 +1458,12 @@ ni6_input(struct mbuf *m, int off, struct prison *pr)
 		break;
 	case NI_QTYPE_SUPTYPES:
 	{
-		u_int32_t v;
+		uint32_t v;
 		nni6->ni_code = ICMP6_NI_SUCCESS;
 		nni6->ni_flags = htons(0x0000);	/* raw bitmap */
 		/* supports NOOP, SUPTYPES, FQDN, and NODEADDR */
-		v = (u_int32_t)htonl(0x0000000f);
-		bcopy(&v, nni6 + 1, sizeof(u_int32_t));
+		v = (uint32_t)htonl(0x0000000f);
+		bcopy(&v, nni6 + 1, sizeof(uint32_t));
 		break;
 	}
 	case NI_QTYPE_FQDN:
@@ -1778,7 +1778,7 @@ ni6_store_addrs(struct icmp6_nodeinfo *ni6, struct icmp6_nodeinfo *nni6,
 	int copied = 0, allow_deprecated = 0;
 	u_char *cp = (u_char *)(nni6 + 1);
 	int niflags = ni6->ni_flags;
-	u_int32_t ltime;
+	uint32_t ltime;
 
 	NET_EPOCH_ASSERT();
 
@@ -1842,7 +1842,7 @@ ni6_store_addrs(struct icmp6_nodeinfo *ni6, struct icmp6_nodeinfo *nni6,
 
 			/* now we can copy the address */
 			if (resid < sizeof(struct in6_addr) +
-			    sizeof(u_int32_t)) {
+			    sizeof(uint32_t)) {
 				/*
 				 * We give up much more copy.
 				 * Set the truncate flag and return.
@@ -1876,8 +1876,8 @@ ni6_store_addrs(struct icmp6_nodeinfo *ni6, struct icmp6_nodeinfo *nni6,
 					ltime = 0;
 			}
 
-			bcopy(&ltime, cp, sizeof(u_int32_t));
-			cp += sizeof(u_int32_t);
+			bcopy(&ltime, cp, sizeof(uint32_t));
+			cp += sizeof(uint32_t);
 
 			/* copy the address itself */
 			bcopy(&ifa6->ia_addr.sin6_addr, cp,
@@ -1885,8 +1885,8 @@ ni6_store_addrs(struct icmp6_nodeinfo *ni6, struct icmp6_nodeinfo *nni6,
 			in6_clearscope((struct in6_addr *)cp); /* XXX */
 			cp += sizeof(struct in6_addr);
 
-			resid -= (sizeof(struct in6_addr) + sizeof(u_int32_t));
-			copied += (sizeof(struct in6_addr) + sizeof(u_int32_t));
+			resid -= (sizeof(struct in6_addr) + sizeof(uint32_t));
+			copied += (sizeof(struct in6_addr) + sizeof(uint32_t));
 		}
 		if (ifp0)	/* we need search only on the specified IF */
 			break;

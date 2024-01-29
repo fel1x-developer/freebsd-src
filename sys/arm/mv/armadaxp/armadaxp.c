@@ -274,7 +274,7 @@ armadaxp_l2_idcache_inv_all(void)
 void
 armadaxp_l2_init(void)
 {
-	u_int32_t reg;
+	uint32_t reg;
 
 	/* Set L2 policy */
 	reg = read_l2_cache(ARMADAXP_L2_AUX_CTRL);

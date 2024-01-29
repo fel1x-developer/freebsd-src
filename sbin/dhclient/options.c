@@ -381,7 +381,7 @@ int
 cons_options(struct packet *inpacket, struct dhcp_packet *outpacket,
     int mms, struct tree_cache **options,
     int overload, /* Overload flags that may be set. */
-    int terminate, int bootpp, u_int8_t *prl, int prl_len)
+    int terminate, int bootpp, uint8_t *prl, int prl_len)
 {
 	unsigned char priority_list[300], buffer[4096];
 	unsigned priority_len;
@@ -401,7 +401,7 @@ cons_options(struct packet *inpacket, struct dhcp_packet *outpacket,
 	    inpacket &&
 	    inpacket->options[DHO_DHCP_MAX_MESSAGE_SIZE].data &&
 	    (inpacket->options[DHO_DHCP_MAX_MESSAGE_SIZE].len >=
-	    sizeof(u_int16_t)))
+	    sizeof(uint16_t)))
 		mms = getUShort(
 		    inpacket->options[DHO_DHCP_MAX_MESSAGE_SIZE].data);
 

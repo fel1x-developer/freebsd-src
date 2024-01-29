@@ -163,7 +163,7 @@ xdr_rpcb_entry(XDR *xdrs, rpcb_entry *objp)
 	if (!xdr_string(xdrs, &objp->r_nc_netid, RPC_MAXDATASIZE)) {
 		return (FALSE);
 	}
-	if (!xdr_u_int32_t(xdrs, &objp->r_nc_semantics)) {
+	if (!xdr_uint32_t(xdrs, &objp->r_nc_semantics)) {
 		return (FALSE);
 	}
 	if (!xdr_string(xdrs, &objp->r_nc_protofmly, RPC_MAXDATASIZE)) {
@@ -300,7 +300,7 @@ xdr_netbuf(XDR *xdrs, struct netbuf *objp)
 	bool_t dummy;
 	void **pp;
 
-	if (!xdr_u_int32_t(xdrs, (u_int32_t *) &objp->maxlen)) {
+	if (!xdr_uint32_t(xdrs, (uint32_t *) &objp->maxlen)) {
 		return (FALSE);
 	}
 	pp = &objp->buf;

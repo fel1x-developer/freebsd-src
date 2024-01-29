@@ -74,7 +74,7 @@ static int	onyx_uninit(struct snd_mixer *m);
 static int	onyx_reinit(struct snd_mixer *m);
 static int	onyx_set(struct snd_mixer *m, unsigned dev, unsigned left,
 			    unsigned right);
-static u_int32_t	onyx_setrecsrc(struct snd_mixer *m, u_int32_t src);
+static uint32_t	onyx_setrecsrc(struct snd_mixer *m, uint32_t src);
 
 static device_method_t onyx_methods[] = {
 	/* Device interface. */
@@ -307,8 +307,8 @@ onyx_set(struct snd_mixer *m, unsigned dev, unsigned left, unsigned right)
 	return (0);
 }
 
-static u_int32_t
-onyx_setrecsrc(struct snd_mixer *m, u_int32_t src)
+static uint32_t
+onyx_setrecsrc(struct snd_mixer *m, uint32_t src)
 {
 	return (0);
 }

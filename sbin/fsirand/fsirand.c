@@ -108,7 +108,7 @@ fsirand(char *device)
 	ino_t inumber;
 	ufs2_daddr_t dblk;
 	int devfd, n, cg;
-	u_int32_t bsize = DEV_BSIZE;
+	uint32_t bsize = DEV_BSIZE;
 
 	if ((devfd = open(device, printonly ? O_RDONLY : O_RDWR)) < 0) {
 		warn("can't open %s", device);
@@ -165,7 +165,7 @@ fsirand(char *device)
 	/* Randomize fs_id unless old 4.2BSD file system */
 	if (!printonly) {
 		/* Randomize fs_id and write out new sblock and backups */
-		sblock->fs_id[0] = (u_int32_t)time(NULL);
+		sblock->fs_id[0] = (uint32_t)time(NULL);
 		sblock->fs_id[1] = arc4random();
 		if (sbput(devfd, sblock, sblock->fs_ncg) != 0) {
 			warn("could not write updated superblock");

@@ -156,7 +156,7 @@ ata_acard_850_setmode(device_t dev, int target, int mode)
     mode = min(mode, ctlr->chip->max_dma);
     /* XXX SOS missing WDMA0+1 + PIO modes */
     if (mode >= ATA_WDMA2) {
-	    u_int8_t reg54 = pci_read_config(parent, 0x54, 1);
+	    uint8_t reg54 = pci_read_config(parent, 0x54, 1);
 	    
 	    reg54 &= ~(0x03 << (devno << 1));
 	    if (mode >= ATA_UDMA0)
@@ -180,7 +180,7 @@ ata_acard_86X_setmode(device_t dev, int target, int mode)
 	mode = min(mode, ctlr->chip->max_dma);
 	/* XXX SOS missing WDMA0+1 + PIO modes */
 	if (mode >= ATA_WDMA2) {
-		u_int16_t reg44 = pci_read_config(parent, 0x44, 2);
+		uint16_t reg44 = pci_read_config(parent, 0x44, 2);
 	    
 		reg44 &= ~(0x000f << (devno << 2));
 		if (mode >= ATA_UDMA0)

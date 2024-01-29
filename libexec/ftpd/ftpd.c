@@ -860,7 +860,7 @@ static void
 selecthost(union sockunion *su)
 {
 	struct ftphost	*hrp;
-	u_int16_t port;
+	uint16_t port;
 #ifdef INET6
 	struct in6_addr *mapped_in6 = NULL;
 #endif

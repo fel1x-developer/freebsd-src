@@ -130,7 +130,7 @@ struct sdiob_softc {
  */
 
 static int
-sdioerror(union ccb *ccb, u_int32_t cam_flags, u_int32_t sense_flags)
+sdioerror(union ccb *ccb, uint32_t cam_flags, uint32_t sense_flags)
 {
 
 	return (cam_periph_error(ccb, cam_flags, sense_flags));

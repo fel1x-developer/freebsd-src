@@ -65,7 +65,7 @@ struct cbb_softc {
 	struct pcib_secbus bus;
 	struct mtx	mtx;
 	int		cardok;
-	u_int32_t	flags;
+	uint32_t	flags;
 #define	CBB_16BIT_CARD		0x20000000
 #define	CBB_KTHREAD_RUNNING	0x40000000
 #define	CBB_KTHREAD_DONE	0x80000000

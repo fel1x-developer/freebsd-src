@@ -37,10 +37,10 @@
 #include "page.h"
 #include "extern.h"
 
-u_int32_t
-__log2(u_int32_t num)
+uint32_t
+__log2(uint32_t num)
 {
-	u_int32_t i, limit;
+	uint32_t i, limit;
 
 	limit = 1;
 	for (i = 0; limit < num; limit = limit << 1, i++);

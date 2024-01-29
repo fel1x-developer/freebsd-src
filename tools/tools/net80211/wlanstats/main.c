@@ -85,7 +85,7 @@ catchalarm(int signo __unused)
 
 #if 0
 static void
-print_sta_stats(FILE *fd, const u_int8_t macaddr[IEEE80211_ADDR_LEN])
+print_sta_stats(FILE *fd, const uint8_t macaddr[IEEE80211_ADDR_LEN])
 {
 #define	STAT(x,fmt) \
 	if (ns->ns_##x) { fprintf(fd, "%s" #x " " fmt, sep, ns->ns_##x); sep = " "; }

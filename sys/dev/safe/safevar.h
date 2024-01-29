@@ -55,7 +55,7 @@
  * of memory setup for DMA.
  */
 struct safe_dma_alloc {
-	u_int32_t		dma_paddr;	/* physical address */
+	uint32_t		dma_paddr;	/* physical address */
 	caddr_t			dma_vaddr;	/* virtual address */
 	bus_dma_tag_t		dma_tag;	/* bus dma tag used */
 	bus_dmamap_t		dma_map;	/* associated map */
@@ -123,11 +123,11 @@ struct safe_ringentry {
 struct rndstate_test;
 
 struct safe_session {
-	u_int32_t	ses_klen;		/* key length in bits */
-	u_int32_t	ses_key[8];		/* DES/3DES/AES key */
-	u_int32_t	ses_mlen;		/* hmac length in bytes */
-	u_int32_t	ses_hminner[5];		/* hmac inner state */
-	u_int32_t	ses_hmouter[5];		/* hmac outer state */
+	uint32_t	ses_klen;		/* key length in bits */
+	uint32_t	ses_key[8];		/* DES/3DES/AES key */
+	uint32_t	ses_mlen;		/* hmac length in bytes */
+	uint32_t	ses_hminner[5];		/* hmac inner state */
+	uint32_t	ses_hmouter[5];		/* hmac outer state */
 };
 
 struct safe_softc {
@@ -171,34 +171,34 @@ struct safe_softc {
 #endif /* _KERNEL */
 
 struct safe_stats {
-	u_int64_t st_ibytes;
-	u_int64_t st_obytes;
-	u_int32_t st_ipackets;
-	u_int32_t st_opackets;
-	u_int32_t st_invalid;		/* invalid argument */
-	u_int32_t st_badsession;	/* invalid session id */
-	u_int32_t st_badflags;		/* flags indicate !(mbuf | uio) */
-	u_int32_t st_nodesc;		/* op submitted w/o descriptors */
-	u_int32_t st_badalg;		/* unsupported algorithm */
-	u_int32_t st_ringfull;		/* PE descriptor ring full */
-	u_int32_t st_peoperr;		/* PE marked error */
-	u_int32_t st_dmaerr;		/* PE DMA error */
-	u_int32_t st_bypasstoobig;	/* bypass > 96 bytes */
-	u_int32_t st_skipmismatch;	/* enc part begins before auth part */
-	u_int32_t st_lenmismatch;	/* enc length different auth length */
-	u_int32_t st_coffmisaligned;	/* crypto offset not 32-bit aligned */
-	u_int32_t st_cofftoobig;	/* crypto offset > 255 words */
-	u_int32_t st_iovmisaligned;	/* iov op not aligned */
-	u_int32_t st_iovnotuniform;	/* iov op not suitable */
-	u_int32_t st_unaligned;		/* unaligned src caused copy */
-	u_int32_t st_notuniform;	/* non-uniform src caused copy */
-	u_int32_t st_nomap;		/* bus_dmamap_create failed */
-	u_int32_t st_noload;		/* bus_dmamap_load_* failed */
-	u_int32_t st_nombuf;		/* MGET* failed */
-	u_int32_t st_nomcl;		/* MCLGET* failed */
-	u_int32_t st_maxqchip;		/* max mcr1 ops out for processing */
-	u_int32_t st_rng;		/* RNG requests */
-	u_int32_t st_rngalarm;		/* RNG alarm requests */
-	u_int32_t st_noicvcopy;		/* ICV data copies suppressed */
+	uint64_t st_ibytes;
+	uint64_t st_obytes;
+	uint32_t st_ipackets;
+	uint32_t st_opackets;
+	uint32_t st_invalid;		/* invalid argument */
+	uint32_t st_badsession;	/* invalid session id */
+	uint32_t st_badflags;		/* flags indicate !(mbuf | uio) */
+	uint32_t st_nodesc;		/* op submitted w/o descriptors */
+	uint32_t st_badalg;		/* unsupported algorithm */
+	uint32_t st_ringfull;		/* PE descriptor ring full */
+	uint32_t st_peoperr;		/* PE marked error */
+	uint32_t st_dmaerr;		/* PE DMA error */
+	uint32_t st_bypasstoobig;	/* bypass > 96 bytes */
+	uint32_t st_skipmismatch;	/* enc part begins before auth part */
+	uint32_t st_lenmismatch;	/* enc length different auth length */
+	uint32_t st_coffmisaligned;	/* crypto offset not 32-bit aligned */
+	uint32_t st_cofftoobig;	/* crypto offset > 255 words */
+	uint32_t st_iovmisaligned;	/* iov op not aligned */
+	uint32_t st_iovnotuniform;	/* iov op not suitable */
+	uint32_t st_unaligned;		/* unaligned src caused copy */
+	uint32_t st_notuniform;	/* non-uniform src caused copy */
+	uint32_t st_nomap;		/* bus_dmamap_create failed */
+	uint32_t st_noload;		/* bus_dmamap_load_* failed */
+	uint32_t st_nombuf;		/* MGET* failed */
+	uint32_t st_nomcl;		/* MCLGET* failed */
+	uint32_t st_maxqchip;		/* max mcr1 ops out for processing */
+	uint32_t st_rng;		/* RNG requests */
+	uint32_t st_rngalarm;		/* RNG alarm requests */
+	uint32_t st_noicvcopy;		/* ICV data copies suppressed */
 };
 #endif /* _SAFE_SAFEVAR_H_ */

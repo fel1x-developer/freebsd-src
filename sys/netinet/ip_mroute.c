@@ -2517,7 +2517,7 @@ pim_input(struct mbuf *m, int off, int proto, void *arg __unused)
 	 * and grab the PIM REGISTER header size, to avoid another
 	 * possible m_pullup() later.
 	 *
-	 * PIM_MINLEN       == pimhdr + u_int32_t == 4 + 4 = 8
+	 * PIM_MINLEN       == pimhdr + uint32_t == 4 + 4 = 8
 	 * PIM_REG_MINLEN   == pimhdr + reghdr + encap_iphdr == 4 + 4 + 20 = 28
 	 */
 	minlen = iphlen + (datalen >= PIM_REG_MINLEN ? PIM_REG_MINLEN : PIM_MINLEN);
@@ -2577,7 +2577,7 @@ pim_input(struct mbuf *m, int off, int proto, void *arg __unused)
 		struct sockaddr_in dst = { sizeof(dst), AF_INET };
 		struct mbuf *mcp;
 		struct ip *encap_ip;
-		u_int32_t *reghdr;
+		uint32_t *reghdr;
 		struct ifnet *vifp;
 
 		MRW_RLOCK();
@@ -2603,7 +2603,7 @@ pim_input(struct mbuf *m, int off, int proto, void *arg __unused)
 			return (IPPROTO_DONE);
 		}
 
-		reghdr = (u_int32_t *)(pim + 1);
+		reghdr = (uint32_t *)(pim + 1);
 		encap_ip = (struct ip *)(reghdr + 1);
 
 		CTR3(KTR_IPMF, "%s: register: encap ip src 0x%08x len %d",

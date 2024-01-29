@@ -118,7 +118,7 @@ struct ng_btsocket_hci_raw_node_bdaddr {
 
 /* Get features */
 struct ng_btsocket_hci_raw_node_features {
-	u_int8_t	features[NG_HCI_FEATURES_SIZE];
+	uint8_t	features[NG_HCI_FEATURES_SIZE];
 };
 #define SIOC_HCI_RAW_NODE_GET_FEATURES \
 	_IOWR('b', NGM_HCI_NODE_GET_FEATURES, \
@@ -142,7 +142,7 @@ struct ng_btsocket_hci_raw_node_stat {
 
 /* Get neighbor cache */
 struct ng_btsocket_hci_raw_node_neighbor_cache {
-	u_int32_t				 num_entries;
+	uint32_t				 num_entries;
 	ng_hci_node_neighbor_cache_entry_ep	*entries;
 };
 #define SIOC_HCI_RAW_NODE_GET_NEIGHBOR_CACHE \
@@ -151,7 +151,7 @@ struct ng_btsocket_hci_raw_node_neighbor_cache {
 
 /* Get connection list */
 struct ng_btsocket_hci_raw_con_list {
-	u_int32_t		 num_connections;
+	uint32_t		 num_connections;
 	ng_hci_node_con_ep	*connections;
 };
 #define SIOC_HCI_RAW_NODE_GET_CON_LIST \
@@ -193,7 +193,7 @@ struct ng_btsocket_hci_raw_node_role_switch {
 
 /* Get list of HCI node names */
 struct ng_btsocket_hci_raw_node_list_names {
-	u_int32_t	 num_names;
+	uint32_t	 num_names;
 	struct nodeinfo	*names;
 };
 #define SIOC_HCI_RAW_NODE_LIST_NAMES \
@@ -225,17 +225,17 @@ struct sockaddr_sco {
 struct sockaddr_l2cap_compat {
 	u_char		l2cap_len;	/* total length */
 	u_char		l2cap_family;	/* address family */
-	u_int16_t	l2cap_psm;	/* PSM (Protocol/Service Multiplexor) */
+	uint16_t	l2cap_psm;	/* PSM (Protocol/Service Multiplexor) */
 	bdaddr_t	l2cap_bdaddr;	/* address */
 };
 
 struct sockaddr_l2cap {
 	u_char		l2cap_len;	/* total length */
 	u_char		l2cap_family;	/* address family */
-	u_int16_t	l2cap_psm;	/* PSM (Protocol/Service Multiplexor) */
+	uint16_t	l2cap_psm;	/* PSM (Protocol/Service Multiplexor) */
 	bdaddr_t	l2cap_bdaddr;	/* address */
-	u_int16_t	l2cap_cid;      /*cid*/
-	u_int8_t	l2cap_bdaddr_type; /*address type*/
+	uint16_t	l2cap_cid;      /*cid*/
+	uint8_t	l2cap_bdaddr_type; /*address type*/
 };
 
 #if !defined(L2CAP_SOCKET_CHECKED) && !defined(_KERNEL)
@@ -257,9 +257,9 @@ struct sockaddr_l2cap {
 
 /* Ping */
 struct ng_btsocket_l2cap_raw_ping {
-	u_int32_t		 result;
-	u_int32_t		 echo_size;
-	u_int8_t		*echo_data;
+	uint32_t		 result;
+	uint32_t		 echo_size;
+	uint8_t		*echo_data;
 };
 #define SIOC_L2CAP_L2CA_PING \
 	_IOWR('b', NGM_L2CAP_L2CA_PING, \
@@ -267,10 +267,10 @@ struct ng_btsocket_l2cap_raw_ping {
 
 /* Get info */
 struct ng_btsocket_l2cap_raw_get_info {
-	u_int32_t		 result;
-	u_int32_t		 info_type;
-	u_int32_t		 info_size;
-	u_int8_t		*info_data;
+	uint32_t		 result;
+	uint32_t		 info_type;
+	uint32_t		 info_size;
+	uint8_t		*info_data;
 };
 #define SIOC_L2CAP_L2CA_GET_INFO \
 	_IOWR('b', NGM_L2CAP_L2CA_GET_INFO, \
@@ -297,7 +297,7 @@ struct ng_btsocket_l2cap_raw_node_debug {
 
 /* Get connection list */
 struct ng_btsocket_l2cap_raw_con_list {
-	u_int32_t		 num_connections;
+	uint32_t		 num_connections;
 	ng_l2cap_node_con_ep	*connections;
 };
 #define SIOC_L2CAP_NODE_GET_CON_LIST \
@@ -306,7 +306,7 @@ struct ng_btsocket_l2cap_raw_con_list {
 
 /* Get channel list */
 struct ng_btsocket_l2cap_raw_chan_list {
-	u_int32_t		 num_channels;
+	uint32_t		 num_channels;
 	ng_l2cap_node_chan_ep	*channels;
 };
 #define SIOC_L2CAP_NODE_GET_CHAN_LIST \
@@ -334,17 +334,17 @@ struct sockaddr_rfcomm {
 	u_char		rfcomm_len;	/* total length */
 	u_char		rfcomm_family;	/* address family */
 	bdaddr_t	rfcomm_bdaddr;	/* address */
-	u_int8_t	rfcomm_channel;	/* channel */
+	uint8_t	rfcomm_channel;	/* channel */
 };
 
 /* Flow control information */
 struct ng_btsocket_rfcomm_fc_info {
-	u_int8_t	lmodem;		/* modem signals (local) */
-	u_int8_t	rmodem;		/* modem signals (remote) */
-	u_int8_t	tx_cred;	/* TX credits */
-	u_int8_t	rx_cred;	/* RX credits */
-	u_int8_t	cfc;		/* credit flow control */
-	u_int8_t	reserved;
+	uint8_t	lmodem;		/* modem signals (local) */
+	uint8_t	rmodem;		/* modem signals (remote) */
+	uint8_t	tx_cred;	/* TX credits */
+	uint8_t	rx_cred;	/* RX credits */
+	uint8_t	cfc;		/* credit flow control */
+	uint8_t	reserved;
 };
 
 /* STREAM RFCOMM socket options */

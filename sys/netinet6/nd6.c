@@ -363,7 +363,7 @@ nd6_setmtu(struct ifnet *ifp)
 void
 nd6_setmtu0(struct ifnet *ifp, struct nd_ifinfo *ndi)
 {
-	u_int32_t omaxmtu;
+	uint32_t omaxmtu;
 
 	omaxmtu = ndi->maxmtu;
 	ndi->maxmtu = ifp->if_mtu;
@@ -1255,7 +1255,7 @@ nd6_is_new_addr_neighbor(const struct sockaddr_in6 *addr, struct ifnet *ifp)
 	 */
 	if (IN6_IS_ADDR_LINKLOCAL(&addr->sin6_addr)) {
 		struct sockaddr_in6 sin6_copy;
-		u_int32_t zone;
+		uint32_t zone;
 
 		/*
 		 * We need sin6_copy since sa6_recoverscope() may modify the

@@ -53,7 +53,7 @@
 #include <sys/_cpuset.h>
 
 struct ktr_entry {
-	u_int64_t ktr_timestamp;
+	uint64_t ktr_timestamp;
 	int	ktr_cpu;
 	int	ktr_line;
 	const	char *ktr_file;

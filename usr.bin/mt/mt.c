@@ -185,8 +185,8 @@ static int mt_protect(int argc, char **argv, int mtfd,
 static int mt_param(int argc, char **argv, int mtfd, char *xml_str,
 		    struct mt_status_data *status_data);
 static const char *denstostring (int d);
-static u_int32_t stringtocomp(const char *s);
-static const char *comptostring(u_int32_t comp);
+static uint32_t stringtocomp(const char *s);
+static const char *comptostring(uint32_t comp);
 static void warn_eof(void);
 
 int
@@ -259,7 +259,7 @@ main(int argc, char *argv[])
 				   (comp->c_flags & IS_COMP)) {
 
 				mt_com.mt_count = stringtocomp(*argv);
-				if ((u_int32_t)mt_com.mt_count == 0xf0f0f0f0)
+				if ((uint32_t)mt_com.mt_count == 0xf0f0f0f0)
 					errx(1, "%s: unknown compression",
 					     *argv);
 				p = "";
@@ -320,7 +320,7 @@ main(int argc, char *argv[])
 		case MTIOCRDHPOS:
 		case MTIOCRDSPOS:
 		{
-			u_int32_t block;
+			uint32_t block;
 			if (ioctl(mtfd, comp->c_code, (caddr_t)&block) < 0)
 				err(2, "%s", tape);
 			(void)printf("%s: %s block location %u\n", tape,
@@ -332,7 +332,7 @@ main(int argc, char *argv[])
 		case MTIOCSLOCATE:
 		case MTIOCHLOCATE:
 		{
-			u_int32_t block = (u_int32_t)mt_com.mt_count;
+			uint32_t block = (uint32_t)mt_com.mt_count;
 			if (ioctl(mtfd, comp->c_code, (caddr_t)&block) < 0)
 				err(2, "%s", tape);
 			exit(0);
@@ -340,7 +340,7 @@ main(int argc, char *argv[])
 		}
 		case MTIOCGETEOTMODEL:
 		{
-			u_int32_t om;
+			uint32_t om;
 			if (ioctl(mtfd, MTIOCGETEOTMODEL, (caddr_t)&om) < 0)
 				err(2, "%s", tape);
 			(void)printf("%s: the model is %u filemar%s at EOT\n",
@@ -350,7 +350,7 @@ main(int argc, char *argv[])
 		}
 		case MTIOCSETEOTMODEL:
 		{
-			u_int32_t om, nm = (u_int32_t)mt_com.mt_count;
+			uint32_t om, nm = (uint32_t)mt_com.mt_count;
 			if (ioctl(mtfd, MTIOCGETEOTMODEL, (caddr_t)&om) < 0)
 				err(2, "%s", tape);
 			if (ioctl(mtfd, comp->c_code, (caddr_t)&nm) < 0)
@@ -496,7 +496,7 @@ usage(void)
 }
 
 static const struct compression_types {
-	u_int32_t	comp_number;
+	uint32_t	comp_number;
 	const char 	*name;
 } comp_types[] = {
 	{ 0x00, "none" },
@@ -534,7 +534,7 @@ getblksiz(int bs)
 }
 
 static const char *
-comptostring(u_int32_t comp)
+comptostring(uint32_t comp)
 {
 	static char buf[20];
 	const struct compression_types *ct;
@@ -555,7 +555,7 @@ comptostring(u_int32_t comp)
 		return(ct->name);
 }
 
-static u_int32_t
+static uint32_t
 stringtocomp(const char *s)
 {
 	const struct compression_types *ct;

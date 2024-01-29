@@ -596,7 +596,7 @@ ath_fetch_mac_kenv(struct ath_softc *sc, uint8_t *macaddr)
 	(HAL_MODE_11NG_HT40PLUS | HAL_MODE_11NG_HT40MINUS | \
 	HAL_MODE_11NA_HT40PLUS | HAL_MODE_11NA_HT40MINUS)
 int
-ath_attach(u_int16_t devid, struct ath_softc *sc)
+ath_attach(uint16_t devid, struct ath_softc *sc)
 {
 	struct ieee80211com *ic = &sc->sc_ic;
 	struct ath_hal *ah = NULL;
@@ -2370,8 +2370,8 @@ static void
 ath_fatal_proc(void *arg, int pending)
 {
 	struct ath_softc *sc = arg;
-	u_int32_t *state;
-	u_int32_t len;
+	uint32_t *state;
+	uint32_t len;
 	void *sp;
 
 	if (sc->sc_invalid)
@@ -2384,7 +2384,7 @@ ath_fatal_proc(void *arg, int pending)
 	 * the hal so we can diagnose what's going on.
 	 */
 	if (ath_hal_getfatalstate(sc->sc_ah, &sp, &len)) {
-		KASSERT(len >= 6*sizeof(u_int32_t), ("len %u bytes", len));
+		KASSERT(len >= 6*sizeof(uint32_t), ("len %u bytes", len));
 		state = sp;
 		device_printf(sc->sc_dev,
 		    "0x%08x 0x%08x 0x%08x, 0x%08x 0x%08x 0x%08x\n", state[0],
@@ -2417,8 +2417,8 @@ ath_bmiss_vap(struct ieee80211vap *vap)
 	ATH_UNLOCK(sc);
 
 	if ((vap->iv_flags_ext & IEEE80211_FEXT_SWBMISS) == 0) {
-		u_int64_t lastrx = sc->sc_lastrx;
-		u_int64_t tsf = ath_hal_gettsf64(sc->sc_ah);
+		uint64_t lastrx = sc->sc_lastrx;
+		uint64_t tsf = ath_hal_gettsf64(sc->sc_ah);
 		/* XXX should take a locked ref to iv_bss */
 		u_int bmisstimeout =
 			vap->iv_bmissthreshold * vap->iv_bss->ni_intval * 1024;
@@ -3617,7 +3617,7 @@ static void
 ath_update_promisc(struct ieee80211com *ic)
 {
 	struct ath_softc *sc = ic->ic_softc;
-	u_int32_t rfilt;
+	uint32_t rfilt;
 
 	/* configure rx filter */
 	ATH_LOCK(sc);
@@ -3658,7 +3658,7 @@ static void
 ath_update_mcast_hw(struct ath_softc *sc)
 {
 	struct ieee80211com *ic = &sc->sc_ic;
-	u_int32_t mfilt[2];
+	uint32_t mfilt[2];
 
 	/* calculate and install multicast filter */
 	if (ic->ic_allmulti == 0) {
@@ -3704,7 +3704,7 @@ ath_mode_init(struct ath_softc *sc)
 {
 	struct ieee80211com *ic = &sc->sc_ic;
 	struct ath_hal *ah = sc->sc_ah;
-	u_int32_t rfilt;
+	uint32_t rfilt;
 
 	/* XXX power state? */
 
@@ -4221,7 +4221,7 @@ ath_tx_update_stats(struct ath_softc *sc, struct ath_tx_status *ts,
 	int sr, lr, pri;
 
 	if (ts->ts_status == 0) {
-		u_int8_t txant = ts->ts_antenna;
+		uint8_t txant = ts->ts_antenna;
 		/*
 		 * Handle weird/corrupted tx antenna field
 		 */
@@ -5557,7 +5557,7 @@ ath_scan_start(struct ieee80211com *ic)
 {
 	struct ath_softc *sc = ic->ic_softc;
 	struct ath_hal *ah = sc->sc_ah;
-	u_int32_t rfilt;
+	uint32_t rfilt;
 
 	/* XXX calibration timer? */
 	/* XXXGL: is constant ieee80211broadcastaddr a correct choice? */
@@ -5582,7 +5582,7 @@ ath_scan_end(struct ieee80211com *ic)
 {
 	struct ath_softc *sc = ic->ic_softc;
 	struct ath_hal *ah = sc->sc_ah;
-	u_int32_t rfilt;
+	uint32_t rfilt;
 
 	ATH_LOCK(sc);
 	sc->sc_scanning = 0;
@@ -5820,7 +5820,7 @@ ath_newstate(struct ieee80211vap *vap, enum ieee80211_state nstate, int arg)
 	struct ath_hal *ah = sc->sc_ah;
 	struct ieee80211_node *ni = NULL;
 	int i, error, stamode;
-	u_int32_t rfilt;
+	uint32_t rfilt;
 	int csa_run_transition = 0;
 	enum ieee80211_state ostate = vap->iv_state;
 
@@ -6478,8 +6478,8 @@ ath_setcurmode(struct ath_softc *sc, enum ieee80211_phymode mode)
 	/* NB: on/off times from the Atheros NDIS driver, w/ permission */
 	static const struct {
 		u_int		rate;		/* tx/rx 802.11 rate */
-		u_int16_t	timeOn;		/* LED on time (ms) */
-		u_int16_t	timeOff;	/* LED off time (ms) */
+		uint16_t	timeOn;		/* LED on time (ms) */
+		uint16_t	timeOff;	/* LED off time (ms) */
 	} blinkrates[] = {
 		{ 108,  40,  10 },
 		{  96,  44,  11 },

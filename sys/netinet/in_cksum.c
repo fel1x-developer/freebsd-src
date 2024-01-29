@@ -72,7 +72,7 @@
 	ADDCARRY(sum);							  \
     }
 
-static const u_int32_t in_masks[] = {
+static const uint32_t in_masks[] = {
 #if _BYTE_ORDER == _LITTLE_ENDIAN
 	/*0 bytes*/ /*1 byte*/	/*2 bytes*/ /*3 bytes*/
 	0x00000000, 0x000000FF, 0x0000FFFF, 0x00FFFFFF,	/* offset 0 */
@@ -89,33 +89,33 @@ static const u_int32_t in_masks[] = {
 };
 
 union l_util {
-	u_int16_t s[2];
-	u_int32_t l;
+	uint16_t s[2];
+	uint32_t l;
 };
 union q_util {
-	u_int16_t s[4];
-	u_int32_t l[2];
-	u_int64_t q;
+	uint16_t s[4];
+	uint32_t l[2];
+	uint64_t q;
 };
 
-static u_int64_t
+static uint64_t
 in_cksumdata(const void *buf, int len)
 {
-	const u_int32_t *lw = (const u_int32_t *) buf;
-	u_int64_t sum = 0;
-	u_int64_t prefilled;
+	const uint32_t *lw = (const uint32_t *) buf;
+	uint64_t sum = 0;
+	uint64_t prefilled;
 	int offset;
 	union q_util q_util;
 
 	if ((3 & (long) lw) == 0 && len == 20) {
-		sum = (u_int64_t) lw[0] + lw[1] + lw[2] + lw[3] + lw[4];
+		sum = (uint64_t) lw[0] + lw[1] + lw[2] + lw[3] + lw[4];
 		REDUCE32;
 		return sum;
 	}
 
 	if ((offset = 3 & (long) lw) != 0) {
-		const u_int32_t *masks = in_masks + (offset << 2);
-		lw = (u_int32_t *) (((long) lw) - offset);
+		const uint32_t *masks = in_masks + (offset << 2);
+		lw = (uint32_t *) (((long) lw) - offset);
 		sum = *lw++ & masks[len >= 3 ? 3 : len];
 		len -= 4 - offset;
 		if (len <= 0) {
@@ -131,15 +131,15 @@ in_cksumdata(const void *buf, int len)
 	if (offset < 32 && len > offset) {
 		len -= offset;
 		if (4 & offset) {
-			sum += (u_int64_t) lw[0];
+			sum += (uint64_t) lw[0];
 			lw += 1;
 		}
 		if (8 & offset) {
-			sum += (u_int64_t) lw[0] + lw[1];
+			sum += (uint64_t) lw[0] + lw[1];
 			lw += 2;
 		}
 		if (16 & offset) {
-			sum += (u_int64_t) lw[0] + lw[1] + lw[2] + lw[3];
+			sum += (uint64_t) lw[0] + lw[1] + lw[2] + lw[3];
 			lw += 4;
 		}
 	}
@@ -151,7 +151,7 @@ in_cksumdata(const void *buf, int len)
 	 */
 	prefilled = lw[0];
 	while ((len -= 32) >= 4) {
-		u_int64_t prefilling = lw[8];
+		uint64_t prefilling = lw[8];
 		sum += prefilled + lw[1] + lw[2] + lw[3]
 			+ lw[4] + lw[5] + lw[6] + lw[7];
 		lw += 8;
@@ -165,16 +165,16 @@ in_cksumdata(const void *buf, int len)
 		len += 32;
 	}
 	while ((len -= 16) >= 0) {
-		sum += (u_int64_t) lw[0] + lw[1] + lw[2] + lw[3];
+		sum += (uint64_t) lw[0] + lw[1] + lw[2] + lw[3];
 		lw += 4;
 	}
 	len += 16;
 	while ((len -= 4) >= 0) {
-		sum += (u_int64_t) *lw++;
+		sum += (uint64_t) *lw++;
 	}
 	len += 4;
 	if (len > 0)
-		sum += (u_int64_t) (in_masks[len] & *lw);
+		sum += (uint64_t) (in_masks[len] & *lw);
 	REDUCE32;
 	return sum;
 }
@@ -182,20 +182,20 @@ in_cksumdata(const void *buf, int len)
 u_short
 in_addword(u_short a, u_short b)
 {
-	u_int64_t sum = a + b;
+	uint64_t sum = a + b;
 
 	ADDCARRY(sum);
 	return (sum);
 }
 
 u_short
-in_pseudo(u_int32_t a, u_int32_t b, u_int32_t c)
+in_pseudo(uint32_t a, uint32_t b, uint32_t c)
 {
-	u_int64_t sum;
+	uint64_t sum;
 	union q_util q_util;
 	union l_util l_util;
 
-	sum = (u_int64_t) a + b + c;
+	sum = (uint64_t) a + b + c;
 	REDUCE16;
 	return (sum);
 }
@@ -243,7 +243,7 @@ in_cksum_skip(struct mbuf *m, int len, int skip)
 
 u_int in_cksum_hdr(const struct ip *ip)
 {
-	u_int64_t sum = in_cksumdata(ip, sizeof(struct ip));
+	uint64_t sum = in_cksumdata(ip, sizeof(struct ip));
 	union q_util q_util;
 	union l_util l_util;
 	REDUCE16;

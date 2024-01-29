@@ -45,8 +45,8 @@
 
 /* 32-bit PTE */
 struct pte {
-	u_int32_t pte_hi;
-	u_int32_t pte_lo;
+	uint32_t pte_hi;
+	uint32_t pte_lo;
 };
 
 struct pteg {
@@ -55,8 +55,8 @@ struct pteg {
 
 /* 64-bit (long) PTE */
 struct lpte {
-	u_int64_t pte_hi;
-	u_int64_t pte_lo;
+	uint64_t pte_hi;
+	uint64_t pte_lo;
 };
 
 struct lpteg {
@@ -65,14 +65,14 @@ struct lpteg {
 
 /* Partition table entry */
 struct pate {
-	u_int64_t pagetab;
-	u_int64_t proctab;
+	uint64_t pagetab;
+	uint64_t proctab;
 };
 
 /* Process table entry */
 struct prte {
-	u_int64_t proctab0;
-	u_int64_t proctab1;
+	uint64_t proctab0;
+	uint64_t proctab1;
 };
 
 typedef	struct pte pte_t;

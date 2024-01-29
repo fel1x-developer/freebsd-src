@@ -61,16 +61,16 @@ struct amrr_node {
   	u_int           amn_success;
   	u_int           amn_recovery;
 	/* rate index et al. */
-	u_int8_t	amn_tx_rix0;	/* series 0 rate index */
-	u_int8_t	amn_tx_rate0;	/* series 0 h/w rate */
-	u_int8_t	amn_tx_rate1;	/* series 1 h/w rate */
-	u_int8_t	amn_tx_rate2;	/* series 2 h/w rate */
-	u_int8_t	amn_tx_rate3;	/* series 3 h/w rate */
-	u_int8_t	amn_tx_rate0sp;	/* series 0 short preamble h/w rate */
-	u_int8_t	amn_tx_rate1sp;	/* series 1 short preamble h/w rate */
-	u_int8_t	amn_tx_rate2sp;	/* series 2 short preamble h/w rate */
-	u_int8_t	amn_tx_rate3sp;	/* series 3 short preamble h/w rate */
-	u_int8_t	amn_tx_try0;	/* series 0 try count */
+	uint8_t	amn_tx_rix0;	/* series 0 rate index */
+	uint8_t	amn_tx_rate0;	/* series 0 h/w rate */
+	uint8_t	amn_tx_rate1;	/* series 1 h/w rate */
+	uint8_t	amn_tx_rate2;	/* series 2 h/w rate */
+	uint8_t	amn_tx_rate3;	/* series 3 h/w rate */
+	uint8_t	amn_tx_rate0sp;	/* series 0 short preamble h/w rate */
+	uint8_t	amn_tx_rate1sp;	/* series 1 short preamble h/w rate */
+	uint8_t	amn_tx_rate2sp;	/* series 2 short preamble h/w rate */
+	uint8_t	amn_tx_rate3sp;	/* series 3 short preamble h/w rate */
+	uint8_t	amn_tx_try0;	/* series 0 try count */
   	u_int           amn_tx_try1;    /* series 1 try count */
   	u_int           amn_tx_try2;    /* series 2 try count */
   	u_int           amn_tx_try3;    /* series 3 try count */

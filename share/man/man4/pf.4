@@ -125,13 +125,13 @@ Stop the ALTQ bandwidth control system.
 .It Dv DIOCBEGINADDRS Fa "struct pfioc_pooladdr *pp"
 .Bd -literal
 struct pfioc_pooladdr {
-	u_int32_t		action;
-	u_int32_t		ticket;
-	u_int32_t		nr;
-	u_int32_t		r_num;
-	u_int8_t		r_action;
-	u_int8_t		r_last;
-	u_int8_t		af;
+	uint32_t		action;
+	uint32_t		ticket;
+	uint32_t		nr;
+	uint32_t		r_num;
+	uint8_t		r_action;
+	uint8_t		r_last;
+	uint8_t		af;
 	char			anchor[MAXPATHLEN];
 	struct pf_pooladdr	addr;
 };
@@ -158,10 +158,10 @@ All other members of the structure are ignored.
 .It Dv DIOCADDRULE Fa "struct pfioc_rule *pr"
 .Bd -literal
 struct pfioc_rule {
-	u_int32_t	action;
-	u_int32_t	ticket;
-	u_int32_t	pool_ticket;
-	u_int32_t	nr;
+	uint32_t	action;
+	uint32_t	ticket;
+	uint32_t	pool_ticket;
+	uint32_t	nr;
 	char		anchor[MAXPATHLEN];
 	char		anchor_call[MAXPATHLEN];
 	struct pf_rule	rule;
@@ -193,9 +193,9 @@ are ignored.
 Add an ALTQ discipline or queue.
 .Bd -literal
 struct pfioc_altq {
-	u_int32_t	action;
-	u_int32_t	ticket;
-	u_int32_t	nr;
+	uint32_t	action;
+	uint32_t	ticket;
+	uint32_t	nr;
 	struct pf_altq  altq;
 };
 .Ed
@@ -271,11 +271,11 @@ call.
 Get the statistics on a queue.
 .Bd -literal
 struct pfioc_qstats {
-	u_int32_t	 ticket;
-	u_int32_t	 nr;
+	uint32_t	 ticket;
+	uint32_t	 nr;
 	void		*buf;
 	int		 nbytes;
-	u_int8_t	 scheduler;
+	uint8_t	 scheduler;
 };
 .Ed
 .Pp
@@ -288,7 +288,7 @@ for the queue specified by
 .It Dv DIOCGETRULESETS Fa "struct pfioc_ruleset *pr"
 .Bd -literal
 struct pfioc_ruleset {
-	u_int32_t	 nr;
+	uint32_t	 nr;
 	char		 path[MAXPATHLEN];
 	char		 name[PF_ANCHOR_NAME_SIZE];
 };
@@ -387,20 +387,20 @@ struct pfioc_if {
 Get the internal packet filter statistics.
 .Bd -literal
 struct pf_status {
-	u_int64_t	counters[PFRES_MAX];
-	u_int64_t	lcounters[LCNT_MAX];
-	u_int64_t	fcounters[FCNT_MAX];
-	u_int64_t	scounters[SCNT_MAX];
-	u_int64_t	pcounters[2][2][3];
-	u_int64_t	bcounters[2][2];
-	u_int32_t	running;
-	u_int32_t	states;
-	u_int32_t	src_nodes;
-	u_int32_t	since;
-	u_int32_t	debug;
-	u_int32_t	hostid;
+	uint64_t	counters[PFRES_MAX];
+	uint64_t	lcounters[LCNT_MAX];
+	uint64_t	fcounters[FCNT_MAX];
+	uint64_t	scounters[SCNT_MAX];
+	uint64_t	pcounters[2][2][3];
+	uint64_t	bcounters[2][2];
+	uint32_t	running;
+	uint32_t	states;
+	uint32_t	src_nodes;
+	uint32_t	since;
+	uint32_t	debug;
+	uint32_t	hostid;
 	char		ifname[IFNAMSIZ];
-	u_int8_t	pf_chksum[MD5_DIGEST_LENGTH];
+	uint8_t	pf_chksum[MD5_DIGEST_LENGTH];
 };
 .Ed
 .It Dv DIOCCLRSTATUS
@@ -413,16 +413,16 @@ struct pfioc_natlook {
 	struct pf_addr	 daddr;
 	struct pf_addr	 rsaddr;
 	struct pf_addr	 rdaddr;
-	u_int16_t	 sport;
-	u_int16_t	 dport;
-	u_int16_t	 rsport;
-	u_int16_t	 rdport;
+	uint16_t	 sport;
+	uint16_t	 dport;
+	uint16_t	 rsport;
+	uint16_t	 rdport;
 	sa_family_t	 af;
-	u_int8_t	 proto;
-	u_int8_t	 direction;
+	uint8_t	 proto;
+	uint8_t	 direction;
 };
 .Ed
-.It Dv DIOCSETDEBUG Fa "u_int32_t *level"
+.It Dv DIOCSETDEBUG Fa "uint32_t *level"
 Set the debug level.
 .Bd -literal
 enum	{ PF_DEBUG_NONE, PF_DEBUG_URGENT, PF_DEBUG_MISC,
@@ -590,7 +590,7 @@ struct pfioc_table {
 	int			 pfrio_ndel;
 	int			 pfrio_nchange;
 	int			 pfrio_flags;
-	u_int32_t		 pfrio_ticket;
+	uint32_t		 pfrio_ticket;
 };
 #define pfrio_exists    pfrio_nadd
 #define pfrio_nzero     pfrio_nadd
@@ -618,8 +618,8 @@ contains the number of tables effectively created.
 struct pfr_table {
 	char		pfrt_anchor[MAXPATHLEN];
 	char		pfrt_name[PF_TABLE_NAME_SIZE];
-	u_int32_t	pfrt_flags;
-	u_int8_t	pfrt_fback;
+	uint32_t	pfrt_flags;
+	uint8_t	pfrt_fback;
 };
 .Ed
 .It Dv DIOCRDELTABLES Fa "struct pfioc_table *io"
@@ -658,12 +658,12 @@ structures.
 .Bd -literal
 struct pfr_tstats {
 	struct pfr_table pfrts_t;
-	u_int64_t	 pfrts_packets
+	uint64_t	 pfrts_packets
 			     [PFR_DIR_MAX][PFR_OP_TABLE_MAX];
-	u_int64_t	 pfrts_bytes
+	uint64_t	 pfrts_bytes
 			     [PFR_DIR_MAX][PFR_OP_TABLE_MAX];
-	u_int64_t	 pfrts_match;
-	u_int64_t	 pfrts_nomatch;
+	uint64_t	 pfrts_match;
+	uint64_t	 pfrts_nomatch;
 	long		 pfrts_tzero;
 	int		 pfrts_cnt;
 	int		 pfrts_refcnt[PFR_REFCNT_MAX];
@@ -717,10 +717,10 @@ struct pfr_addr {
 		struct in_addr	 _pfra_ip4addr;
 		struct in6_addr	 _pfra_ip6addr;
 	}		 pfra_u;
-	u_int8_t	 pfra_af;
-	u_int8_t	 pfra_net;
-	u_int8_t	 pfra_not;
-	u_int8_t	 pfra_fback;
+	uint8_t	 pfra_af;
+	uint8_t	 pfra_net;
+	uint8_t	 pfra_not;
+	uint8_t	 pfra_fback;
 };
 #define pfra_ip4addr    pfra_u._pfra_ip4addr
 #define pfra_ip6addr    pfra_u._pfra_ip6addr
@@ -800,9 +800,9 @@ structures.
 .Bd -literal
 struct pfr_astats {
 	struct pfr_addr	 pfras_a;
-	u_int64_t	 pfras_packets
+	uint64_t	 pfras_packets
 			     [PFR_DIR_MAX][PFR_OP_ADDR_MAX];
-	u_int64_t	 pfras_bytes
+	uint64_t	 pfras_bytes
 			     [PFR_DIR_MAX][PFR_OP_ADDR_MAX];
 	long		 pfras_tzero;
 };
@@ -896,7 +896,7 @@ struct pfioc_trans {
 	struct pfioc_trans_e {
 		int		rs_num;
 		char		anchor[MAXPATHLEN];
-		u_int32_t	ticket;
+		uint32_t	ticket;
 	}		*array;
 };
 .Ed
@@ -945,7 +945,7 @@ inactive rulesets since the last
 .Dv DIOCXBEGIN .
 .Dv DIOCXROLLBACK
 will silently ignore rulesets for which the ticket is invalid.
-.It Dv DIOCSETHOSTID Fa "u_int32_t *hostid"
+.It Dv DIOCSETHOSTID Fa "uint32_t *hostid"
 Set the host ID, which is used by
 .Xr pfsync 4
 to identify which host created state table entries.
@@ -962,13 +962,13 @@ struct pf_osfp_ioctl {
 		char			fp_subtype_nm[PF_OSFP_LEN];
 	} 			fp_os;
 	pf_tcpopts_t		fp_tcpopts;
-	u_int16_t		fp_wsize;
-	u_int16_t		fp_psize;
-	u_int16_t		fp_mss;
-	u_int16_t		fp_flags;
-	u_int8_t		fp_optcnt;
-	u_int8_t		fp_wscale;
-	u_int8_t		fp_ttl;
+	uint16_t		fp_wsize;
+	uint16_t		fp_psize;
+	uint16_t		fp_mss;
+	uint16_t		fp_flags;
+	uint8_t		fp_optcnt;
+	uint8_t		fp_wscale;
+	uint8_t		fp_ttl;
 	int			fp_getnum;
 };
 .Ed
@@ -1107,9 +1107,9 @@ struct pfi_kif {
 		RB_ENTRY(pfi_kif)	 pfik_tree;
 		LIST_ENTRY(pfi_kif)	 pfik_list;
 	};
-	u_int64_t			 pfik_packets[2][2][2];
-	u_int64_t			 pfik_bytes[2][2][2];
-	u_int32_t			 pfik_tzero;
+	uint64_t			 pfik_packets[2][2][2];
+	uint64_t			 pfik_bytes[2][2][2];
+	uint32_t			 pfik_tzero;
 	u_int				 pfik_flags;
 	struct ifnet			*pfik_ifp;
 	struct ifg_group		*pfik_group;
@@ -1154,7 +1154,7 @@ command to find the internal host/port of a NATed connection:
 #include <stdio.h>
 #include <stdlib.h>
 
-u_int32_t
+uint32_t
 read_address(const char *s)
 {
 	int a, b, c, d;
@@ -1164,7 +1164,7 @@ read_address(const char *s)
 }
 
 void
-print_address(u_int32_t a)
+print_address(uint32_t a)
 {
 	a = ntohl(a);
 	printf("%d.%d.%d.%d", a >> 24 & 255, a >> 16 & 255,

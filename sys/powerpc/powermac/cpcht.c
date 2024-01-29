@@ -72,10 +72,10 @@ static void		cpcht_configure_htbridge(device_t, phandle_t);
 /*
  * pcib interface.
  */
-static u_int32_t	cpcht_read_config(device_t, u_int, u_int, u_int,
+static uint32_t	cpcht_read_config(device_t, u_int, u_int, u_int,
 			    u_int, int);
 static void		cpcht_write_config(device_t, u_int, u_int, u_int,
-			    u_int, u_int32_t, int);
+			    u_int, uint32_t, int);
 static int		cpcht_route_interrupt(device_t, device_t, int);
 static int		cpcht_alloc_msi(device_t dev, device_t child,
 			    int count, int maxcount, int *irqs);
@@ -172,7 +172,7 @@ cpcht_attach(device_t dev)
 {
 	struct		cpcht_softc *sc;
 	phandle_t	node, child;
-	u_int32_t	reg[3];
+	uint32_t	reg[3];
 	int		i;
 
 	node = ofw_bus_get_node(dev);
@@ -310,7 +310,7 @@ cpcht_configure_htbridge(device_t dev, phandle_t child)
 	}
 }
 
-static u_int32_t
+static uint32_t
 cpcht_read_config(device_t dev, u_int bus, u_int slot, u_int func, u_int reg,
     int width)
 {
@@ -344,7 +344,7 @@ cpcht_read_config(device_t dev, u_int bus, u_int slot, u_int func, u_int reg,
 
 static void
 cpcht_write_config(device_t dev, u_int bus, u_int slot, u_int func,
-    u_int reg, u_int32_t val, int width)
+    u_int reg, uint32_t val, int width)
 {
 	struct		cpcht_softc *sc;
 	vm_offset_t	caoff;

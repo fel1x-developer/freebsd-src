@@ -92,7 +92,7 @@ static int		work_inot(struct ccb_immediate_notify *);
 static struct ccb_scsiio *
 			get_ctio(void);
 /* static void		free_ccb(union ccb *); */
-static cam_status	get_sim_flags(u_int16_t *);
+static cam_status	get_sim_flags(uint16_t *);
 static void		rel_simq(void);
 static void		abort_all_pending(void);
 static void		usage(void);
@@ -102,7 +102,7 @@ main(int argc, char *argv[])
 {
 	int ch;
 	char *file_name;
-	u_int16_t req_flags, sim_flags;
+	uint16_t req_flags, sim_flags;
 	off_t user_size;
 
 	/* Initialize */
@@ -911,7 +911,7 @@ free_ccb(union ccb *ccb)
 }
 
 static cam_status
-get_sim_flags(u_int16_t *flags)
+get_sim_flags(uint16_t *flags)
 {
 	struct ccb_pathinq cpi;
 	cam_status status;

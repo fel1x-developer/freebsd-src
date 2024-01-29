@@ -51,7 +51,7 @@ struct tc_action {
 	/* tca_code dependent variable */
 	union {
 		u_long		un_value;	/* template */
-		u_int8_t	un_dscp;	/* diffserv code point */
+		uint8_t	un_dscp;	/* diffserv code point */
 		u_long		un_handle;	/* tc action handle */
 		struct cdnr_block *un_next;	/* next tc element block */
 	} tca_un;
@@ -144,9 +144,9 @@ struct cdnr_tcm_stats {
 /* time sliding window three-color marker operations */
 struct cdnr_add_tswtcm {
 	struct cdnr_interface	iface;
-	u_int32_t		cmtd_rate;	/* committed rate (bits/sec) */
-	u_int32_t		peak_rate;	/* peak rate (bits/sec) */
-	u_int32_t		avg_interval;	/* averaging interval (msec) */
+	uint32_t		cmtd_rate;	/* committed rate (bits/sec) */
+	uint32_t		peak_rate;	/* peak rate (bits/sec) */
+	uint32_t		avg_interval;	/* averaging interval (msec) */
 	struct tc_action	green_action;	/* action for green packets */
 	struct tc_action	yellow_action;	/* action for yellow packets */
 	struct tc_action	red_action;	/* action for red packets */
@@ -157,9 +157,9 @@ struct cdnr_add_tswtcm {
 struct cdnr_modify_tswtcm {
 	struct cdnr_interface	iface;
 	u_long			cdnr_handle;
-	u_int32_t		cmtd_rate;	/* committed rate (bits/sec) */
-	u_int32_t		peak_rate;	/* peak rate (bits/sec) */
-	u_int32_t		avg_interval;	/* averaging interval (msec) */
+	uint32_t		cmtd_rate;	/* committed rate (bits/sec) */
+	uint32_t		peak_rate;	/* peak rate (bits/sec) */
+	uint32_t		avg_interval;	/* averaging interval (msec) */
 };
 
 struct cdnr_add_filter {
@@ -238,7 +238,7 @@ struct cdnr_get_stats {
  */
 struct cdnr_pktinfo {
 	int		pkt_len;	/* packet length */
-	u_int8_t	pkt_dscp;	/* diffserv code point */
+	uint8_t	pkt_dscp;	/* diffserv code point */
 };
 
 /*
@@ -274,12 +274,12 @@ struct top_cdnr {
 
 /* token bucket element */
 struct tbe {
-	u_int64_t	rate;
-	u_int64_t	depth;
+	uint64_t	rate;
+	uint64_t	depth;
 
-	u_int64_t	token;
-	u_int64_t	filluptime;
-	u_int64_t	last;
+	uint64_t	token;
+	uint64_t	filluptime;
+	uint64_t	last;
 };
 
 /* token bucket meter structure */
@@ -301,9 +301,9 @@ struct trtcm {
 	struct tc_action	yellow_action;
 	struct tc_action	red_action;
 	int			coloraware;
-	u_int8_t		green_dscp;
-	u_int8_t		yellow_dscp;
-	u_int8_t		red_dscp;
+	uint8_t		green_dscp;
+	uint8_t		yellow_dscp;
+	uint8_t		red_dscp;
 	struct pktcntr		green_cnt;
 	struct pktcntr		yellow_cnt;
 	struct pktcntr		red_cnt;
@@ -313,18 +313,18 @@ struct trtcm {
 struct tswtcm {
 	struct cdnr_block	cdnrblk;	/* conditioner block */
 
-	u_int32_t		avg_rate;	/* average rate (bytes/sec) */
-	u_int64_t		t_front;	/* timestamp of last update */
+	uint32_t		avg_rate;	/* average rate (bytes/sec) */
+	uint64_t		t_front;	/* timestamp of last update */
 
-	u_int64_t		timewin;	/* average interval */
-	u_int32_t		cmtd_rate;	/* committed target rate */
-	u_int32_t		peak_rate;	/* peak target rate */
+	uint64_t		timewin;	/* average interval */
+	uint32_t		cmtd_rate;	/* committed target rate */
+	uint32_t		peak_rate;	/* peak target rate */
 	struct tc_action	green_action;
 	struct tc_action	yellow_action;
 	struct tc_action	red_action;
-	u_int8_t		green_dscp;
-	u_int8_t		yellow_dscp;
-	u_int8_t		red_dscp;
+	uint8_t		green_dscp;
+	uint8_t		yellow_dscp;
+	uint8_t		red_dscp;
 	struct pktcntr		green_cnt;
 	struct pktcntr		yellow_cnt;
 	struct pktcntr		red_cnt;

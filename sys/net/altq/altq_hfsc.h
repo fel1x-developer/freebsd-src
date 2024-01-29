@@ -49,9 +49,9 @@ struct service_curve_v0 {
 };
 
 struct service_curve_v1 {
-	u_int64_t	m1;   /* slope of the first segment in bits/sec */
+	uint64_t	m1;   /* slope of the first segment in bits/sec */
 	u_int	d;	      /* the x-projection of the first segment in msec */
-	u_int64_t	m2;   /* slope of the second segment in bits/sec */
+	uint64_t	m2;   /* slope of the second segment in bits/sec */
 };
 
 /* Latest version of struct service_curve_vX */
@@ -77,30 +77,30 @@ struct service_curve_v1 {
 
 struct hfsc_classstats_v0 {
 	u_int			class_id;
-	u_int32_t		class_handle;
+	uint32_t		class_handle;
 	struct service_curve_v0	rsc;
 	struct service_curve_v0	fsc;
 	struct service_curve_v0	usc;	/* upper limit service curve */
 
-	u_int64_t		total;	/* total work in bytes */
-	u_int64_t		cumul;	/* cumulative work in bytes
+	uint64_t		total;	/* total work in bytes */
+	uint64_t		cumul;	/* cumulative work in bytes
 					   done by real-time criteria */
-	u_int64_t		d;		/* deadline */
-	u_int64_t		e;		/* eligible time */
-	u_int64_t		vt;		/* virtual time */
-	u_int64_t		f;		/* fit time for upper-limit */
+	uint64_t		d;		/* deadline */
+	uint64_t		e;		/* eligible time */
+	uint64_t		vt;		/* virtual time */
+	uint64_t		f;		/* fit time for upper-limit */
 
 	/* info helpful for debugging */
-	u_int64_t		initvt;		/* init virtual time */
-	u_int64_t		vtoff;		/* cl_vt_ipoff */
-	u_int64_t		cvtmax;		/* cl_maxvt */
-	u_int64_t		myf;		/* cl_myf */
-	u_int64_t		cfmin;		/* cl_mincf */
-	u_int64_t		cvtmin;		/* cl_mincvt */
-	u_int64_t		myfadj;		/* cl_myfadj */
-	u_int64_t		vtadj;		/* cl_vtadj */
-	u_int64_t		cur_time;
-	u_int32_t		machclk_freq;
+	uint64_t		initvt;		/* init virtual time */
+	uint64_t		vtoff;		/* cl_vt_ipoff */
+	uint64_t		cvtmax;		/* cl_maxvt */
+	uint64_t		myf;		/* cl_myf */
+	uint64_t		cfmin;		/* cl_mincf */
+	uint64_t		cvtmin;		/* cl_mincvt */
+	uint64_t		myfadj;		/* cl_myfadj */
+	uint64_t		vtadj;		/* cl_vtadj */
+	uint64_t		cur_time;
+	uint32_t		machclk_freq;
 
 	u_int			qlength;
 	u_int			qlimit;
@@ -120,30 +120,30 @@ struct hfsc_classstats_v0 {
 
 struct hfsc_classstats_v1 {
 	u_int			class_id;
-	u_int32_t		class_handle;
+	uint32_t		class_handle;
 	struct service_curve_v1	rsc;
 	struct service_curve_v1	fsc;
 	struct service_curve_v1	usc;	/* upper limit service curve */
 
-	u_int64_t		total;	/* total work in bytes */
-	u_int64_t		cumul;	/* cumulative work in bytes
+	uint64_t		total;	/* total work in bytes */
+	uint64_t		cumul;	/* cumulative work in bytes
 					   done by real-time criteria */
-	u_int64_t		d;		/* deadline */
-	u_int64_t		e;		/* eligible time */
-	u_int64_t		vt;		/* virtual time */
-	u_int64_t		f;		/* fit time for upper-limit */
+	uint64_t		d;		/* deadline */
+	uint64_t		e;		/* eligible time */
+	uint64_t		vt;		/* virtual time */
+	uint64_t		f;		/* fit time for upper-limit */
 
 	/* info helpful for debugging */
-	u_int64_t		initvt;		/* init virtual time */
-	u_int64_t		vtoff;		/* cl_vt_ipoff */
-	u_int64_t		cvtmax;		/* cl_maxvt */
-	u_int64_t		myf;		/* cl_myf */
-	u_int64_t		cfmin;		/* cl_mincf */
-	u_int64_t		cvtmin;		/* cl_mincvt */
-	u_int64_t		myfadj;		/* cl_myfadj */
-	u_int64_t		vtadj;		/* cl_vtadj */
-	u_int64_t		cur_time;
-	u_int32_t		machclk_freq;
+	uint64_t		initvt;		/* init virtual time */
+	uint64_t		vtoff;		/* cl_vt_ipoff */
+	uint64_t		cvtmax;		/* cl_maxvt */
+	uint64_t		myf;		/* cl_myf */
+	uint64_t		cfmin;		/* cl_mincf */
+	uint64_t		cvtmin;		/* cl_mincvt */
+	uint64_t		myfadj;		/* cl_myfadj */
+	uint64_t		vtadj;		/* cl_vtadj */
+	uint64_t		cur_time;
+	uint32_t		machclk_freq;
 
 	u_int			qlength;
 	u_int			qlimit;
@@ -190,30 +190,30 @@ struct hfsc_classstats_v1 {
 
 /* kernel internal representation of a service curve */
 struct internal_sc {
-	u_int64_t	sm1;	/* scaled slope of the 1st segment */
-	u_int64_t	ism1;	/* scaled inverse-slope of the 1st segment */
-	u_int64_t	dx;	/* the x-projection of the 1st segment */
-	u_int64_t	dy;	/* the y-projection of the 1st segment */
-	u_int64_t	sm2;	/* scaled slope of the 2nd segment */
-	u_int64_t	ism2;	/* scaled inverse-slope of the 2nd segment */
+	uint64_t	sm1;	/* scaled slope of the 1st segment */
+	uint64_t	ism1;	/* scaled inverse-slope of the 1st segment */
+	uint64_t	dx;	/* the x-projection of the 1st segment */
+	uint64_t	dy;	/* the y-projection of the 1st segment */
+	uint64_t	sm2;	/* scaled slope of the 2nd segment */
+	uint64_t	ism2;	/* scaled inverse-slope of the 2nd segment */
 };
 
 /* runtime service curve */
 struct runtime_sc {
-	u_int64_t	x;	/* current starting position on x-axis */
-	u_int64_t	y;	/* current starting position on x-axis */
-	u_int64_t	sm1;	/* scaled slope of the 1st segment */
-	u_int64_t	ism1;	/* scaled inverse-slope of the 1st segment */
-	u_int64_t	dx;	/* the x-projection of the 1st segment */
-	u_int64_t	dy;	/* the y-projection of the 1st segment */
-	u_int64_t	sm2;	/* scaled slope of the 2nd segment */
-	u_int64_t	ism2;	/* scaled inverse-slope of the 2nd segment */
+	uint64_t	x;	/* current starting position on x-axis */
+	uint64_t	y;	/* current starting position on x-axis */
+	uint64_t	sm1;	/* scaled slope of the 1st segment */
+	uint64_t	ism1;	/* scaled inverse-slope of the 1st segment */
+	uint64_t	dx;	/* the x-projection of the 1st segment */
+	uint64_t	dy;	/* the y-projection of the 1st segment */
+	uint64_t	sm2;	/* scaled slope of the 2nd segment */
+	uint64_t	ism2;	/* scaled inverse-slope of the 2nd segment */
 };
 
 struct hfsc_class {
 	u_int		cl_id;		/* class id (just for debug) */
 	u_int		cl_slot;	/* slot in hif class table */
-	u_int32_t	cl_handle;	/* class handle */
+	uint32_t	cl_handle;	/* class handle */
 	struct hfsc_if	*cl_hif;	/* back pointer to struct hfsc_if */
 	int		cl_flags;	/* misc flags */
 
@@ -230,29 +230,29 @@ struct hfsc_class {
 #define	cl_codel		cl_aqm.cl_codel
 	struct altq_pktattr *cl_pktattr; /* saved header used by ECN */
 
-	u_int64_t	cl_total;	/* total work in bytes */
-	u_int64_t	cl_cumul;	/* cumulative work in bytes
+	uint64_t	cl_total;	/* total work in bytes */
+	uint64_t	cl_cumul;	/* cumulative work in bytes
 					   done by real-time criteria */
-	u_int64_t	cl_d;		/* deadline */
-	u_int64_t	cl_e;		/* eligible time */
-	u_int64_t	cl_vt;		/* virtual time */
-	u_int64_t	cl_f;		/* time when this class will fit for
+	uint64_t	cl_d;		/* deadline */
+	uint64_t	cl_e;		/* eligible time */
+	uint64_t	cl_vt;		/* virtual time */
+	uint64_t	cl_f;		/* time when this class will fit for
 					   link-sharing, max(myf, cfmin) */
-	u_int64_t	cl_myf;		/* my fit-time (as calculated from this
+	uint64_t	cl_myf;		/* my fit-time (as calculated from this
 					   class's own upperlimit curve) */
-	u_int64_t	cl_myfadj;	/* my fit-time adjustment
+	uint64_t	cl_myfadj;	/* my fit-time adjustment
 					   (to cancel history dependence) */
-	u_int64_t	cl_cfmin;	/* earliest children's fit-time (used
+	uint64_t	cl_cfmin;	/* earliest children's fit-time (used
 					   with cl_myf to obtain cl_f) */
-	u_int64_t	cl_cvtmin;	/* minimal virtual time among the
+	uint64_t	cl_cvtmin;	/* minimal virtual time among the
 					   children fit for link-sharing
 					   (monotonic within a period) */
-	u_int64_t	cl_vtadj;	/* intra-period cumulative vt
+	uint64_t	cl_vtadj;	/* intra-period cumulative vt
 					   adjustment */
-	u_int64_t	cl_vtoff;	/* inter-period cumulative vt offset */
-	u_int64_t	cl_cvtmax;	/* max child's vt in the last period */
+	uint64_t	cl_vtoff;	/* inter-period cumulative vt offset */
+	uint64_t	cl_cvtmax;	/* max child's vt in the last period */
 
-	u_int64_t	cl_initvt;	/* init virtual time (for debugging) */
+	uint64_t	cl_initvt;	/* init virtual time (for debugging) */
 
 	struct internal_sc *cl_rsc;	/* internal real-time service curve */
 	struct internal_sc *cl_fsc;	/* internal fair service curve */

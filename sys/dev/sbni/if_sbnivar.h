@@ -46,11 +46,11 @@
 #endif
 
 struct sbni_in_stats {
-	u_int32_t	all_rx_number;
-	u_int32_t	bad_rx_number;
-	u_int32_t	timeout_number;
-	u_int32_t	all_tx_number;
-	u_int32_t	resend_tx_number;
+	uint32_t	all_rx_number;
+	uint32_t	bad_rx_number;
+	uint32_t	timeout_number;
+	uint32_t	all_tx_number;
+	uint32_t	resend_tx_number;
 };
 
 struct sbni_flags {
@@ -103,8 +103,8 @@ struct sbni_softc {
 	int	delta_rxl;
 	u_int	cur_rxl_index;
 	u_int	timeout_rxl;
-	u_int32_t	cur_rxl_rcvd;
-	u_int32_t	prev_rxl_rcvd;
+	uint32_t	cur_rxl_rcvd;
+	uint32_t	prev_rxl_rcvd;
 
 	struct	sbni_csr1 csr1;			/* current value of CSR1 */
 	struct	sbni_in_stats in_stats; 	/* internal statistics */ 
@@ -129,7 +129,7 @@ int	sbni_attach(struct sbni_softc *, int, struct sbni_flags);
 void	sbni_detach(struct sbni_softc *);
 void	sbni_release_resources(struct sbni_softc *);
 
-extern u_int32_t next_sbni_unit;
+extern uint32_t next_sbni_unit;
 
 #ifdef SBNI_DUAL_COMPOUND
 void			sbni_add(struct sbni_softc *);

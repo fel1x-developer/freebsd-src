@@ -52,14 +52,14 @@
  * Stuff for the rmtcall service
  */
 struct encap_parms {
-	u_int32_t arglen;
+	uint32_t arglen;
 	char *args;
 };
 
 struct r_rmtcall_args {
-	u_int32_t  rmt_prog;
-	u_int32_t  rmt_vers;
-	u_int32_t  rmt_proc;
+	uint32_t  rmt_prog;
+	uint32_t  rmt_vers;
+	uint32_t  rmt_proc;
 	int     rmt_localvers;  /* whether to send port # or uaddr */
 	char    *rmt_uaddr;
 	struct encap_parms rmt_args;

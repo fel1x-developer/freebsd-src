@@ -56,8 +56,8 @@ HAL_BOOL	HT40mode = 1;
 HAL_BOOL	turbo5Disable = AH_FALSE;
 HAL_BOOL	turbo2Disable = AH_FALSE;
 
-u_int16_t	_numCtls = 8;
-u_int16_t	_ctl[32] =
+uint16_t	_numCtls = 8;
+uint16_t	_ctl[32] =
 	{ 0x10, 0x13, 0x40, 0x30, 0x11, 0x31, 0x12, 0x32 };
 RD_EDGES_POWER	_rdEdgesPower[NUM_EDGES*NUM_CTLS] = {
 	{ 5180, 28, 0 },	/* 0x10 */
@@ -133,8 +133,8 @@ RD_EDGES_POWER	_rdEdgesPower[NUM_EDGES*NUM_CTLS] = {
 	{ 2472, 28, 0 },
 };
 
-u_int16_t	turbo2WMaxPower5 = 32;
-u_int16_t	turbo2WMaxPower2;
+uint16_t	turbo2WMaxPower5 = 32;
+uint16_t	turbo2WMaxPower2;
 int8_t		antennaGainMax[2] = { 0, 0 };	/* XXX */
 int		eeversion = AR_EEPROM_VER3_1;
 TRGT_POWER_ALL_MODES tpow = {
@@ -165,7 +165,7 @@ TRGT_POWER_ALL_MODES tpow = {
 #define	trgtPwr_11b		tpow.trgtPwr_11b
 
 static HAL_BOOL
-getChannelEdges(struct ath_hal *ah, u_int16_t flags, u_int16_t *low, u_int16_t *high)
+getChannelEdges(struct ath_hal *ah, uint16_t flags, uint16_t *low, uint16_t *high)
 {
 	struct ath_hal_private *ahp = AH_PRIVATE(ah);
 	HAL_CAPABILITIES *pCap = &ahp->ah_caps;
@@ -953,7 +953,7 @@ getChipPowerLimits(struct ath_hal *ah, struct ieee80211_channel *chan)
 }
 
 static HAL_BOOL
-eepromRead(struct ath_hal *ah, u_int off, u_int16_t *data)
+eepromRead(struct ath_hal *ah, u_int off, uint16_t *data)
 {
 	/* emulate enough stuff to handle japan channel shift */
 	switch (off) {
@@ -995,7 +995,7 @@ getCapability(struct ath_hal *ah, HAL_CAPABILITY_TYPE type,
 int
 main(int argc, char *argv[])
 {
-	static const u_int16_t tpcScaleReductionTable[5] =
+	static const uint16_t tpcScaleReductionTable[5] =
 		{ 0, 3, 6, 9, MAX_RATE_POWER };
 	struct ath_hal_private ahp;
 	struct ieee80211_channel achans[IEEE80211_CHAN_MAX];
@@ -1277,20 +1277,20 @@ main(int argc, char *argv[])
  * NB: the input list is assumed to be sorted in ascending order
  */
 static void
-ar5212GetLowerUpperValues(u_int16_t v, u_int16_t *lp, u_int16_t listSize,
-                          u_int16_t *vlo, u_int16_t *vhi)
+ar5212GetLowerUpperValues(uint16_t v, uint16_t *lp, uint16_t listSize,
+                          uint16_t *vlo, uint16_t *vhi)
 {
-	u_int32_t target = v * EEP_SCALE;
-	u_int16_t *ep = lp+listSize;
+	uint32_t target = v * EEP_SCALE;
+	uint16_t *ep = lp+listSize;
 
 	/*
 	 * Check first and last elements for out-of-bounds conditions.
 	 */
-	if (target < (u_int32_t)(lp[0] * EEP_SCALE - EEP_DELTA)) {
+	if (target < (uint32_t)(lp[0] * EEP_SCALE - EEP_DELTA)) {
 		*vlo = *vhi = lp[0];
 		return;
 	}
-	if (target > (u_int32_t)(ep[-1] * EEP_SCALE + EEP_DELTA)) {
+	if (target > (uint32_t)(ep[-1] * EEP_SCALE + EEP_DELTA)) {
 		*vlo = *vhi = ep[-1];
 		return;
 	}
@@ -1309,7 +1309,7 @@ ar5212GetLowerUpperValues(u_int16_t v, u_int16_t *lp, u_int16_t listSize,
 		 * Look for value being between current value and next value
 		 * if so return these 2 values
 		 */
-		if (target < (u_int32_t)(lp[1] * EEP_SCALE - EEP_DELTA)) {
+		if (target < (uint32_t)(lp[1] * EEP_SCALE - EEP_DELTA)) {
 			*vlo = lp[0];
 			*vhi = lp[1];
 			return;
@@ -1320,12 +1320,12 @@ ar5212GetLowerUpperValues(u_int16_t v, u_int16_t *lp, u_int16_t listSize,
 /*
  * Find the maximum conformance test limit for the given channel and CTL info
  */
-static u_int16_t
-ar5212GetMaxEdgePower(u_int16_t channel, RD_EDGES_POWER *pRdEdgesPower)
+static uint16_t
+ar5212GetMaxEdgePower(uint16_t channel, RD_EDGES_POWER *pRdEdgesPower)
 {
 	/* temp array for holding edge channels */
-	u_int16_t tempChannelList[NUM_EDGES];
-	u_int16_t clo, chi, twiceMaxEdgePower;
+	uint16_t tempChannelList[NUM_EDGES];
+	uint16_t clo, chi, twiceMaxEdgePower;
 	int i, numEdges;
 
 	/* Get the edge power */
@@ -1359,11 +1359,11 @@ ar5212GetMaxEdgePower(u_int16_t channel, RD_EDGES_POWER *pRdEdgesPower)
 /*
  * Returns interpolated or the scaled up interpolated value
  */
-static u_int16_t
-interpolate(u_int16_t target, u_int16_t srcLeft, u_int16_t srcRight,
-	u_int16_t targetLeft, u_int16_t targetRight)
+static uint16_t
+interpolate(uint16_t target, uint16_t srcLeft, uint16_t srcRight,
+	uint16_t targetLeft, uint16_t targetRight)
 {
-	u_int16_t rv;
+	uint16_t rv;
 	int16_t lRatio;
 
 	/* to get an accurate ratio, always scale, if want to scale, then don't scale back down */
@@ -1399,11 +1399,11 @@ interpolate(u_int16_t target, u_int16_t srcLeft, u_int16_t srcRight,
 static void
 ar5212GetTargetPowers(struct ath_hal *ah, const struct ieee80211_channel *chan,
 	TRGT_POWER_INFO *powInfo,
-	u_int16_t numChannels, TRGT_POWER_INFO *pNewPower)
+	uint16_t numChannels, TRGT_POWER_INFO *pNewPower)
 {
 	/* temp array for holding target power channels */
-	u_int16_t tempChannelList[NUM_TEST_FREQUENCIES];
-	u_int16_t clo, chi, ixlo, ixhi;
+	uint16_t tempChannelList[NUM_TEST_FREQUENCIES];
+	uint16_t clo, chi, ixlo, ixhi;
 	int i;
 
 	/* Copy the target powers into the temp channel list */
@@ -1459,14 +1459,14 @@ setRateTable(struct ath_hal *ah, const struct ieee80211_channel *chan,
 		   int16_t tpcScaleReduction, int16_t powerLimit,
                    int16_t *pMinPower, int16_t *pMaxPower)
 {
-	u_int16_t ratesArray[16];
-	u_int16_t *rpow = ratesArray;
-	u_int16_t twiceMaxRDPower, twiceMaxEdgePower, twiceMaxEdgePowerCck;
+	uint16_t ratesArray[16];
+	uint16_t *rpow = ratesArray;
+	uint16_t twiceMaxRDPower, twiceMaxEdgePower, twiceMaxEdgePowerCck;
 	int8_t twiceAntennaGain, twiceAntennaReduction;
 	TRGT_POWER_INFO targetPowerOfdm, targetPowerCck;
 	RD_EDGES_POWER *rep;
 	int16_t scaledPower;
-	u_int8_t cfgCtl;
+	uint8_t cfgCtl;
 
 	twiceMaxRDPower = chan->ic_maxregpower * 2;
 	*pMaxPower = -MAX_RATE_POWER;

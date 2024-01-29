@@ -167,7 +167,7 @@ print_name(struct pf_addr *addr, sa_family_t af)
 }
 
 void
-print_host(struct pf_addr *addr, u_int16_t port, sa_family_t af, int opts)
+print_host(struct pf_addr *addr, uint16_t port, sa_family_t af, int opts)
 {
 	if (opts & PF_OPT_USEDNS)
 		print_name(addr, af);
@@ -347,8 +347,8 @@ print_state(struct pfctl_state *s, int opts)
 	}
 
 	if (opts & PF_OPT_VERBOSE) {
-		u_int32_t creation = s->creation;
-		u_int32_t expire = s->expire;
+		uint32_t creation = s->creation;
+		uint32_t expire = s->expire;
 
 		sec = creation % 60;
 		creation /= 60;
@@ -414,9 +414,9 @@ print_state(struct pfctl_state *s, int opts)
 		printf("\n");
 	}
 	if (opts & PF_OPT_VERBOSE2) {
-		u_int64_t id;
+		uint64_t id;
 
-		bcopy(&s->id, &id, sizeof(u_int64_t));
+		bcopy(&s->id, &id, sizeof(uint64_t));
 		printf("   id: %016jx creatorid: %08x", id, s->creatorid);
 		if (s->rt) {
 			switch (s->rt) {
@@ -449,7 +449,7 @@ int
 unmask(struct pf_addr *m, sa_family_t af)
 {
 	int i = 31, j = 0, b = 0;
-	u_int32_t tmp;
+	uint32_t tmp;
 
 	while (j < 4 && m->addr32[j] == 0xffffffff) {
 		b += 32;

@@ -366,7 +366,7 @@ static int
 start_all_aps(void)
 {
 	u_char mpbiosreason;
-	u_int32_t mpbioswarmvec;
+	uint32_t mpbioswarmvec;
 	int apic_id, cpu;
 
 	mtx_init(&ap_boot_mtx, "ap boot", NULL, MTX_SPIN);
@@ -377,7 +377,7 @@ start_all_aps(void)
 	install_ap_tramp();
 
 	/* save the current value of the warm-start vector */
-	mpbioswarmvec = *((u_int32_t *) WARMBOOT_OFF);
+	mpbioswarmvec = *((uint32_t *) WARMBOOT_OFF);
 	outb(CMOS_REG, BIOS_RESET);
 	mpbiosreason = inb(CMOS_DATA);
 
@@ -422,7 +422,7 @@ start_all_aps(void)
 	pmap_remap_lower(false);
 
 	/* restore the warmstart vector */
-	*(u_int32_t *) WARMBOOT_OFF = mpbioswarmvec;
+	*(uint32_t *) WARMBOOT_OFF = mpbioswarmvec;
 
 	outb(CMOS_REG, BIOS_RESET);
 	outb(CMOS_DATA, mpbiosreason);
@@ -452,9 +452,9 @@ install_ap_tramp(void)
 	u_char *src = (u_char *) ((u_long) bootMP);
 	u_char *dst = (u_char *) va;
 	u_int   boot_base = (u_int) bootMP;
-	u_int8_t *dst8;
-	u_int16_t *dst16;
-	u_int32_t *dst32;
+	uint8_t *dst8;
+	uint16_t *dst16;
+	uint32_t *dst32;
 
 	KASSERT (size <= PAGE_SIZE,
 	    ("'size' do not fit into PAGE_SIZE, as expected."));
@@ -473,22 +473,22 @@ install_ap_tramp(void)
 	dst = (u_char *) va;
 
 	/* modify the lgdt arg */
-	dst32 = (u_int32_t *) (dst + ((u_int) & mp_gdtbase - boot_base));
+	dst32 = (uint32_t *) (dst + ((u_int) & mp_gdtbase - boot_base));
 	*dst32 = boot_address + ((u_int) & MP_GDT - boot_base);
 
 	/* modify the ljmp target for MPentry() */
-	dst32 = (u_int32_t *) (dst + ((u_int) bigJump - boot_base) + 1);
+	dst32 = (uint32_t *) (dst + ((u_int) bigJump - boot_base) + 1);
 	*dst32 = (u_int)MPentry;
 
 	/* modify the target for boot code segment */
-	dst16 = (u_int16_t *) (dst + ((u_int) bootCodeSeg - boot_base));
-	dst8 = (u_int8_t *) (dst16 + 1);
+	dst16 = (uint16_t *) (dst + ((u_int) bootCodeSeg - boot_base));
+	dst8 = (uint8_t *) (dst16 + 1);
 	*dst16 = (u_int) boot_address & 0xffff;
 	*dst8 = ((u_int) boot_address >> 16) & 0xff;
 
 	/* modify the target for boot data segment */
-	dst16 = (u_int16_t *) (dst + ((u_int) bootDataSeg - boot_base));
-	dst8 = (u_int8_t *) (dst16 + 1);
+	dst16 = (uint16_t *) (dst + ((u_int) bootDataSeg - boot_base));
+	dst8 = (uint8_t *) (dst16 + 1);
 	*dst16 = (u_int) boot_address & 0xffff;
 	*dst8 = ((u_int) boot_address >> 16) & 0xff;
 }

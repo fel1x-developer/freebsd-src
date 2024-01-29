@@ -73,10 +73,10 @@ TAILQ_HEAD(p_head, ngp_hdr);
 struct ngp_fifo {
 	TAILQ_ENTRY(ngp_fifo)	fifo_le;	/* list of active queues only */
 	struct p_head		packet_head;	/* FIFO queue head */
-	u_int32_t		hash;		/* flow signature */
+	uint32_t		hash;		/* flow signature */
 	struct timeval		vtime;		/* virtual time, for WFQ */
-	u_int32_t		rr_deficit;	/* for DRR */
-	u_int32_t		packets;	/* # of packets in this queue */
+	uint32_t		rr_deficit;	/* for DRR */
+	uint32_t		packets;	/* # of packets in this queue */
 };
 
 /* Per hook info */
@@ -94,9 +94,9 @@ struct hookinfo {
 
 /* Per node info */
 struct node_priv {
-	u_int64_t		delay;
-	u_int32_t		overhead;
-	u_int32_t		header_offset;
+	uint64_t		delay;
+	uint32_t		overhead;
+	uint32_t		header_offset;
 	struct hookinfo		lower;
 	struct hookinfo		upper;
 	struct callout		timer;
@@ -562,17 +562,17 @@ parse_cfg(struct ng_pipe_hookcfg *current, struct ng_pipe_hookcfg *new,
 static int
 ip_hash(struct mbuf *m, int offset)
 {
-	u_int64_t i;
+	uint64_t i;
 	struct ip *ip = (struct ip *)(mtod(m, u_char *) + offset);
 
 	if (m->m_len < sizeof(struct ip) + offset ||
 	    ip->ip_v != 4 || ip->ip_hl << 2 != sizeof(struct ip))
 		return 0;
 
-	i = ((u_int64_t) ip->ip_src.s_addr ^
-	    ((u_int64_t) ip->ip_src.s_addr << 13) ^
-	    ((u_int64_t) ip->ip_dst.s_addr << 7) ^
-	    ((u_int64_t) ip->ip_dst.s_addr << 19));
+	i = ((uint64_t) ip->ip_src.s_addr ^
+	    ((uint64_t) ip->ip_src.s_addr << 13) ^
+	    ((uint64_t) ip->ip_dst.s_addr << 7) ^
+	    ((uint64_t) ip->ip_dst.s_addr << 19));
 	return (i ^ (i >> 32));
 }
 

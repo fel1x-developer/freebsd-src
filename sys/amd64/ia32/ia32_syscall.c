@@ -117,10 +117,10 @@ ia32_fetch_syscall_args(struct thread *td)
 	struct trapframe *frame;
 	struct syscall_args *sa;
 	caddr_t params;
-	u_int32_t args[8], tmp;
+	uint32_t args[8], tmp;
 	int error, i;
 #ifdef COMPAT_43
-	u_int32_t eip;
+	uint32_t eip;
 	int cs;
 #endif
 
@@ -138,7 +138,7 @@ ia32_fetch_syscall_args(struct thread *td)
 		error = fueword32((void *)frame->tf_rsp, &eip);
 		if (error == -1)
 			return (EFAULT);
-		cs = fuword16((void *)(frame->tf_rsp + sizeof(u_int32_t)));
+		cs = fuword16((void *)(frame->tf_rsp + sizeof(uint32_t)));
 		if (cs == -1)
 			return (EFAULT);
 
@@ -148,12 +148,12 @@ ia32_fetch_syscall_args(struct thread *td)
 		 */
 		frame->tf_rip = eip;
 		frame->tf_cs = cs;
-		frame->tf_rsp += 2 * sizeof(u_int32_t);
+		frame->tf_rsp += 2 * sizeof(uint32_t);
 		frame->tf_err = 7;		/* size of lcall $7,$0 */
 	}
 #endif
 
-	params = (caddr_t)frame->tf_rsp + sizeof(u_int32_t);
+	params = (caddr_t)frame->tf_rsp + sizeof(uint32_t);
 	sa->code = frame->tf_rax;
 	sa->original_code = sa->code;
 

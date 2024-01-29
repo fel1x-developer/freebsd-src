@@ -77,9 +77,9 @@
 #define SBP_TARG_MGM	 0x10000	/* offset from 0xffff f000 000 */
 #define SBP_TARG_BIND_HI	0xffff
 #define SBP_TARG_BIND_LO(l)	(0xf0000000 + SBP_TARG_MGM + 0x20 * ((l) + 1))
-#define SBP_TARG_BIND_START	(((u_int64_t)SBP_TARG_BIND_HI << 32) | \
+#define SBP_TARG_BIND_START	(((uint64_t)SBP_TARG_BIND_HI << 32) | \
 				    SBP_TARG_BIND_LO(-1))
-#define SBP_TARG_BIND_END	(((u_int64_t)SBP_TARG_BIND_HI << 32) | \
+#define SBP_TARG_BIND_END	(((uint64_t)SBP_TARG_BIND_HI << 32) | \
 				    SBP_TARG_BIND_LO(MAX_LOGINS))
 #define SBP_TARG_LOGIN_ID(lo)	(((lo) - SBP_TARG_BIND_LO(0))/0x20)
 

@@ -141,7 +141,7 @@ void lance_resume(struct lance_softc *);
 void lance_init_locked(struct lance_softc *);
 int lance_put(struct lance_softc *, int, struct mbuf *);
 struct mbuf *lance_get(struct lance_softc *, int, int);
-void lance_setladrf(struct lance_softc *, u_int16_t *);
+void lance_setladrf(struct lance_softc *, uint16_t *);
 
 /*
  * The following functions are only useful on certain CPU/bus

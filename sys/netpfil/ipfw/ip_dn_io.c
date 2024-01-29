@@ -445,7 +445,7 @@ ecn_mark(struct mbuf* m)
 	case (IPV6_VERSION >> 4):
 	{
 		struct ip6_hdr *ip6 = (struct ip6_hdr *)ip;
-		u_int32_t flowlabel;
+		uint32_t flowlabel;
 
 		flowlabel = ntohl(ip6->ip6_flow);
 		if ((flowlabel >> 28) != 6)

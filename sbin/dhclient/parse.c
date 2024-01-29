@@ -334,7 +334,7 @@ convert_num(unsigned char *buf, char *str, unsigned base, int size)
 {
 	bool negative = false;
 	unsigned tval, max;
-	u_int32_t val = 0;
+	uint32_t val = 0;
 	char *ptr = str;
 
 	if (*ptr == '-') {
@@ -417,10 +417,10 @@ convert_num(unsigned char *buf, char *str, unsigned base, int size)
 	else
 		switch (size) {
 		case 8:
-			*buf = (u_int8_t)val;
+			*buf = (uint8_t)val;
 			break;
 		case 16:
-			putUShort(buf, (u_int16_t)val);
+			putUShort(buf, (uint16_t)val);
 			break;
 		case 32:
 			putULong(buf, val);

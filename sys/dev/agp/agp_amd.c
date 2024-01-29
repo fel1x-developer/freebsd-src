@@ -58,10 +58,10 @@ MALLOC_DECLARE(M_AGP);
 #define WRITE4(off,v)	bus_space_write_4(sc->bst, sc->bsh, off, v)
 
 struct agp_amd_gatt {
-	u_int32_t	ag_entries;
-	u_int32_t      *ag_virtual;	/* virtual address of gatt */
+	uint32_t	ag_entries;
+	uint32_t      *ag_virtual;	/* virtual address of gatt */
 	vm_offset_t     ag_physical;
-	u_int32_t      *ag_vdir;	/* virtual address of page dir */
+	uint32_t      *ag_vdir;	/* virtual address of page dir */
 	vm_offset_t	ag_pdir;	/* physical address of page dir */
 };
 
@@ -70,15 +70,15 @@ struct agp_amd_softc {
 	struct resource	       *regs;	/* memory mapped control registers */
 	bus_space_tag_t		bst;	/* bus_space tag */
 	bus_space_handle_t	bsh;	/* bus_space handle */
-	u_int32_t		initial_aperture; /* aperture size at startup */
+	uint32_t		initial_aperture; /* aperture size at startup */
 	struct agp_amd_gatt    *gatt;
 };
 
 static struct agp_amd_gatt *
 agp_amd_alloc_gatt(device_t dev)
 {
-	u_int32_t apsize = AGP_GET_APERTURE(dev);
-	u_int32_t entries = apsize >> AGP_PAGE_SHIFT;
+	uint32_t apsize = AGP_GET_APERTURE(dev);
+	uint32_t entries = apsize >> AGP_PAGE_SHIFT;
 	struct agp_amd_gatt *gatt;
 	int i, npages, pdir_offset;
 
@@ -146,7 +146,7 @@ agp_amd_alloc_gatt(device_t dev)
 
 	pdir_offset = pci_read_config(dev, AGP_AMD751_APBASE, 4) >> 22;
 
-	npages = ((entries * sizeof(u_int32_t) + AGP_PAGE_SIZE - 1)
+	npages = ((entries * sizeof(uint32_t) + AGP_PAGE_SIZE - 1)
 		  >> AGP_PAGE_SHIFT);
 
 	for (i = 0; i < npages; i++) {
@@ -295,7 +295,7 @@ agp_amd_detach(device_t dev)
 	return 0;
 }
 
-static u_int32_t
+static uint32_t
 agp_amd_get_aperture(device_t dev)
 {
 	int vas;
@@ -308,7 +308,7 @@ agp_amd_get_aperture(device_t dev)
 }
 
 static int
-agp_amd_set_aperture(device_t dev, u_int32_t aperture)
+agp_amd_set_aperture(device_t dev, uint32_t aperture)
 {
 	int vas;
 

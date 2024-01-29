@@ -1492,7 +1492,7 @@ ath_hal_setcca(struct ath_hal *ah, int ena)
 int
 ath_hal_getcca(struct ath_hal *ah)
 {
-	u_int32_t diag;
+	uint32_t diag;
 	if (ath_hal_getcapability(ah, HAL_CAP_DIAG, 0, &diag) != HAL_OK)
 		return 1;
 	return ((diag & 0x500000) == 0);

@@ -35,8 +35,8 @@ extern u_short rflag;
 
 #define	TCPP_MAGIC	0x84e812f7
 struct tcpp_header {
-	u_int32_t	th_magic;
-	u_int64_t	th_len;
+	uint32_t	th_magic;
+	uint64_t	th_len;
 } __packed;
 
 void	tcpp_client(void);

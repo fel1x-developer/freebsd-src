@@ -6451,9 +6451,9 @@ bwn_set_txhdr(struct bwn_mac *mac, struct ieee80211_node *ni,
 
 	/* XXX rate/rate_fb is the hardware rate */
 	if ((rate_fb == rate) ||
-	    (*(u_int16_t *)wh->i_dur & htole16(0x8000)) ||
-	    (*(u_int16_t *)wh->i_dur == htole16(0)))
-		txhdr->dur_fb = *(u_int16_t *)wh->i_dur;
+	    (*(uint16_t *)wh->i_dur & htole16(0x8000)) ||
+	    (*(uint16_t *)wh->i_dur == htole16(0)))
+		txhdr->dur_fb = *(uint16_t *)wh->i_dur;
 	else
 		txhdr->dur_fb = ieee80211_compute_duration(ic->ic_rt,
 		    m->m_pkthdr.len, rate, isshort);
@@ -6597,7 +6597,7 @@ bwn_set_txhdr(struct bwn_mac *mac, struct ieee80211_node *ni,
 			break;
 		}
 
-		txhdr->rts_dur_fb = *(u_int16_t *)protwh->i_dur;
+		txhdr->rts_dur_fb = *(uint16_t *)protwh->i_dur;
 
 		if (BWN_ISOFDMRATE(rts_rate)) {
 			txhdr->eftypes |= BWN_TX_EFT_RTS_OFDM;

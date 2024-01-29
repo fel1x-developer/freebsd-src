@@ -110,7 +110,7 @@ pci_i386_map_intline(int line)
 	return (line);
 }
 
-static u_int16_t
+static uint16_t
 pcibios_get_version(void)
 {
 	struct bios_regs args;
@@ -195,7 +195,7 @@ pci_docfgregread(int domain, int bus, int slot, int func, int reg, int bytes)
 /* 
  * Read configuration space register
  */
-u_int32_t
+uint32_t
 pci_cfgregread(int domain, int bus, int slot, int func, int reg, int bytes)
 {
 	uint32_t line;

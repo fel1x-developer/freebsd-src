@@ -185,7 +185,7 @@ xdr_callmsg(XDR *xdrs, struct rpc_msg *cmsg)
 	}
 	prm_direction = &cmsg->rm_direction;
 	if (
-	    xdr_u_int32_t(xdrs, &(cmsg->rm_xid)) &&
+	    xdr_uint32_t(xdrs, &(cmsg->rm_xid)) &&
 	    xdr_enum(xdrs, (enum_t *) prm_direction) &&
 	    (cmsg->rm_direction == CALL) &&
 	    xdr_rpcvers(xdrs, &(cmsg->rm_call.cb_rpcvers)) &&

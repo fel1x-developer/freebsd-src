@@ -50,7 +50,7 @@
 #include <netgraph/bluetooth/l2cap/ng_l2cap_ulpi.h>
 #include <netgraph/bluetooth/l2cap/ng_l2cap_misc.h>
 
-static u_int16_t	ng_l2cap_get_cid	(ng_l2cap_p, int);
+static uint16_t	ng_l2cap_get_cid	(ng_l2cap_p, int);
 
 /******************************************************************************
  ******************************************************************************
@@ -314,7 +314,7 @@ ng_l2cap_con_by_addr(ng_l2cap_p l2cap, bdaddr_p bdaddr, unsigned int type)
  */
 
 ng_l2cap_con_p
-ng_l2cap_con_by_handle(ng_l2cap_p l2cap, u_int16_t con_handle)
+ng_l2cap_con_by_handle(ng_l2cap_p l2cap, uint16_t con_handle)
 {
 	ng_l2cap_con_p	con = NULL;
 
@@ -331,7 +331,7 @@ ng_l2cap_con_by_handle(ng_l2cap_p l2cap, u_int16_t con_handle)
  */
 
 ng_l2cap_chan_p
-ng_l2cap_new_chan(ng_l2cap_p l2cap, ng_l2cap_con_p con, u_int16_t psm, int idtype)
+ng_l2cap_new_chan(ng_l2cap_p l2cap, ng_l2cap_con_p con, uint16_t psm, int idtype)
 {
 	ng_l2cap_chan_p	ch = NULL;
 
@@ -378,7 +378,7 @@ ng_l2cap_new_chan(ng_l2cap_p l2cap, ng_l2cap_con_p con, u_int16_t psm, int idtyp
 } /* ng_l2cap_new_chan */
 
 ng_l2cap_chan_p
-ng_l2cap_chan_by_scid(ng_l2cap_p l2cap, u_int16_t scid, int idtype)
+ng_l2cap_chan_by_scid(ng_l2cap_p l2cap, uint16_t scid, int idtype)
 {
 	ng_l2cap_chan_p	ch = NULL;
 
@@ -402,7 +402,7 @@ ng_l2cap_chan_by_scid(ng_l2cap_p l2cap, u_int16_t scid, int idtype)
 
 ng_l2cap_chan_p
 ng_l2cap_chan_by_conhandle(ng_l2cap_p l2cap, uint16_t scid,
-			   u_int16_t con_handle)
+			   uint16_t con_handle)
 {
 	ng_l2cap_chan_p	ch = NULL;
 
@@ -451,8 +451,8 @@ ng_l2cap_free_chan(ng_l2cap_chan_p ch)
  */
 
 ng_l2cap_cmd_p
-ng_l2cap_new_cmd(ng_l2cap_con_p con, ng_l2cap_chan_p ch, u_int8_t ident,
-		u_int8_t code, u_int32_t token)
+ng_l2cap_new_cmd(ng_l2cap_con_p con, ng_l2cap_chan_p ch, uint8_t ident,
+		uint8_t code, uint32_t token)
 {
 	ng_l2cap_cmd_p	cmd = NULL;
 
@@ -480,7 +480,7 @@ ng_l2cap_new_cmd(ng_l2cap_con_p con, ng_l2cap_chan_p ch, u_int8_t ident,
  */
 
 ng_l2cap_cmd_p
-ng_l2cap_cmd_by_ident(ng_l2cap_con_p con, u_int8_t ident)
+ng_l2cap_cmd_by_ident(ng_l2cap_con_p con, uint8_t ident)
 {
 	ng_l2cap_cmd_p	cmd = NULL;
 
@@ -625,11 +625,11 @@ ng_l2cap_default_flow(void)
  * XXX FIXME this is *UGLY* but will do for now
  */
 
-static u_int16_t
+static uint16_t
 ng_l2cap_get_cid(ng_l2cap_p l2cap,int isle)
 {
-	u_int16_t	cid ;
-	u_int16_t 	endcid;
+	uint16_t	cid ;
+	uint16_t 	endcid;
 	uint16_t	 mask;
 	int idtype;
 	if(isle){
@@ -672,10 +672,10 @@ ng_l2cap_get_cid(ng_l2cap_p l2cap,int isle)
  * XXX FIXME this is *UGLY* but will do for now
  */
 
-u_int8_t
+uint8_t
 ng_l2cap_get_ident(ng_l2cap_con_p con)
 {
-	u_int8_t	ident = con->ident + 1;
+	uint8_t	ident = con->ident + 1;
 
 	if (ident < NG_L2CAP_FIRST_IDENT)
 		ident = NG_L2CAP_FIRST_IDENT;

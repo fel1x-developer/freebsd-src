@@ -360,7 +360,7 @@ ipcomp_input_cb(struct cryptop *crp)
 	}
 
 	/* Restore the Next Protocol field */
-	m_copyback(m, protoff, sizeof (u_int8_t), (u_int8_t *) &nproto);
+	m_copyback(m, protoff, sizeof (uint8_t), (uint8_t *) &nproto);
 
 	switch (saidx->dst.sa.sa_family) {
 #ifdef INET6
@@ -607,11 +607,11 @@ ipcomp_output_cb(struct cryptop *crp)
 #endif
 		}
 		ipcomp->comp_flags = 0;
-		ipcomp->comp_cpi = htons((u_int16_t) ntohl(sav->spi));
+		ipcomp->comp_cpi = htons((uint16_t) ntohl(sav->spi));
 
 		/* Fix Next Protocol in IPv4/IPv6 header */
 		prot = IPPROTO_IPCOMP;
-		m_copyback(m, protoff, sizeof(u_int8_t),
+		m_copyback(m, protoff, sizeof(uint8_t),
 		    (u_char *)&prot);
 
 		/* Adjust the length in the IP header */

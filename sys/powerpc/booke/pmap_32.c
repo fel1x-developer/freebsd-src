@@ -362,7 +362,7 @@ ptbl_unhold(pmap_t pmap, unsigned int pdir_idx)
 
 	ptbl = pmap->pm_pdir[pdir_idx];
 
-	//debugf("ptbl_unhold: ptbl = 0x%08x\n", (u_int32_t)ptbl);
+	//debugf("ptbl_unhold: ptbl = 0x%08x\n", (uint32_t)ptbl);
 	KASSERT(((vm_offset_t)ptbl >= VM_MIN_KERNEL_ADDRESS),
 	    ("ptbl_unhold: non kva ptbl"));
 
@@ -437,7 +437,7 @@ pte_remove(pmap_t pmap, vm_offset_t va, uint8_t flags)
 
 	//int su = (pmap == kernel_pmap);
 	//debugf("pte_remove: s (su = %d pmap = 0x%08x va = 0x%08x flags = %d)\n",
-	//		su, (u_int32_t)pmap, va, flags);
+	//		su, (uint32_t)pmap, va, flags);
 
 	ptbl = pmap->pm_pdir[pdir_idx];
 	KASSERT(ptbl, ("pte_remove: null ptbl"));

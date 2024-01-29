@@ -35,12 +35,12 @@
  */
 struct bios32_SDheader 
 {
-    u_int8_t	sig[4];
-    u_int32_t	entry;
-    u_int8_t	revision;
-    u_int8_t	len;
-    u_int8_t	cksum;
-    u_int8_t	pad[5];
+    uint8_t	sig[4];
+    uint32_t	entry;
+    uint8_t	revision;
+    uint8_t	len;
+    uint8_t	cksum;
+    uint8_t	pad[5];
 };
 
 /* 
@@ -48,19 +48,19 @@ struct bios32_SDheader
  */
 struct PnPBIOS_table 
 {
-    u_int8_t	sig[4];			/* "$PnP */
-    u_int8_t	version;		/* should be 0x10 */
-    u_int8_t	len;    		/* total structure length */
-    u_int16_t	control;		/* BIOS feature flags */
-    u_int8_t	cksum;			/* checksum */
-    u_int32_t	evflagaddr;		/* address of event notificaton flag */
-    u_int16_t	rmentryoffset;		/* real-mode entry offset */
-    u_int16_t	rmentryseg;		/*                 segment */
-    u_int16_t	pmentryoffset;		/* protected-mode entry offset */
-    u_int32_t	pmentrybase;		/*                segment base */
-    u_int32_t	oemdevid;		/* motherboard EISA ID */
-    u_int16_t	rmbiosseg;		/* real-mode BIOS segment */
-    u_int32_t	pmdataseg;		/* protected-mode data segment */
+    uint8_t	sig[4];			/* "$PnP */
+    uint8_t	version;		/* should be 0x10 */
+    uint8_t	len;    		/* total structure length */
+    uint16_t	control;		/* BIOS feature flags */
+    uint8_t	cksum;			/* checksum */
+    uint32_t	evflagaddr;		/* address of event notificaton flag */
+    uint16_t	rmentryoffset;		/* real-mode entry offset */
+    uint16_t	rmentryseg;		/*                 segment */
+    uint16_t	pmentryoffset;		/* protected-mode entry offset */
+    uint32_t	pmentrybase;		/*                segment base */
+    uint32_t	oemdevid;		/* motherboard EISA ID */
+    uint16_t	rmbiosseg;		/* real-mode BIOS segment */
+    uint32_t	pmdataseg;		/* protected-mode data segment */
 } __packed;
 
 /*
@@ -166,32 +166,32 @@ struct PnPBIOS_table
 struct PIR_header 
 {
     int8_t	ph_signature[4];
-    u_int16_t	ph_version;
-    u_int16_t	ph_length;
-    u_int8_t	ph_router_bus;
-    u_int8_t	ph_router_dev_fn;
-    u_int16_t	ph_pci_irqs;
-    u_int16_t	ph_router_vendor;
-    u_int16_t	ph_router_device;
-    u_int32_t	ph_miniport;
-    u_int8_t	ph_res[11];
-    u_int8_t	ph_checksum;
+    uint16_t	ph_version;
+    uint16_t	ph_length;
+    uint8_t	ph_router_bus;
+    uint8_t	ph_router_dev_fn;
+    uint16_t	ph_pci_irqs;
+    uint16_t	ph_router_vendor;
+    uint16_t	ph_router_device;
+    uint32_t	ph_miniport;
+    uint8_t	ph_res[11];
+    uint8_t	ph_checksum;
 } __packed;
 
 struct PIR_intpin 
 {
-    u_int8_t	link;
-    u_int16_t	irqs;
+    uint8_t	link;
+    uint16_t	irqs;
 } __packed;
 
 struct PIR_entry
 {
-    u_int8_t		pe_bus;
-    u_int8_t		pe_res1:3;
-    u_int8_t		pe_device:5;
+    uint8_t		pe_bus;
+    uint8_t		pe_res1:3;
+    uint8_t		pe_device:5;
     struct PIR_intpin	pe_intpin[4];
-    u_int8_t	pe_slot;
-    u_int8_t	pe_res3;
+    uint8_t	pe_slot;
+    uint8_t	pe_res3;
 } __packed;
 
 struct PIR_table 
@@ -219,17 +219,17 @@ struct PIR_table
 #define	SMAP_XATTR_MASK		(SMAP_XATTR_ENABLED | SMAP_XATTR_NON_VOLATILE)
 
 struct bios_smap {
-    u_int64_t	base;
-    u_int64_t	length;
-    u_int32_t	type;
+    uint64_t	base;
+    uint64_t	length;
+    uint32_t	type;
 } __packed;
 
 /* Structure extended to include extended attribute field in ACPI 3.0. */
 struct bios_smap_xattr {
-    u_int64_t	base;
-    u_int64_t	length;
-    u_int32_t	type;
-    u_int32_t	xattr;
+    uint64_t	base;
+    uint64_t	length;
+    uint32_t	type;
+    uint32_t	xattr;
 } __packed;
 
 #ifdef _KERNEL
@@ -293,12 +293,12 @@ struct bios32_SDentry
 {
     union 
     {
-	u_int8_t	name[4];	/* service identifier */
-	u_int32_t	id;		/* as a 32-bit value */
+	uint8_t	name[4];	/* service identifier */
+	uint32_t	id;		/* as a 32-bit value */
     } ident;
-    u_int32_t	base;			/* base of service */
-    u_int32_t	len;			/* service length */
-    u_int32_t	entry;			/* entrypoint offset from base */
+    uint32_t	base;			/* base of service */
+    uint32_t	len;			/* service length */
+    uint32_t	entry;			/* entrypoint offset from base */
     vm_offset_t	ventry;			/* entrypoint in kernel virtual segment */
 };
 

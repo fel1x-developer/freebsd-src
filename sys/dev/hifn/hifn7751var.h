@@ -98,8 +98,8 @@ struct hifn_dma {
 
 	u_char			command_bufs[HIFN_D_CMD_RSIZE][HIFN_MAX_COMMAND];
 	u_char			result_bufs[HIFN_D_CMD_RSIZE][HIFN_MAX_RESULT];
-	u_int32_t		slop[HIFN_D_CMD_RSIZE];
-	u_int64_t		test_src, test_dst;
+	uint32_t		slop[HIFN_D_CMD_RSIZE];
+	uint64_t		test_src, test_dst;
 } ;
 
 
@@ -139,9 +139,9 @@ struct hifn_softc {
 	struct resource		*sc_irq;
 	void			*sc_intrhand;	/* interrupt handle */
 
-	u_int32_t		sc_dmaier;
-	u_int32_t		sc_drammodel;	/* 1=dram, 0=sram */
-	u_int32_t		sc_pllconfig;	/* 7954/7955/7956 PLL config */
+	uint32_t		sc_dmaier;
+	uint32_t		sc_drammodel;	/* 1=dram, 0=sram */
+	uint32_t		sc_pllconfig;	/* 7954/7955/7956 PLL config */
 
 	struct hifn_dma		*sc_dma;
 	bus_dmamap_t		sc_dmamap;
@@ -263,8 +263,8 @@ struct hifn_operand {
 };
 struct hifn_command {
 	struct hifn_session *session;
-	u_int16_t base_masks, cry_masks, mac_masks;
-	u_int8_t iv[HIFN_MAX_IV_LENGTH], mac[HIFN_MAC_KEY_LENGTH];
+	uint16_t base_masks, cry_masks, mac_masks;
+	uint8_t iv[HIFN_MAX_IV_LENGTH], mac[HIFN_MAC_KEY_LENGTH];
 	const uint8_t *ck;
 	int cklen;
 	int sloplen, slopidx;
@@ -321,26 +321,26 @@ struct hifn_command {
 #endif /* _KERNEL */
 
 struct hifn_stats {
-	u_int64_t hst_ibytes;
-	u_int64_t hst_obytes;
-	u_int32_t hst_ipackets;
-	u_int32_t hst_opackets;
-	u_int32_t hst_invalid;
-	u_int32_t hst_nomem;		/* malloc or one of hst_nomem_* */
-	u_int32_t hst_abort;
-	u_int32_t hst_noirq;		/* IRQ for no reason */
-	u_int32_t hst_totbatch;		/* ops submitted w/o interrupt */
-	u_int32_t hst_maxbatch;		/* max ops submitted together */
-	u_int32_t hst_unaligned;	/* unaligned src caused copy */
+	uint64_t hst_ibytes;
+	uint64_t hst_obytes;
+	uint32_t hst_ipackets;
+	uint32_t hst_opackets;
+	uint32_t hst_invalid;
+	uint32_t hst_nomem;		/* malloc or one of hst_nomem_* */
+	uint32_t hst_abort;
+	uint32_t hst_noirq;		/* IRQ for no reason */
+	uint32_t hst_totbatch;		/* ops submitted w/o interrupt */
+	uint32_t hst_maxbatch;		/* max ops submitted together */
+	uint32_t hst_unaligned;	/* unaligned src caused copy */
 	/*
 	 * The following divides hst_nomem into more specific buckets.
 	 */
-	u_int32_t hst_nomem_map;	/* bus_dmamap_create failed */
-	u_int32_t hst_nomem_load;	/* bus_dmamap_load_* failed */
-	u_int32_t hst_nomem_mbuf;	/* MGET* failed */
-	u_int32_t hst_nomem_mcl;	/* MCLGET* failed */
-	u_int32_t hst_nomem_cr;		/* out of command/result descriptor */
-	u_int32_t hst_nomem_sd;		/* out of src/dst descriptors */
+	uint32_t hst_nomem_map;	/* bus_dmamap_create failed */
+	uint32_t hst_nomem_load;	/* bus_dmamap_load_* failed */
+	uint32_t hst_nomem_mbuf;	/* MGET* failed */
+	uint32_t hst_nomem_mcl;	/* MCLGET* failed */
+	uint32_t hst_nomem_cr;		/* out of command/result descriptor */
+	uint32_t hst_nomem_sd;		/* out of src/dst descriptors */
 };
 
 #endif /* __HIFN7751VAR_H__ */

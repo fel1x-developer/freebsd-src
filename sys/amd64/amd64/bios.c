@@ -64,8 +64,8 @@
  * signature was not found.
  */
 
-u_int32_t
-bios_sigsearch(u_int32_t start, u_char *sig, int siglen, int paralen, int sigofs)
+uint32_t
+bios_sigsearch(uint32_t start, u_char *sig, int siglen, int paralen, int sigofs)
 {
     u_char	*sp, *end;
     
@@ -86,7 +86,7 @@ bios_sigsearch(u_int32_t start, u_char *sig, int siglen, int paralen, int sigofs
 	/* compare here */
 	if (!bcmp(sp + sigofs, sig, siglen)) {
 	    /* convert back to physical address */
-	    return((u_int32_t)(uintptr_t)BIOS_VADDRTOPADDR(sp));
+	    return((uint32_t)(uintptr_t)BIOS_VADDRTOPADDR(sp));
 	}
 	sp += paralen;
     }

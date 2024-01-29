@@ -32,28 +32,28 @@
 struct vesa_info
 {
     /* mandatory fields */
-    u_int8_t		v_sig[4];	/* VESA */
-    u_int16_t		v_version;	/* ver in BCD */
-    u_int32_t		v_oemstr;	/* OEM string */
-    u_int32_t		v_flags;	/* flags */
+    uint8_t		v_sig[4];	/* VESA */
+    uint16_t		v_version;	/* ver in BCD */
+    uint32_t		v_oemstr;	/* OEM string */
+    uint32_t		v_flags;	/* flags */
 #define V_DAC8		(1<<0)
 #define V_NONVGA	(1<<1)
 #define V_SNOW		(1<<2)
-    u_int32_t		v_modetable;	/* modes */
-    u_int16_t		v_memsize;	/* in 64K */
+    uint32_t		v_modetable;	/* modes */
+    uint16_t		v_memsize;	/* in 64K */
     /* 2.0 */
-    u_int16_t		v_revision;	/* software rev */
-    u_int32_t		v_venderstr;	/* vender */
-    u_int32_t		v_prodstr;	/* product name */
-    u_int32_t		v_revstr;	/* product rev */
-    u_int8_t		v_strach[222];
-    u_int8_t		v_oemdata[256];
+    uint16_t		v_revision;	/* software rev */
+    uint32_t		v_venderstr;	/* vender */
+    uint32_t		v_prodstr;	/* product name */
+    uint32_t		v_revstr;	/* product rev */
+    uint8_t		v_strach[222];
+    uint8_t		v_oemdata[256];
 } __packed;
 
 struct vesa_mode 
 {
     /* mandatory fields */
-    u_int16_t		v_modeattr;
+    uint16_t		v_modeattr;
 #define V_MODESUPP	(1<<0)	/* VESA mode attributes */
 #define V_MODEOPTINFO	(1<<1)
 #define V_MODEBIOSOUT	(1<<2)
@@ -63,26 +63,26 @@ struct vesa_mode
 #define V_MODENONBANK	(1<<6)
 #define V_MODELFB	(1<<7)
 #define V_MODEVESA	(1<<16)	/* Private attributes */
-    u_int8_t		v_waattr;
-    u_int8_t		v_wbattr;
+    uint8_t		v_waattr;
+    uint8_t		v_wbattr;
 #define V_WATTREXIST	(1<<0)
 #define V_WATTRREAD	(1<<1)
 #define V_WATTRWRITE	(1<<2)
-    u_int16_t		v_wgran;
-    u_int16_t		v_wsize;
-    u_int16_t		v_waseg;
-    u_int16_t		v_wbseg;
-    u_int32_t		v_posfunc;
-    u_int16_t		v_bpscanline;
+    uint16_t		v_wgran;
+    uint16_t		v_wsize;
+    uint16_t		v_waseg;
+    uint16_t		v_wbseg;
+    uint32_t		v_posfunc;
+    uint16_t		v_bpscanline;
     /* fields optional for 1.0/1.1 implementations */
-    u_int16_t		v_width;
-    u_int16_t		v_height;
-    u_int8_t		v_cwidth;
-    u_int8_t		v_cheight;
-    u_int8_t		v_planes;
-    u_int8_t		v_bpp;
-    u_int8_t		v_banks;
-    u_int8_t		v_memmodel;
+    uint16_t		v_width;
+    uint16_t		v_height;
+    uint8_t		v_cwidth;
+    uint8_t		v_cheight;
+    uint8_t		v_planes;
+    uint8_t		v_bpp;
+    uint8_t		v_banks;
+    uint8_t		v_memmodel;
 #define V_MMTEXT	0
 #define V_MMCGA		1
 #define V_MMHGC		2
@@ -91,37 +91,37 @@ struct vesa_mode
 #define V_MMSEQU256	5
 #define V_MMDIRCOLOR	6
 #define V_MMYUV		7
-    u_int8_t		v_banksize;
-    u_int8_t		v_ipages;
-    u_int8_t		v_reserved0;
+    uint8_t		v_banksize;
+    uint8_t		v_ipages;
+    uint8_t		v_reserved0;
     /* fields for 1.2+ implementations */
-    u_int8_t		v_redmasksize;
-    u_int8_t		v_redfieldpos;
-    u_int8_t		v_greenmasksize;
-    u_int8_t		v_greenfieldpos;
-    u_int8_t		v_bluemasksize;
-    u_int8_t		v_bluefieldpos;
-    u_int8_t		v_resmasksize;
-    u_int8_t		v_resfieldpos;
-    u_int8_t		v_dircolormode;
+    uint8_t		v_redmasksize;
+    uint8_t		v_redfieldpos;
+    uint8_t		v_greenmasksize;
+    uint8_t		v_greenfieldpos;
+    uint8_t		v_bluemasksize;
+    uint8_t		v_bluefieldpos;
+    uint8_t		v_resmasksize;
+    uint8_t		v_resfieldpos;
+    uint8_t		v_dircolormode;
     /* 2.0 implementations */
-    u_int32_t		v_lfb;
-    u_int32_t		v_offscreen;
-    u_int16_t		v_offscreensize;
+    uint32_t		v_lfb;
+    uint32_t		v_offscreen;
+    uint16_t		v_offscreensize;
     /* 3.0 implementations */
-    u_int16_t		v_linbpscanline;
-    u_int8_t		v_bankipages;
-    u_int8_t		v_linipages;
-    u_int8_t		v_linredmasksize;
-    u_int8_t		v_linredfieldpos;
-    u_int8_t		v_lingreenmasksize;
-    u_int8_t		v_lingreenfieldpos;
-    u_int8_t		v_linbluemasksize;
-    u_int8_t		v_linbluefieldpos;
-    u_int8_t		v_linresmasksize;
-    u_int8_t		v_linresfieldpos;
-    u_int32_t		v_maxpixelclock;
-    u_int8_t		v_reserved1[190];
+    uint16_t		v_linbpscanline;
+    uint8_t		v_bankipages;
+    uint8_t		v_linipages;
+    uint8_t		v_linredmasksize;
+    uint8_t		v_linredfieldpos;
+    uint8_t		v_lingreenmasksize;
+    uint8_t		v_lingreenfieldpos;
+    uint8_t		v_linbluemasksize;
+    uint8_t		v_linbluefieldpos;
+    uint8_t		v_linresmasksize;
+    uint8_t		v_linresfieldpos;
+    uint32_t		v_maxpixelclock;
+    uint8_t		v_reserved1[190];
 } __packed;
 
 #ifdef _KERNEL

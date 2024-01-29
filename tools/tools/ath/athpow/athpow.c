@@ -57,8 +57,8 @@
 #define	MAX(a,b)	((a) > (b) ? (a) : (b))
 #endif
 
-static void printPcdacTable(FILE *fd, u_int16_t pcdac[], u_int n);
-static void printPowerPerRate(FILE *fd, u_int16_t ratesArray[], u_int n);
+static void printPcdacTable(FILE *fd, uint16_t pcdac[], u_int n);
+static void printPowerPerRate(FILE *fd, uint16_t ratesArray[], u_int n);
 static void printRevs(FILE *fd, const HAL_REVS *revs);
 
 static void
@@ -75,8 +75,8 @@ main(int argc, char *argv[])
 	struct ath_diag atd;
 	const char *ifname;
 	HAL_REVS revs;
-	u_int16_t pcdacTable[MAX(PWR_TABLE_SIZE,PWR_TABLE_SIZE_2413)];
-	u_int16_t ratesArray[37];
+	uint16_t pcdacTable[MAX(PWR_TABLE_SIZE,PWR_TABLE_SIZE_2413)];
+	uint16_t ratesArray[37];
 	u_int nrates, npcdac;
 
 	s = socket(AF_INET, SOCK_DGRAM, 0);
@@ -112,7 +112,7 @@ main(int argc, char *argv[])
 	atd.ad_out_size = sizeof(ratesArray);
 	if (ioctl(s, SIOCGATHDIAG, &atd) < 0)
 		err(1, atd.ad_name);
-	nrates = sizeof(ratesArray) / sizeof(u_int16_t);
+	nrates = sizeof(ratesArray) / sizeof(uint16_t);
 
 	atd.ad_id = HAL_DIAG_PCDAC;
 	atd.ad_out_data = (caddr_t) pcdacTable;
@@ -134,7 +134,7 @@ main(int argc, char *argv[])
 }
 
 static void
-printPcdacTable(FILE *fd, u_int16_t pcdac[], u_int n)
+printPcdacTable(FILE *fd, uint16_t pcdac[], u_int n)
 {
 	int i, halfRates = n/2;
 
@@ -145,7 +145,7 @@ printPcdacTable(FILE *fd, u_int16_t pcdac[], u_int n)
 }
 
 static void
-printPowerPerRate(FILE *fd, u_int16_t ratesArray[], u_int n)
+printPowerPerRate(FILE *fd, uint16_t ratesArray[], u_int n)
 {
 	const char *rateString[] = {
 		" 6mb OFDM", " 9mb OFDM", "12mb OFDM", "18mb OFDM",

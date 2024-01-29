@@ -179,7 +179,7 @@ static int
 rndtest_monobit(struct rndtest_state *rsp)
 {
 	int i, ones = 0, j;
-	u_int8_t r;
+	uint8_t r;
 
 	for (i = 0; i < RNDTEST_NBYTES; i++) {
 		r = rsp->rs_buf[i];
@@ -206,7 +206,7 @@ rndtest_monobit(struct rndtest_state *rsp)
 #define	RNDTEST_RUNS_NINTERVAL	6
 
 static const struct rndtest_runs_tabs {
-	u_int16_t min, max;
+	uint16_t min, max;
 } rndtest_runs_tab[] = {
 	{ 2343, 2657 },
 	{ 1135, 1365 },
@@ -221,7 +221,7 @@ rndtest_runs(struct rndtest_state *rsp)
 {
 	int i, j, ones, zeros, rv = 0;
 	int onei[RNDTEST_RUNS_NINTERVAL], zeroi[RNDTEST_RUNS_NINTERVAL];
-	u_int8_t c;
+	uint8_t c;
 
 	bzero(onei, sizeof(onei));
 	bzero(zeroi, sizeof(zeroi));
@@ -292,7 +292,7 @@ static int
 rndtest_longruns(struct rndtest_state *rsp)
 {
 	int i, j, ones = 0, zeros = 0, maxones = 0, maxzeros = 0;
-	u_int8_t c;
+	uint8_t c;
 
 	for (i = 0; i < RNDTEST_NBYTES; i++) {
 		c = rsp->rs_buf[i];

@@ -107,7 +107,7 @@ static void ofw_real_close(ofw_t, ihandle_t instance);
 static ssize_t ofw_real_read(ofw_t, ihandle_t instance, void *addr, size_t len);
 static ssize_t ofw_real_write(ofw_t, ihandle_t instance, const void *addr, 
     size_t len);
-static int ofw_real_seek(ofw_t, ihandle_t instance, u_int64_t pos);
+static int ofw_real_seek(ofw_t, ihandle_t instance, uint64_t pos);
 static caddr_t ofw_real_claim(ofw_t, void *virt, size_t size, u_int align);
 static void ofw_real_release(ofw_t, void *virt, size_t size);
 static void ofw_real_enter(ofw_t);
@@ -1044,7 +1044,7 @@ ofw_real_write(ofw_t ofw, ihandle_t instance, const void *addr, size_t len)
 
 /* Seek to a position. */
 static int
-ofw_real_seek(ofw_t ofw, ihandle_t instance, u_int64_t pos)
+ofw_real_seek(ofw_t ofw, ihandle_t instance, uint64_t pos)
 {
 	vm_offset_t argsptr;
 	struct {

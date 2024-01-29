@@ -427,7 +427,7 @@ SYSCTL_INT(_vfs_nfsd, OID_AUTO, server_max_minorversion4, CTLFLAG_RWTUN,
 
 /* local functions */
 static void nfsrvd_compound(struct nfsrv_descript *nd, int isdgram,
-    u_char *tag, int taglen, u_int32_t minorvers);
+    u_char *tag, int taglen, uint32_t minorvers);
 
 /*
  * This static array indicates which server procedures require the extra
@@ -537,7 +537,7 @@ nfsrvd_statend(int op, uint64_t bytes, struct bintime *now,
  */
 void
 nfsrvd_dorpc(struct nfsrv_descript *nd, int isdgram, u_char *tag, int taglen,
-    u_int32_t minorvers)
+    uint32_t minorvers)
 {
 	int error = 0, lktype;
 	vnode_t vp;
@@ -707,20 +707,20 @@ out:
  */
 static void
 nfsrvd_compound(struct nfsrv_descript *nd, int isdgram, u_char *tag,
-    int taglen, u_int32_t minorvers)
+    int taglen, uint32_t minorvers)
 {
 	int i, lktype, op, op0 = 0, rstat, statsinprog = 0;
-	u_int32_t *tl;
+	uint32_t *tl;
 	struct nfsclient *clp, *nclp;
 	int error = 0, igotlock, nextop, numops, savefhcnt;
-	u_int32_t retops = 0, *retopsp = NULL, *repp;
+	uint32_t retops = 0, *retopsp = NULL, *repp;
 	vnode_t vp, nvp, savevp;
 	struct nfsrvfh fh;
 	mount_t new_mp, temp_mp = NULL;
 	struct ucred *credanon, *rootcred, *savecred;
 	struct nfsexstuff nes, vpnes, savevpnes;
 	fsid_t cur_fsid, save_fsid;
-	static u_int64_t compref = 0;
+	static uint64_t compref = 0;
 	struct bintime start_time;
 	struct thread *p;
 	struct mbuf *mb, *md;
@@ -845,8 +845,8 @@ nfsrvd_compound(struct nfsrv_descript *nd, int isdgram, u_char *tag,
 	}
 
 	(void) nfsm_strtom(nd, tag, taglen);
-	NFSM_BUILD(retopsp, u_int32_t *, NFSX_UNSIGNED);
-	NFSM_DISSECT(tl, u_int32_t *, NFSX_UNSIGNED);
+	NFSM_BUILD(retopsp, uint32_t *, NFSX_UNSIGNED);
+	NFSM_DISSECT(tl, uint32_t *, NFSX_UNSIGNED);
 	if ((minorvers != NFSV4_MINORVERSION &&
 	    minorvers != NFSV41_MINORVERSION &&
 	    minorvers != NFSV42_MINORVERSION) ||
@@ -865,13 +865,13 @@ nfsrvd_compound(struct nfsrv_descript *nd, int isdgram, u_char *tag,
 	 * savevpnes and vpnes - are the export flags for the above.
 	 */
 	for (i = 0; i < numops; i++) {
-		NFSM_BUILD(repp, u_int32_t *, 2 * NFSX_UNSIGNED);
+		NFSM_BUILD(repp, uint32_t *, 2 * NFSX_UNSIGNED);
 		if (savefhcnt > 0) {
 			op = NFSV4OP_SAVEFH;
 			*repp = txdr_unsigned(op);
 			savefhcnt--;
 		} else if (nextop == -1) {
-			NFSM_DISSECT(tl, u_int32_t *, NFSX_UNSIGNED);
+			NFSM_DISSECT(tl, uint32_t *, NFSX_UNSIGNED);
 			*repp = *tl;
 			op = fxdr_unsigned(int, *tl);
 		} else {
@@ -964,7 +964,7 @@ nfsrvd_compound(struct nfsrv_descript *nd, int isdgram, u_char *tag,
 				 * Setattr replies require a bitmap.
 				 * even for errors like these.
 				 */
-				NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+				NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 				*tl = 0;
 			}
 			retops++;
@@ -1199,7 +1199,7 @@ nfsrvd_compound(struct nfsrv_descript *nd, int isdgram, u_char *tag,
 				     * Setattr reply requires a bitmap
 				     * even for errors like these.
 				     */
-				    NFSM_BUILD(tl, u_int32_t *,
+				    NFSM_BUILD(tl, uint32_t *,
 					NFSX_UNSIGNED);
 				    *tl = 0;
 				}
@@ -1312,7 +1312,7 @@ tryagain:
 						 * bitmap even for errors like
 						 * these.
 						 */
-						NFSM_BUILD(tl, u_int32_t *,
+						NFSM_BUILD(tl, uint32_t *,
 						    NFSX_UNSIGNED);
 						*tl = 0;
 					}
@@ -1396,7 +1396,7 @@ nfsmout:
 			printf("nfsv4 comperr1=%d\n", error);
 	}
 	if (taglen == -1) {
-		NFSM_BUILD(tl, u_int32_t *, 2 * NFSX_UNSIGNED);
+		NFSM_BUILD(tl, uint32_t *, 2 * NFSX_UNSIGNED);
 		*tl++ = 0;
 		*tl = 0;
 	} else {

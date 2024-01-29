@@ -380,7 +380,7 @@ ident_stream(int s, struct servtab *sep)
 	if (argc) {
 		int sec, usec;
 		size_t i;
-		u_int32_t rnd32;
+		uint32_t rnd32;
 
 		while ((c = getopt(argc, sep->se_argv, "d:fFgino:rt:")) != -1)
 			switch (c) {

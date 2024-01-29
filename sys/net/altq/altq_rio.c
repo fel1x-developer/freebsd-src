@@ -173,7 +173,7 @@ static struct redparams default_rio_params[RIO_NDROPPREC] = {
 };
 
 /* internal function prototypes */
-static int dscp2index(u_int8_t);
+static int dscp2index(uint8_t);
 
 rio_t *
 rio_alloc(int weight, struct redparams *params, int flags, int pkttime)
@@ -289,7 +289,7 @@ rio_getstats(rio_t *rp, struct redstats *sp)
  * starting from 0.
  */
 static int
-dscp2index(u_int8_t dscp)
+dscp2index(uint8_t dscp)
 {
 	int	dpindex = dscp & AF_DROPPRECMASK;
 
@@ -317,7 +317,7 @@ rio_addq(rio_t *rp, class_queue_t *q, struct mbuf *m,
     struct altq_pktattr *pktattr)
 {
 	int			 avg, droptype;
-	u_int8_t		 dsfield, odsfield;
+	uint8_t		 dsfield, odsfield;
 	int			 dpindex, i, n, t;
 	struct timeval		 now;
 	struct dropprec_state	*prec;

@@ -148,12 +148,12 @@ static	int hifn_dramsize(struct hifn_softc *);
 static	int hifn_ramtype(struct hifn_softc *);
 static	void hifn_sessions(struct hifn_softc *);
 static	void hifn_intr(void *);
-static	u_int hifn_write_command(struct hifn_command *, u_int8_t *);
-static	u_int32_t hifn_next_signature(u_int32_t a, u_int cnt);
-static	void hifn_callback(struct hifn_softc *, struct hifn_command *, u_int8_t *);
+static	u_int hifn_write_command(struct hifn_command *, uint8_t *);
+static	uint32_t hifn_next_signature(uint32_t a, u_int cnt);
+static	void hifn_callback(struct hifn_softc *, struct hifn_command *, uint8_t *);
 static	int hifn_crypto(struct hifn_softc *, struct hifn_command *, struct cryptop *, int);
-static	int hifn_readramaddr(struct hifn_softc *, int, u_int8_t *);
-static	int hifn_writeramaddr(struct hifn_softc *, int, u_int8_t *);
+static	int hifn_readramaddr(struct hifn_softc *, int, uint8_t *);
+static	int hifn_writeramaddr(struct hifn_softc *, int, uint8_t *);
 static	int hifn_dmamap_load_src(struct hifn_softc *, struct hifn_command *);
 static	int hifn_dmamap_load_dst(struct hifn_softc *, struct hifn_command *);
 static	int hifn_init_pubrng(struct hifn_softc *);
@@ -162,22 +162,22 @@ static	void hifn_tick(void *);
 static	void hifn_abort(struct hifn_softc *);
 static	void hifn_alloc_slot(struct hifn_softc *, int *, int *, int *, int *);
 
-static	void hifn_write_reg_0(struct hifn_softc *, bus_size_t, u_int32_t);
-static	void hifn_write_reg_1(struct hifn_softc *, bus_size_t, u_int32_t);
+static	void hifn_write_reg_0(struct hifn_softc *, bus_size_t, uint32_t);
+static	void hifn_write_reg_1(struct hifn_softc *, bus_size_t, uint32_t);
 
-static __inline u_int32_t
+static __inline uint32_t
 READ_REG_0(struct hifn_softc *sc, bus_size_t reg)
 {
-    u_int32_t v = bus_space_read_4(sc->sc_st0, sc->sc_sh0, reg);
+    uint32_t v = bus_space_read_4(sc->sc_st0, sc->sc_sh0, reg);
     sc->sc_bar0_lastreg = (bus_size_t) -1;
     return (v);
 }
 #define	WRITE_REG_0(sc, reg, val)	hifn_write_reg_0(sc, reg, val)
 
-static __inline u_int32_t
+static __inline uint32_t
 READ_REG_1(struct hifn_softc *sc, bus_size_t reg)
 {
-    u_int32_t v = bus_space_read_4(sc->sc_st1, sc->sc_sh1, reg);
+    uint32_t v = bus_space_read_4(sc->sc_st1, sc->sc_sh1, reg);
     sc->sc_bar1_lastreg = (bus_size_t) -1;
     return (v);
 }
@@ -308,7 +308,7 @@ hifn_getpllconfig(device_t dev, u_int *pll)
 {
 	const char *pllspec;
 	u_int freq, mul, fl, fh;
-	u_int32_t pllconfig;
+	uint32_t pllconfig;
 	char *nxt;
 
 	if (resource_string_value("hifn", device_get_unit(dev),
@@ -707,7 +707,7 @@ hifn_resume(device_t dev)
 static int
 hifn_init_pubrng(struct hifn_softc *sc)
 {
-	u_int32_t r;
+	uint32_t r;
 	int i;
 
 #ifdef HIFN_RNDTEST
@@ -782,9 +782,9 @@ hifn_init_pubrng(struct hifn_softc *sc)
 static void
 hifn_rng(void *vsc)
 {
-#define	RANDOM_BITS(n)	(n)*sizeof (u_int32_t), (n)*sizeof (u_int32_t)*NBBY, 0
+#define	RANDOM_BITS(n)	(n)*sizeof (uint32_t), (n)*sizeof (uint32_t)*NBBY, 0
 	struct hifn_softc *sc = vsc;
-	u_int32_t sts, num[2];
+	uint32_t sts, num[2];
 	int i;
 
 	if (sc->sc_flags & HIFN_IS_7811) {
@@ -884,7 +884,7 @@ hifn_set_retry(struct hifn_softc *sc)
 static void
 hifn_reset_board(struct hifn_softc *sc, int full)
 {
-	u_int32_t reg;
+	uint32_t reg;
 
 	/*
 	 * Set polling in the DMA configuration register to zero.  0x7 avoids
@@ -940,11 +940,11 @@ hifn_reset_board(struct hifn_softc *sc, int full)
 		      
 }
 
-static u_int32_t
-hifn_next_signature(u_int32_t a, u_int cnt)
+static uint32_t
+hifn_next_signature(uint32_t a, u_int cnt)
 {
 	int i;
-	u_int32_t v;
+	uint32_t v;
 
 	for (i = 0; i < cnt; i++) {
 
@@ -1019,7 +1019,7 @@ static struct pci2id pci2id[] = {
 static int 
 hifn_enable_crypto(struct hifn_softc *sc)
 {
-	u_int32_t dmacfg, ramcfg, encl, addr, i;
+	uint32_t dmacfg, ramcfg, encl, addr, i;
 	char *offtbl = NULL;
 
 	for (i = 0; i < nitems(pci2id); i++) {
@@ -1166,7 +1166,7 @@ hifn_init_pci_registers(struct hifn_softc *sc)
 
 
 	if (sc->sc_flags & HIFN_IS_7956) {
-		u_int32_t pll;
+		uint32_t pll;
 
 		WRITE_REG_0(sc, HIFN_0_PUCNFG, HIFN_PUCNFG_COMPSING |
 		    HIFN_PUCNFG_TCALLPHASES |
@@ -1214,7 +1214,7 @@ hifn_init_pci_registers(struct hifn_softc *sc)
 static void
 hifn_sessions(struct hifn_softc *sc)
 {
-	u_int32_t pucnfg;
+	uint32_t pucnfg;
 	int ctxsize;
 
 	pucnfg = READ_REG_0(sc, HIFN_0_PUCNFG);
@@ -1246,7 +1246,7 @@ hifn_sessions(struct hifn_softc *sc)
 static int
 hifn_ramtype(struct hifn_softc *sc)
 {
-	u_int8_t data[8], dataexpect[8];
+	uint8_t data[8], dataexpect[8];
 	int i;
 
 	for (i = 0; i < sizeof(data); i++)
@@ -1281,9 +1281,9 @@ hifn_ramtype(struct hifn_softc *sc)
 static int
 hifn_sramsize(struct hifn_softc *sc)
 {
-	u_int32_t a;
-	u_int8_t data[8];
-	u_int8_t dataexpect[sizeof(data)];
+	uint32_t a;
+	uint8_t data[8];
+	uint8_t dataexpect[sizeof(data)];
 	int32_t i;
 
 	for (i = 0; i < sizeof(data); i++)
@@ -1316,7 +1316,7 @@ hifn_sramsize(struct hifn_softc *sc)
 static int
 hifn_dramsize(struct hifn_softc *sc)
 {
-	u_int32_t cnfg;
+	uint32_t cnfg;
 
 	if (sc->sc_flags & HIFN_IS_7956) {
 		/*
@@ -1378,11 +1378,11 @@ hifn_alloc_slot(struct hifn_softc *sc, int *cmdp, int *srcp, int *dstp, int *res
 }
 
 static int
-hifn_writeramaddr(struct hifn_softc *sc, int addr, u_int8_t *data)
+hifn_writeramaddr(struct hifn_softc *sc, int addr, uint8_t *data)
 {
 	struct hifn_dma *dma = sc->sc_dma;
 	hifn_base_command_t wc;
-	const u_int32_t masks = HIFN_D_VALID | HIFN_D_LAST | HIFN_D_MASKDONEIRQ;
+	const uint32_t masks = HIFN_D_VALID | HIFN_D_LAST | HIFN_D_MASKDONEIRQ;
 	int r, cmdi, resi, srci, dsti;
 
 	wc.masks = htole16(3 << 13);
@@ -1439,11 +1439,11 @@ hifn_writeramaddr(struct hifn_softc *sc, int addr, u_int8_t *data)
 }
 
 static int
-hifn_readramaddr(struct hifn_softc *sc, int addr, u_int8_t *data)
+hifn_readramaddr(struct hifn_softc *sc, int addr, uint8_t *data)
 {
 	struct hifn_dma *dma = sc->sc_dma;
 	hifn_base_command_t rc;
-	const u_int32_t masks = HIFN_D_VALID | HIFN_D_LAST | HIFN_D_MASKDONEIRQ;
+	const uint32_t masks = HIFN_D_VALID | HIFN_D_LAST | HIFN_D_MASKDONEIRQ;
 	int r, cmdi, srci, dsti, resi;
 
 	rc.masks = htole16(2 << 13);
@@ -1537,15 +1537,15 @@ hifn_init_dma(struct hifn_softc *sc)
  * command buffer size.
  */
 static u_int
-hifn_write_command(struct hifn_command *cmd, u_int8_t *buf)
+hifn_write_command(struct hifn_command *cmd, uint8_t *buf)
 {
 	struct cryptop *crp;
-	u_int8_t *buf_pos;
+	uint8_t *buf_pos;
 	hifn_base_command_t *base_cmd;
 	hifn_mac_command_t *mac_cmd;
 	hifn_crypt_command_t *cry_cmd;
 	int using_mac, using_crypt, ivlen;
-	u_int32_t dlen, slen;
+	uint32_t dlen, slen;
 
 	crp = cmd->crp;
 	buf_pos = buf;
@@ -1556,7 +1556,7 @@ hifn_write_command(struct hifn_command *cmd, u_int8_t *buf)
 	base_cmd->masks = htole16(cmd->base_masks);
 	slen = cmd->src_mapsize;
 	if (cmd->sloplen)
-		dlen = cmd->dst_mapsize - cmd->sloplen + sizeof(u_int32_t);
+		dlen = cmd->dst_mapsize - cmd->sloplen + sizeof(uint32_t);
 	else
 		dlen = cmd->dst_mapsize;
 	base_cmd->total_source_count = htole16(slen & HIFN_BASE_CMD_LENMASK_LO);
@@ -1668,7 +1668,7 @@ hifn_dmamap_load_dst(struct hifn_softc *sc, struct hifn_command *cmd)
 {
 	struct hifn_dma *dma = sc->sc_dma;
 	struct hifn_operand *dst = &cmd->dst;
-	u_int32_t p, l;
+	uint32_t p, l;
 	int idx, used = 0, i;
 
 	idx = sc->sc_dsti;
@@ -1691,7 +1691,7 @@ hifn_dmamap_load_dst(struct hifn_softc *sc, struct hifn_command *cmd)
 		p = sc->sc_dma_physaddr +
 		    offsetof(struct hifn_dma, slop[cmd->slopidx]);
 		l = HIFN_D_VALID | HIFN_D_MASKDONEIRQ | HIFN_D_LAST |
-		    sizeof(u_int32_t);
+		    sizeof(uint32_t);
 
 		if ((dst->segs[i].ds_len - cmd->sloplen) != 0) {
 			dma->dstr[idx].p = htole32(dst->segs[i].ds_addr);
@@ -1738,7 +1738,7 @@ hifn_dmamap_load_src(struct hifn_softc *sc, struct hifn_command *cmd)
 	struct hifn_dma *dma = sc->sc_dma;
 	struct hifn_operand *src = &cmd->src;
 	int idx, i;
-	u_int32_t last = 0;
+	uint32_t last = 0;
 
 	idx = sc->sc_srci;
 	for (i = 0; i < src->nsegs; i++) {
@@ -1778,7 +1778,7 @@ hifn_crypto(
 	int hint)
 {
 	struct	hifn_dma *dma = sc->sc_dma;
-	u_int32_t cmdlen, csr;
+	uint32_t cmdlen, csr;
 	int cmdi, resi, err = 0;
 
 	/*
@@ -2085,7 +2085,7 @@ hifn_tick(void* vsc)
 
 	HIFN_LOCK(sc);
 	if (sc->sc_active == 0) {
-		u_int32_t r = 0;
+		uint32_t r = 0;
 
 		if (sc->sc_cmdu == 0 && sc->sc_c_busy) {
 			sc->sc_c_busy = 0;
@@ -2116,7 +2116,7 @@ hifn_intr(void *arg)
 {
 	struct hifn_softc *sc = arg;
 	struct hifn_dma *dma;
-	u_int32_t dmacsr, restart;
+	uint32_t dmacsr, restart;
 	int i, u;
 
 	dmacsr = READ_REG_1(sc, HIFN_1_DMA_CSR);
@@ -2191,7 +2191,7 @@ hifn_intr(void *arg)
 
 		if (i != HIFN_D_RES_RSIZE) {
 			struct hifn_command *cmd;
-			u_int8_t *macbuf = NULL;
+			uint8_t *macbuf = NULL;
 
 			HIFN_RES_SYNC(sc, i, BUS_DMASYNC_POSTREAD);
 			cmd = sc->sc_hifn_commands[i];
@@ -2535,7 +2535,7 @@ hifn_abort(struct hifn_softc *sc)
 
 		if ((dma->resr[i].l & htole32(HIFN_D_VALID)) == 0) {
 			/* Salvage what we can. */
-			u_int8_t *macbuf;
+			uint8_t *macbuf;
 
 			if (cmd->base_masks & HIFN_BASE_CMD_MAC) {
 				macbuf = dma->result_bufs[i];
@@ -2591,7 +2591,7 @@ hifn_abort(struct hifn_softc *sc)
 }
 
 static void
-hifn_callback(struct hifn_softc *sc, struct hifn_command *cmd, u_int8_t *macbuf)
+hifn_callback(struct hifn_softc *sc, struct hifn_command *cmd, uint8_t *macbuf)
 {
 	struct hifn_dma *dma = sc->sc_dma;
 	struct cryptop *crp = cmd->crp;
@@ -2680,7 +2680,7 @@ hifn_callback(struct hifn_softc *sc, struct hifn_command *cmd, u_int8_t *macbuf)
  *     register may not always work.
  */
 static void
-hifn_write_reg_0(struct hifn_softc *sc, bus_size_t reg, u_int32_t val)
+hifn_write_reg_0(struct hifn_softc *sc, bus_size_t reg, uint32_t val)
 {
 	if (sc->sc_flags & HIFN_IS_7811) {
 		if (sc->sc_bar0_lastreg == reg - 4)
@@ -2691,7 +2691,7 @@ hifn_write_reg_0(struct hifn_softc *sc, bus_size_t reg, u_int32_t val)
 }
 
 static void
-hifn_write_reg_1(struct hifn_softc *sc, bus_size_t reg, u_int32_t val)
+hifn_write_reg_1(struct hifn_softc *sc, bus_size_t reg, uint32_t val)
 {
 	if (sc->sc_flags & HIFN_IS_7811) {
 		if (sc->sc_bar1_lastreg == reg - 4)

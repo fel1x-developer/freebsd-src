@@ -738,7 +738,7 @@ out:
 			break;
 		}
 		fwb = malloc(sizeof(struct fw_bind), M_FW, M_WAITOK);
-		fwb->start = ((u_int64_t)bindreq->start.hi << 32) |
+		fwb->start = ((uint64_t)bindreq->start.hi << 32) |
 		    bindreq->start.lo;
 		fwb->end = fwb->start +  bindreq->len;
 		fwb->sc = d;

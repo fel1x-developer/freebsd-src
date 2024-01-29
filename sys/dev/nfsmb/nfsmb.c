@@ -141,8 +141,8 @@ nfsmbsub_probe(device_t dev)
 static int
 nfsmb_probe(device_t dev)
 {
-	u_int16_t vid;
-	u_int16_t did;
+	uint16_t vid;
+	uint16_t did;
 
 	vid = pci_get_vendor(dev);
 	did = pci_get_device(dev);

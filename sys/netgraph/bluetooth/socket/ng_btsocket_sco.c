@@ -96,7 +96,7 @@ static struct ng_type	typestruct = {
 };
 
 /* Globals */
-static u_int32_t				ng_btsocket_sco_debug_level;
+static uint32_t				ng_btsocket_sco_debug_level;
 static node_p					ng_btsocket_sco_node;
 static struct ng_bt_itemq			ng_btsocket_sco_queue;
 static struct mtx				ng_btsocket_sco_queue_mtx;
@@ -453,7 +453,7 @@ ng_btsocket_sco_process_lp_con_ind(struct ng_mesg *msg,
 	ng_hci_lp_con_ind_ep	*ep = NULL;
 	ng_btsocket_sco_pcb_t	*pcb = NULL, *pcb1 = NULL;
 	int			 error = 0;
-	u_int16_t		 status = 0;
+	uint16_t		 status = 0;
 
 	if (msg->header.arglen != sizeof(*ep))
 		return (EMSGSIZE);
@@ -699,7 +699,7 @@ ng_btsocket_sco_data_input(struct mbuf *m, hook_p hook)
 	ng_hci_scodata_pkt_t		*hdr = NULL;
 	ng_btsocket_sco_pcb_t		*pcb = NULL;
 	ng_btsocket_sco_rtentry_t	*rt = NULL;
-	u_int16_t			 con_handle;
+	uint16_t			 con_handle;
 
 	if (hook == NULL) {
 		NG_BTSOCKET_SCO_ALERT(

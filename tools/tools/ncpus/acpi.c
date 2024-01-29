@@ -98,8 +98,8 @@ acpi_handle_apic(struct ACPIsdt *sdp)
 static int
 acpi_checksum(void *p, size_t length)
 {
-	u_int8_t *bp;
-	u_int8_t sum;
+	uint8_t *bp;
+	uint8_t sum;
 
 	bp = p;
 	sum = 0;

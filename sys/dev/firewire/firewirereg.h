@@ -211,8 +211,8 @@ struct fw_bulkxfer {
 };
 
 struct fw_bind {
-	u_int64_t start;
-	u_int64_t end;
+	uint64_t start;
+	uint64_t end;
 	struct fw_xferlist xferlist;
 	STAILQ_ENTRY(fw_bind) fclist;
 	STAILQ_ENTRY(fw_bind) chlist;

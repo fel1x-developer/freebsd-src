@@ -377,36 +377,36 @@
 
 struct lge_rx_desc {
 	/* Hardware descriptor section */
-	u_int32_t		lge_ctl;
-	u_int32_t		lge_sts;
-	u_int32_t		lge_fragptr_lo;
-	u_int32_t		lge_fragptr_hi;
-	u_int16_t		lge_fraglen;
-	u_int16_t		lge_rsvd0;
-	u_int32_t		lge_rsvd1;
+	uint32_t		lge_ctl;
+	uint32_t		lge_sts;
+	uint32_t		lge_fragptr_lo;
+	uint32_t		lge_fragptr_hi;
+	uint16_t		lge_fraglen;
+	uint16_t		lge_rsvd0;
+	uint32_t		lge_rsvd1;
 	/* Driver software section */
 	union {
 		struct mbuf		*lge_mbuf;
-		u_int64_t		lge_dummy;
+		uint64_t		lge_dummy;
 	} lge_u;
 };
 
 struct lge_frag {
-	u_int32_t		lge_rsvd0;
-	u_int32_t		lge_fragptr_lo;
-	u_int32_t		lge_fragptr_hi;
-	u_int16_t		lge_fraglen;
-	u_int16_t		lge_rsvd1;
+	uint32_t		lge_rsvd0;
+	uint32_t		lge_fragptr_lo;
+	uint32_t		lge_fragptr_hi;
+	uint16_t		lge_fraglen;
+	uint16_t		lge_rsvd1;
 };
 
 struct lge_tx_desc {
 	/* Hardware descriptor section */
-	u_int32_t		lge_ctl;
+	uint32_t		lge_ctl;
 	struct lge_frag		lge_frags[10];
-	u_int32_t		lge_rsvd0;
+	uint32_t		lge_rsvd0;
 	union {
 		struct mbuf		*lge_mbuf;
-		u_int64_t		lge_dummy;
+		uint64_t		lge_dummy;
 	} lge_u;
 };
 
@@ -473,8 +473,8 @@ struct lge_list_data {
 #define LGE_DEVICEID		0x0001
 
 struct lge_type {
-	u_int16_t		lge_vid;
-	u_int16_t		lge_did;
+	uint16_t		lge_vid;
+	uint16_t		lge_did;
 	const char		*lge_name;
 };
 
@@ -483,8 +483,8 @@ struct lge_type {
 #define LGE_JSLOTS		384
 
 #define LGE_JRAWLEN (LGE_JUMBO_FRAMELEN + ETHER_ALIGN)
-#define LGE_JLEN (LGE_JRAWLEN + (sizeof(u_int64_t) - \
-	(LGE_JRAWLEN % sizeof(u_int64_t))))
+#define LGE_JLEN (LGE_JRAWLEN + (sizeof(uint64_t) - \
+	(LGE_JRAWLEN % sizeof(uint64_t))))
 #define LGE_JPAGESZ PAGE_SIZE
 #define LGE_RESID (LGE_JPAGESZ - (LGE_JLEN * LGE_JSLOTS) % LGE_JPAGESZ)
 #define LGE_JMEM ((LGE_JLEN * LGE_JSLOTS) + LGE_RESID)
@@ -513,9 +513,9 @@ struct lge_softc {
 	struct resource		*lge_irq;
 	void			*lge_intrhand;
 	device_t		lge_miibus;
-	u_int8_t		lge_type;
-	u_int8_t		lge_link;
-	u_int8_t		lge_pcs;
+	uint8_t		lge_type;
+	uint8_t		lge_link;
+	uint8_t		lge_pcs;
 	int			lge_if_flags;
 	int			lge_timer;
 	struct lge_list_data	*lge_ldata;

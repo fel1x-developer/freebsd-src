@@ -70,15 +70,15 @@
 #define NDDATA		BSD_NDRIVEDATA
 #define NSPARE		BSD_NSPARE
 
-static __inline u_int16_t dkcksum(struct disklabel *lp);
-static __inline u_int16_t
+static __inline uint16_t dkcksum(struct disklabel *lp);
+static __inline uint16_t
 dkcksum(struct disklabel *lp)
 {
-	u_int16_t *start, *end;
-	u_int16_t sum = 0;
+	uint16_t *start, *end;
+	uint16_t sum = 0;
 
-	start = (u_int16_t *)lp;
-	end = (u_int16_t *)&lp->d_partitions[lp->d_npartitions];
+	start = (uint16_t *)lp;
+	end = (uint16_t *)&lp->d_partitions[lp->d_npartitions];
 	while (start < end)
 		sum ^= *start++;
 	return (sum);

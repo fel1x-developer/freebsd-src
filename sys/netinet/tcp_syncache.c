@@ -1808,7 +1808,7 @@ syncache_respond(struct syncache *sc, const struct mbuf *m0, int flags)
 	struct tcphdr *th = NULL;
 	struct udphdr *udp = NULL;
 	int optlen, error = 0;	/* Make compiler happy */
-	u_int16_t hlen, tlen, mssopt, ulen;
+	uint16_t hlen, tlen, mssopt, ulen;
 	struct tcpopt to;
 #ifdef INET6
 	struct ip6_hdr *ip6 = NULL;
@@ -2211,7 +2211,7 @@ syncookie_mac(struct in_conninfo *inc, tcp_seq irs, uint8_t flags,
 	SipHash_Update(&ctx, &irs, sizeof(irs));
 	SipHash_Update(&ctx, &flags, sizeof(flags));
 	SipHash_Update(&ctx, &secmod, sizeof(secmod));
-	SipHash_Final((u_int8_t *)&siphash, &ctx);
+	SipHash_Final((uint8_t *)&siphash, &ctx);
 
 	return (siphash[0] ^ siphash[1]);
 }

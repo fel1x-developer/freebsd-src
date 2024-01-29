@@ -227,8 +227,8 @@
 #define	NFE_DMA_MAXADDR		0xFFFFFFFFFF
 #endif
 
-#define	NFE_ADDR_LO(x)		((u_int64_t) (x) & 0xffffffff)
-#define	NFE_ADDR_HI(x)		((u_int64_t) (x) >> 32)
+#define	NFE_ADDR_LO(x)		((uint64_t) (x) & 0xffffffff)
+#define	NFE_ADDR_HI(x)		((uint64_t) (x) >> 32)
 
 /* Rx/Tx descriptor */
 struct nfe_desc32 {

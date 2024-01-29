@@ -153,7 +153,7 @@ struct tws_msix_info {
 };
 
 struct tws_ioctl_lock {
-    u_int32_t       lock;
+    uint32_t       lock;
     time_t          timeout;
 };
 
@@ -166,36 +166,36 @@ struct tws_trace_rec {
     char func[TWS_TRACE_FUNC_LEN];
     int linenum;
     char desc[TWS_TRACE_DESC_LEN];
-    u_int64_t val1;
-    u_int64_t val2;
+    uint64_t val1;
+    uint64_t val2;
 };
 
 struct tws_circular_q {
     volatile int16_t head;
     volatile int16_t tail;
-    u_int16_t depth;
-    u_int8_t  overflow;
+    uint16_t depth;
+    uint8_t  overflow;
     void *    q;
 };
 
 struct tws_stats {
-    u_int64_t reqs_in;
-    u_int64_t reqs_out;
-    u_int64_t reqs_errored;
-    u_int64_t spurios_intrs;
-    u_int64_t num_intrs;    
-    u_int64_t num_aens;    
-    u_int64_t ioctls;       
-    u_int64_t scsi_ios;
+    uint64_t reqs_in;
+    uint64_t reqs_out;
+    uint64_t reqs_errored;
+    uint64_t spurios_intrs;
+    uint64_t num_intrs;    
+    uint64_t num_aens;    
+    uint64_t ioctls;       
+    uint64_t scsi_ios;
 };
 
 struct tws_init_connect_info {
-    u_int16_t     working_srl;
-    u_int16_t     working_branch;
-    u_int16_t     working_build;
-    u_int16_t     fw_on_ctlr_srl;
-    u_int16_t     fw_on_ctlr_branch;
-    u_int16_t     fw_on_ctlr_build;
+    uint16_t     working_srl;
+    uint16_t     working_branch;
+    uint16_t     working_build;
+    uint16_t     fw_on_ctlr_srl;
+    uint16_t     fw_on_ctlr_branch;
+    uint16_t     fw_on_ctlr_build;
 
 };
 
@@ -214,11 +214,11 @@ enum err { SUCCESS, FAILURE };
 struct tws_softc {
     device_t    tws_dev;                  /* bus device */
     struct cdev *tws_cdev;                /* controller device */
-    u_int32_t   device_id;                /* device id */
-    u_int32_t   subvendor_id;             /* device id */
-    u_int32_t   subdevice_id;             /* device id */
-    u_int8_t    tws_state;                /* driver state */
-    u_int8_t    tws_prev_state;           /* driver prev state */
+    uint32_t   device_id;                /* device id */
+    uint32_t   subvendor_id;             /* device id */
+    uint32_t   subdevice_id;             /* device id */
+    uint8_t    tws_state;                /* driver state */
+    uint8_t    tws_prev_state;           /* driver prev state */
     struct sysctl_ctx_list tws_clist;     /* sysctl context */
     struct sysctl_oid *tws_oidp;          /* sysctl context */
     struct resource *reg_res;             /* register interface window */
@@ -229,7 +229,7 @@ struct tws_softc {
     bus_space_handle_t bus_mfa_handle;     /* bus space handle */
     bus_space_tag_t bus_tag;              /* bus space tag */
     bus_space_tag_t bus_mfa_tag;          /* bus space tag for mfa's */
-    u_int64_t mfa_base;                   /* mfa base address */
+    uint64_t mfa_base;                   /* mfa base address */
     struct resource *irq_res[TWS_MAX_IRQS];/* interrupt resource */
     int irq_res_id[TWS_MAX_IRQS];         /* intr resource id */
     void *intr_handle[TWS_MAX_IRQS];      /* interrupt handle */
@@ -242,18 +242,18 @@ struct tws_softc {
     struct mtx gen_lock;                  /* general driver  lock */
     struct mtx io_lock;                   /* IO  lock */
     struct tws_ioctl_lock ioctl_lock;     /* ioctl lock */ 
-    u_int32_t seq_id;                     /* Sequence id */
+    uint32_t seq_id;                     /* Sequence id */
     struct tws_circular_q aen_q;          /* aen q */
     struct tws_circular_q trace_q;        /* trace q */
     struct tws_stats stats;               /* I/O stats */
     struct tws_init_connect_info cinfo;   /* compatibility info */
     boolean is64bit;                      /* True - 64bit else 32bit */
-    u_int8_t intr_type;                   /* Interrupt type used */
+    uint8_t intr_type;                   /* Interrupt type used */
     bus_dma_tag_t parent_tag;             /* parent DMA tag */
     bus_dma_tag_t cmd_tag;                /* command DMA tag */
     bus_dmamap_t cmd_map;                 /* command map */
     void *dma_mem;                        /* pointer to dmable memory */
-    u_int64_t dma_mem_phys;               /* phy addr */
+    uint64_t dma_mem_phys;               /* phy addr */
     bus_dma_tag_t data_tag;               /* data DMA tag */
     void *ioctl_data_mem;                 /* ioctl dmable memory */
     bus_dmamap_t ioctl_data_map;          /* ioctl data map */

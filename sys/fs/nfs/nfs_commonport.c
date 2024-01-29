@@ -269,13 +269,13 @@ int
 nfsmsleep(void *chan, void *mutex, int prio, const char *wmesg,
     struct timespec *ts)
 {
-	u_int64_t nsecval;
+	uint64_t nsecval;
 	int error, timeo;
 
 	if (ts) {
 		timeo = hz * ts->tv_sec;
-		nsecval = (u_int64_t)ts->tv_nsec;
-		nsecval = ((nsecval * ((u_int64_t)hz)) + 500000000) /
+		nsecval = (uint64_t)ts->tv_nsec;
+		nsecval = ((nsecval * ((uint64_t)hz)) + 500000000) /
 		    1000000000;
 		timeo += (int)nsecval;
 	} else {
@@ -422,7 +422,7 @@ nfs_catnap(int prio, int errval, const char *wmesg)
  * Get referral. For now, just fail.
  */
 struct nfsreferral *
-nfsv4root_getreferral(struct vnode *vp, struct vnode *dvp, u_int32_t fileno)
+nfsv4root_getreferral(struct vnode *vp, struct vnode *dvp, uint32_t fileno)
 {
 
 	return (NULL);

@@ -146,7 +146,7 @@ MALLOC_DECLARE(M_IPFW);
  */
 int ipfw_chk(struct ip_fw_args *args);
 struct mbuf *ipfw_send_pkt(struct mbuf *, struct ipfw_flow_id *,
-    u_int32_t, u_int32_t, int);
+    uint32_t, uint32_t, int);
 
 int ipfw_attach_hooks(void);
 void ipfw_detach_hooks(void);
@@ -165,7 +165,7 @@ void ipfw_bpf_mtap(struct mbuf *);
 void ipfw_bpf_mtap2(void *, u_int, struct mbuf *);
 void ipfw_log(struct ip_fw_chain *chain, struct ip_fw *f, u_int hlen,
     struct ip_fw_args *args, u_short offset, uint32_t tablearg, struct ip *ip);
-VNET_DECLARE(u_int64_t, norule_counter);
+VNET_DECLARE(uint64_t, norule_counter);
 #define	V_norule_counter	VNET(norule_counter)
 VNET_DECLARE(int, verbose_limit);
 #define	V_verbose_limit		VNET(verbose_limit)
@@ -235,7 +235,7 @@ VNET_DECLARE(struct ip_fw_chain, layer3_chain);
 VNET_DECLARE(int, ipfw_vnet_ready);
 #define	V_ipfw_vnet_ready	VNET(ipfw_vnet_ready)
 
-VNET_DECLARE(u_int32_t, set_disable);
+VNET_DECLARE(uint32_t, set_disable);
 #define	V_set_disable		VNET(set_disable)
 
 VNET_DECLARE(int, autoinc_step);

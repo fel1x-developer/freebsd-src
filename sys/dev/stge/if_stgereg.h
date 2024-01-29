@@ -576,8 +576,8 @@ struct stge_rxdesc {
 	bus_dmamap_t rx_dmamap;
 };
 
-#define	STGE_ADDR_LO(x)		((u_int64_t) (x) & 0xffffffff)
-#define	STGE_ADDR_HI(x)		((u_int64_t) (x) >> 32)
+#define	STGE_ADDR_LO(x)		((uint64_t) (x) & 0xffffffff)
+#define	STGE_ADDR_HI(x)		((uint64_t) (x) >> 32)
 
 #define	STGE_RING_ALIGN		8
 

@@ -55,17 +55,17 @@
  * Vital Product Data
  */
 struct vpd {
-	u_int16_t	Header;			/* 0x55AA */
-	u_int8_t	Signature[3];		/* Always 'VPD' */
-	u_int8_t	Length;			/* Sructure Length */
+	uint16_t	Header;			/* 0x55AA */
+	uint8_t	Signature[3];		/* Always 'VPD' */
+	uint8_t	Length;			/* Sructure Length */
 
-	u_int8_t	Reserved[7];		/* Reserved */
+	uint8_t	Reserved[7];		/* Reserved */
 
-	u_int8_t	BuildID[9];		/* BIOS Build ID */
-	u_int8_t	BoxSerial[7];		/* Box Serial Number */
-	u_int8_t	PlanarSerial[11];	/* Motherboard Serial Number */
-	u_int8_t	MachType[7];		/* Machine Type/Model */
-	u_int8_t	Checksum;		/* Checksum */
+	uint8_t	BuildID[9];		/* BIOS Build ID */
+	uint8_t	BoxSerial[7];		/* Box Serial Number */
+	uint8_t	PlanarSerial[11];	/* Motherboard Serial Number */
+	uint8_t	MachType[7];		/* Machine Type/Model */
+	uint8_t	Checksum;		/* Checksum */
 } __packed;
 
 struct vpd_softc {
@@ -129,7 +129,7 @@ static void
 vpd_identify (driver_t *driver, device_t parent)
 {
 	device_t child;
-	u_int32_t addr;
+	uint32_t addr;
 	int length;
 	int rid;
 
@@ -295,11 +295,11 @@ MODULE_VERSION(vpd, 1);
 static int
 vpd_cksum (struct vpd *v)
 {
-	u_int8_t *ptr;
-	u_int8_t cksum;
+	uint8_t *ptr;
+	uint8_t cksum;
 	int i;
 
-	ptr = (u_int8_t *)v;
+	ptr = (uint8_t *)v;
 	cksum = 0;
 	for (i = offsetof(struct vpd, BuildID); i < v->Length ; i++)
 		cksum += ptr[i];

@@ -28,16 +28,16 @@
 
 #ifdef __i386__		/* Do any other archs not care about alignment ? */
 
-#  define ua_htonl(src, tgt) (*(u_int32_t *)(tgt) = htonl(*(u_int32_t *)(src)))
-#  define ua_ntohl(src, tgt) (*(u_int32_t *)(tgt) = ntohl(*(u_int32_t *)(src)))
-#  define ua_htons(src, tgt) (*(u_int16_t *)(tgt) = htons(*(u_int16_t *)(src)))
-#  define ua_ntohs(src, tgt) (*(u_int16_t *)(tgt) = ntohs(*(u_int16_t *)(src)))
+#  define ua_htonl(src, tgt) (*(uint32_t *)(tgt) = htonl(*(uint32_t *)(src)))
+#  define ua_ntohl(src, tgt) (*(uint32_t *)(tgt) = ntohl(*(uint32_t *)(src)))
+#  define ua_htons(src, tgt) (*(uint16_t *)(tgt) = htons(*(uint16_t *)(src)))
+#  define ua_ntohs(src, tgt) (*(uint16_t *)(tgt) = ntohs(*(uint16_t *)(src)))
 
 #else	/* We care about alignment (or else drop a core !) */
 
 #  define ua_htonl(src, tgt)				\
     do {						\
-      u_int32_t __oh;					\
+      uint32_t __oh;					\
       memcpy(&__oh, (src), sizeof __oh);		\
       *(u_char *)(tgt) = __oh >> 24;			\
       *((u_char *)(tgt) + 1) = (__oh >> 16) & 0xff;	\
@@ -47,17 +47,17 @@
 
 #  define ua_ntohl(src, tgt)				\
     do {						\
-      u_int32_t __nh;					\
-      __nh = ((u_int32_t)*(u_char *)(src) << 24) |	\
-          ((u_int32_t)*((u_char *)(src) + 1) << 16) |	\
-          ((u_int32_t)*((u_char *)(src) + 2) << 8) |	\
-          (u_int32_t)*((u_char *)(src) + 3);		\
+      uint32_t __nh;					\
+      __nh = ((uint32_t)*(u_char *)(src) << 24) |	\
+          ((uint32_t)*((u_char *)(src) + 1) << 16) |	\
+          ((uint32_t)*((u_char *)(src) + 2) << 8) |	\
+          (uint32_t)*((u_char *)(src) + 3);		\
       memcpy((tgt), &__nh, sizeof __nh);		\
     } while (0)
 
 #  define ua_htons(src, tgt)				\
     do {						\
-      u_int16_t __oh;					\
+      uint16_t __oh;					\
       memcpy(&__oh, (src), sizeof __oh);		\
       *(u_char *)(tgt) = __oh >> 8;			\
       *((u_char *)(tgt) + 1) = __oh & 0xff;		\
@@ -65,9 +65,9 @@
 
 #  define ua_ntohs(src, tgt)				\
     do {						\
-      u_int16_t __nh;					\
-      __nh = ((u_int16_t)*(u_char *)(src) << 8) |	\
-          (u_int16_t)*((u_char *)(src) + 1);		\
+      uint16_t __nh;					\
+      __nh = ((uint16_t)*(u_char *)(src) << 8) |	\
+          (uint16_t)*((u_char *)(src) + 1);		\
       memcpy((tgt), &__nh, sizeof __nh);		\
     } while (0)
 

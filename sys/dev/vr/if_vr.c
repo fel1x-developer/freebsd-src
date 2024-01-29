@@ -116,8 +116,8 @@ MODULE_DEPEND(vr, miibus, 1, 1, 1);
 #define VR_Q_CAM		(1<<2)
 
 static const struct vr_type {
-	u_int16_t		vr_vid;
-	u_int16_t		vr_did;
+	uint16_t		vr_vid;
+	uint16_t		vr_did;
 	int			vr_quirks;
 	const char		*vr_name;
 } vr_devs[] = {

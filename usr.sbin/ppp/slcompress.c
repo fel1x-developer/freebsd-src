@@ -128,7 +128,7 @@ sl_compress_init(struct slcompress *comp, int max_state)
 		(f) = htonl(ntohl(f) + ((cp[1] << 8) | cp[2])); \
 		cp += 3; \
 	} else { \
-		(f) = htonl(ntohl(f) + (u_int32_t)*cp++); \
+		(f) = htonl(ntohl(f) + (uint32_t)*cp++); \
 	} \
 }
 
@@ -137,7 +137,7 @@ sl_compress_init(struct slcompress *comp, int max_state)
 		(f) = htons(ntohs(f) + ((cp[1] << 8) | cp[2])); \
 		cp += 3; \
 	} else { \
-		(f) = htons(ntohs(f) + (u_int32_t)*cp++); \
+		(f) = htons(ntohs(f) + (uint32_t)*cp++); \
 	} \
 }
 
@@ -146,7 +146,7 @@ sl_compress_init(struct slcompress *comp, int max_state)
 		(f) = htons((cp[1] << 8) | cp[2]); \
 		cp += 3; \
 	} else { \
-		(f) = htons((u_int32_t)*cp++); \
+		(f) = htons((uint32_t)*cp++); \
 	} \
 }
 

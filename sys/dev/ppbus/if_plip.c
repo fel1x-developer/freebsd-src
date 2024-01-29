@@ -262,7 +262,7 @@ lp_attach(device_t dev)
 	if_setsendqlen(ifp, ifqmaxlen);
 	if_attach(ifp);
 
-	bpfattach(ifp, DLT_NULL, sizeof(u_int32_t));
+	bpfattach(ifp, DLT_NULL, sizeof(uint32_t));
 
 	/*
 	 * Attach our interrupt handler.  It is only called while we
@@ -516,7 +516,7 @@ clpinbyte(int spin, device_t ppbus)
 static void
 lptap(if_t ifp, struct mbuf *m)
 {
-	u_int32_t af = AF_INET;
+	uint32_t af = AF_INET;
 
 	bpf_mtap2_if(ifp, &af, sizeof(af), m);
 }

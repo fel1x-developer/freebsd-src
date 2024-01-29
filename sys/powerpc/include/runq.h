@@ -47,9 +47,9 @@
  * Type of run queue status word.
  */
 #ifdef __powerpc64__
-typedef	u_int64_t	rqb_word_t;
+typedef	uint64_t	rqb_word_t;
 #else
-typedef	u_int32_t	rqb_word_t;
+typedef	uint32_t	rqb_word_t;
 #endif
 
 #endif

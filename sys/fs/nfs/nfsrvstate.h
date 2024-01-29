@@ -105,18 +105,18 @@ struct nfsclient {
 	nfsquad_t	lc_confirm;		/* 64 bit confirm value */
 	nfsopbit_t	lc_mustops;		/* Must ops SP4_MACH_CRED */
 	nfsopbit_t	lc_allowops;		/* Allowed ops SP4_MACH_CRED */
-	u_int32_t	lc_program;		/* RPC Program # */
-	u_int32_t	lc_callback;		/* Callback id */
-	u_int32_t	lc_stateindex;		/* Current state index# */
-	u_int32_t	lc_statemaxindex;	/* Max state index# */
-	u_int32_t	lc_cbref;		/* Cnt of callbacks */
+	uint32_t	lc_program;		/* RPC Program # */
+	uint32_t	lc_callback;		/* Callback id */
+	uint32_t	lc_stateindex;		/* Current state index# */
+	uint32_t	lc_statemaxindex;	/* Max state index# */
+	uint32_t	lc_cbref;		/* Cnt of callbacks */
 	uid_t		lc_uid;			/* User credential */
 	gid_t		lc_gid;
-	u_int16_t	lc_idlen;		/* Client ID and len */
-	u_int16_t	lc_namelen;		/* plus GSS principal and len */
+	uint16_t	lc_idlen;		/* Client ID and len */
+	uint16_t	lc_namelen;		/* plus GSS principal and len */
 	u_char		*lc_name;
 	struct nfssockreq lc_req;		/* Callback info */
-	u_int32_t	lc_flags;		/* LCL_ flag bits */
+	uint32_t	lc_flags;		/* LCL_ flag bits */
 	u_char		lc_verf[NFSX_VERF];	 /* client verifier */
 	u_char		lc_id[1];		/* Malloc'd correct size */
 };
@@ -212,18 +212,18 @@ struct nfsstate {
 		struct nfslockhead	lock; /* Locks list */
 	} ls_head;
 	nfsv4stateid_t		ls_stateid;	/* The state id */
-	u_int32_t		ls_seq;		/* seq id */
+	uint32_t		ls_seq;		/* seq id */
 	uid_t			ls_uid;		/* uid of locker */
-	u_int32_t		ls_flags;	/* Type of lock, etc. */
+	uint32_t		ls_flags;	/* Type of lock, etc. */
 	union {
 		struct nfsstate	*openowner;	/* Open only */
-		u_int32_t	opentolockseq;	/* Lock call only */
-		u_int32_t	noopens;	/* Openowner only */
+		uint32_t	opentolockseq;	/* Lock call only */
+		uint32_t	noopens;	/* Openowner only */
 		struct {
 			u_quad_t	filerev; /* Delegations only */
 			time_t		expiry;
 			time_t		limit;
-			u_int64_t	compref;
+			uint64_t	compref;
 			time_t		last;
 		} deleg;
 	} ls_un;
@@ -257,9 +257,9 @@ struct nfslock {
 	LIST_ENTRY(nfslock)	lo_lckfile;
 	struct nfsstate		*lo_stp;
 	struct nfslockfile	*lo_lfp;
-	u_int64_t		lo_first;
-	u_int64_t		lo_end;
-	u_int32_t		lo_flags;
+	uint64_t		lo_first;
+	uint64_t		lo_end;
+	uint32_t		lo_flags;
 };
 
 /*
@@ -268,9 +268,9 @@ struct nfslock {
  */
 struct nfslockconflict {
 	nfsquad_t		cl_clientid;
-	u_int64_t		cl_first;
-	u_int64_t		cl_end;
-	u_int32_t		cl_flags;
+	uint64_t		cl_first;
+	uint64_t		cl_end;
+	uint32_t		cl_flags;
 	u_short			cl_ownerlen;
 	u_char			cl_owner[NFSV4_OPAQUELIMIT];
 };
@@ -329,8 +329,8 @@ struct nfsusrgrp {
  * Record at beginning of file.
  */
 struct nfsf_rec {
-	u_int32_t	lease;			/* Lease duration */
-	u_int32_t	numboots;		/* Number of boottimes */
+	uint32_t	lease;			/* Lease duration */
+	uint32_t	numboots;		/* Number of boottimes */
 };
 
 void nfsrv_cleanclient(struct nfsclient *, NFSPROC_T *);

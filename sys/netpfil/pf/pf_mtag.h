@@ -47,15 +47,15 @@
 
 struct pf_mtag {
 	void		*hdr;		/* saved hdr pos in mbuf, for ECN */
-	u_int16_t	 qid;		/* queue id */
-	u_int32_t	 qid_hash;	/* queue hashid used by WFQ like algos */
-	u_int16_t	 tag;		/* tag id */
-	u_int8_t	 flags;
-	u_int8_t	 routed;
-	u_int16_t	 dnpipe;
-	u_int32_t	 dnflags;
-	u_int16_t	 if_index;	/* For ROUTE_TO */
-	u_int16_t	 if_idxgen;	/* For ROUTE_TO */
+	uint16_t	 qid;		/* queue id */
+	uint32_t	 qid_hash;	/* queue hashid used by WFQ like algos */
+	uint16_t	 tag;		/* tag id */
+	uint8_t	 flags;
+	uint8_t	 routed;
+	uint16_t	 dnpipe;
+	uint32_t	 dnflags;
+	uint16_t	 if_index;	/* For ROUTE_TO */
+	uint16_t	 if_idxgen;	/* For ROUTE_TO */
 	struct sockaddr_storage	dst;	/* For ROUTE_TO */
 };
 

@@ -76,21 +76,21 @@
 #define ADDCARRY(x)  (x > 65535 ? x -= 65535 : x)
 #define REDUCE {l_util.l = sum; sum = l_util.s[0] + l_util.s[1]; (void)ADDCARRY(sum);}
 
-int in4_cksum(struct mbuf *, u_int8_t, int, int);
+int in4_cksum(struct mbuf *, uint8_t, int, int);
 
 int
-in4_cksum(struct mbuf *m, u_int8_t nxt, int off, int len)
+in4_cksum(struct mbuf *m, uint8_t nxt, int off, int len)
 {
 	union {
 		struct ipovly ipov;
-		u_int16_t w[10];
+		uint16_t w[10];
 	} u;
 	union {
-		u_int16_t s[2];
-		u_int32_t l;
+		uint16_t s[2];
+		uint32_t l;
 	} l_util;
 
-	u_int16_t *w;
+	uint16_t *w;
 	int psum;
 	int sum = 0;
 

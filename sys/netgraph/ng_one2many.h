@@ -67,8 +67,8 @@
 
 /* Node configuration structure */
 struct ng_one2many_config {
-	u_int32_t	xmitAlg;		/* how to distribute packets */
-	u_int32_t	failAlg;		/* how to detect link failure */
+	uint32_t	xmitAlg;		/* how to distribute packets */
+	uint32_t	failAlg;		/* how to detect link failure */
 	u_char		enabledLinks[NG_ONE2MANY_MAX_LINKS];
 };
 
@@ -82,11 +82,11 @@ struct ng_one2many_config {
 
 /* Statistics structure (one for each link) */
 struct ng_one2many_link_stats {
-	u_int64_t	recvOctets;	/* total octets rec'd on link */
-	u_int64_t	recvPackets;	/* total pkts rec'd on link */
-	u_int64_t	xmitOctets;	/* total octets xmit'd on link */
-	u_int64_t	xmitPackets;	/* total pkts xmit'd on link */
-	u_int64_t	memoryFailures;	/* times couldn't get mem or mbuf */
+	uint64_t	recvOctets;	/* total octets rec'd on link */
+	uint64_t	recvPackets;	/* total pkts rec'd on link */
+	uint64_t	xmitOctets;	/* total octets xmit'd on link */
+	uint64_t	xmitPackets;	/* total pkts xmit'd on link */
+	uint64_t	memoryFailures;	/* times couldn't get mem or mbuf */
 };
 
 /* Keep this in sync with the above structure definition */

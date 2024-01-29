@@ -50,38 +50,38 @@
 
 /* Structure used to handle GET/RELEASE LOCK ioctls. */
 struct tws_lock_packet {
-    u_int32_t       timeout_msec;
-    u_int32_t       time_remaining_msec;
-    u_int32_t       force_flag;
+    uint32_t       timeout_msec;
+    uint32_t       time_remaining_msec;
+    uint32_t       force_flag;
 };
 
 /* Structure used to handle GET COMPATIBILITY INFO ioctl. */
 struct tws_compatibility_packet {
-    u_int8_t    driver_version[32];/* driver version */
-    u_int16_t   working_srl;    /* driver & firmware negotiated srl */
-    u_int16_t   working_branch; /* branch # of the firmware that the
+    uint8_t    driver_version[32];/* driver version */
+    uint16_t   working_srl;    /* driver & firmware negotiated srl */
+    uint16_t   working_branch; /* branch # of the firmware that the
                                     driver is compatible with */
-    u_int16_t   working_build;  /* build # of the firmware that the
+    uint16_t   working_build;  /* build # of the firmware that the
                                         driver is compatible with */
-    u_int16_t   driver_srl_high;/* highest driver supported srl */
-    u_int16_t   driver_branch_high;/* highest driver supported branch */
-    u_int16_t   driver_build_high;/* highest driver supported build */
-    u_int16_t   driver_srl_low;/* lowest driver supported srl */
-    u_int16_t   driver_branch_low;/* lowest driver supported branch */
-    u_int16_t   driver_build_low;/* lowest driver supported build */
-    u_int16_t   fw_on_ctlr_srl; /* srl of running firmware */
-    u_int16_t   fw_on_ctlr_branch;/* branch # of running firmware */
-    u_int16_t   fw_on_ctlr_build;/* build # of running firmware */
+    uint16_t   driver_srl_high;/* highest driver supported srl */
+    uint16_t   driver_branch_high;/* highest driver supported branch */
+    uint16_t   driver_build_high;/* highest driver supported build */
+    uint16_t   driver_srl_low;/* lowest driver supported srl */
+    uint16_t   driver_branch_low;/* lowest driver supported branch */
+    uint16_t   driver_build_low;/* lowest driver supported build */
+    uint16_t   fw_on_ctlr_srl; /* srl of running firmware */
+    uint16_t   fw_on_ctlr_branch;/* branch # of running firmware */
+    uint16_t   fw_on_ctlr_build;/* build # of running firmware */
 };
 
 /* Driver understandable part of the ioctl packet built by the API. */
 struct tws_driver_packet {
-    u_int32_t       control_code;
-    u_int32_t       status;
-    u_int32_t       unique_id;
-    u_int32_t       sequence_id;
-    u_int32_t       os_status;
-    u_int32_t       buffer_length;
+    uint32_t       control_code;
+    uint32_t       status;
+    uint32_t       unique_id;
+    uint32_t       sequence_id;
+    uint32_t       os_status;
+    uint32_t       buffer_length;
 };
 
 /* ioctl packet built by the API. */

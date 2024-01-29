@@ -87,7 +87,7 @@ void
 unmappedaddr(struct sockaddr_in6 *sin6)
 {
 	struct sockaddr_in *sin4;
-	u_int32_t addr;
+	uint32_t addr;
 	int port;
 
 	if (sin6->sin6_family != AF_INET6 ||

@@ -1243,8 +1243,8 @@ ar5212SetResetReg(struct ath_hal *ah, uint32_t resetMask)
 			if (AH_PRIVATE(ah)->ah_bustype == HAL_BUS_TYPE_PCI) {
 				if (!IS_5112_REV5_UP(ah)) {
 #define PCI_COMMON_CONFIG_STATUS    0x06
-					u_int32_t    i;
-					u_int16_t    reg16;
+					uint32_t    i;
+					uint16_t    reg16;
 
 					for (i = 0; i < 32; i++) {
 						ath_hal_read_pci_config_space(ah,

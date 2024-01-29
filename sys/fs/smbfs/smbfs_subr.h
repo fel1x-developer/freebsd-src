@@ -111,8 +111,8 @@ struct smbfs_fctx {
 	int		f_eofs;		/* entry offset in the parameter block */
 	u_char 		f_skey[SMB_SKEYLEN]; /* server side search context */
 	u_char		f_fname[8 + 1 + 3 + 1]; /* common case for 8.3 filenames */
-	u_int16_t	f_Sid;
-	u_int16_t	f_infolevel;
+	uint16_t	f_Sid;
+	uint16_t	f_infolevel;
 	int		f_rnamelen;
 	char *		f_rname;	/* resume name/key */
 	int		f_rnameofs;
@@ -133,20 +133,20 @@ int  smbfs_smb_setfsize(struct smbnode *np, int64_t newsize,
 
 int  smbfs_smb_query_info(struct smbnode *np, const char *name, int len,
 	struct smbfattr *fap, struct smb_cred *scred);
-int  smbfs_smb_setpattr(struct smbnode *np, u_int16_t attr,
+int  smbfs_smb_setpattr(struct smbnode *np, uint16_t attr,
 	struct timespec *mtime, struct smb_cred *scred);
 int  smbfs_smb_setptime2(struct smbnode *np, struct timespec *mtime,
 	struct timespec *atime, int attr, struct smb_cred *scred);
-int  smbfs_smb_setpattrNT(struct smbnode *np, u_int16_t attr,
+int  smbfs_smb_setpattrNT(struct smbnode *np, uint16_t attr,
 	struct timespec *mtime, struct timespec *atime, struct smb_cred *scred);
 
 int  smbfs_smb_setftime(struct smbnode *np, struct timespec *mtime,
 	struct timespec *atime, struct smb_cred *scred);
-int  smbfs_smb_setfattrNT(struct smbnode *np, u_int16_t attr,
+int  smbfs_smb_setfattrNT(struct smbnode *np, uint16_t attr,
 	struct timespec *mtime,	struct timespec *atime, struct smb_cred *scred);
 
 int  smbfs_smb_open(struct smbnode *np, int accmode, struct smb_cred *scred);
-int  smbfs_smb_close(struct smb_share *ssp, u_int16_t fid,
+int  smbfs_smb_close(struct smb_share *ssp, uint16_t fid,
 	 struct timespec *mtime, struct smb_cred *scred);
 int  smbfs_smb_create(struct smbnode *dnp, const char *name, int len,
 	struct smb_cred *scred);
@@ -155,7 +155,7 @@ int  smbfs_smb_flush(struct smbnode *np, struct smb_cred *scred);
 int  smbfs_smb_rename(struct smbnode *src, struct smbnode *tdnp,
 	const char *tname, int tnmlen, struct smb_cred *scred);
 int  smbfs_smb_move(struct smbnode *src, struct smbnode *tdnp,
-	const char *tname, int tnmlen, u_int16_t flags, struct smb_cred *scred);
+	const char *tname, int tnmlen, uint16_t flags, struct smb_cred *scred);
 int  smbfs_smb_mkdir(struct smbnode *dnp, const char *name, int len,
 	struct smb_cred *scred);
 int  smbfs_smb_rmdir(struct smbnode *np, struct smb_cred *scred);
@@ -174,8 +174,8 @@ void  smb_time_local2server(struct timespec *tsp, int tzoff, u_long *seconds);
 void  smb_time_server2local(u_long seconds, int tzoff, struct timespec *tsp);
 void  smb_time_NT2local(int64_t nsec, int tzoff, struct timespec *tsp);
 void  smb_time_local2NT(struct timespec *tsp, int tzoff, int64_t *nsec);
-void  smb_time_unix2dos(struct timespec *tsp, int tzoff, u_int16_t *ddp, 
-	     u_int16_t *dtp, u_int8_t *dhp);
+void  smb_time_unix2dos(struct timespec *tsp, int tzoff, uint16_t *ddp, 
+	     uint16_t *dtp, uint8_t *dhp);
 void smb_dos2unixtime (u_int dd, u_int dt, u_int dh, int tzoff, struct timespec *tsp);
 
 void *smbfs_malloc_scred(void);

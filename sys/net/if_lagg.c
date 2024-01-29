@@ -470,7 +470,7 @@ lagg_proto_portreq(struct lagg_softc *sc, struct lagg_port *lp, void *v)
  * config EVENT
  */
 static void
-lagg_register_vlan(void *arg, struct ifnet *ifp, u_int16_t vtag)
+lagg_register_vlan(void *arg, struct ifnet *ifp, uint16_t vtag)
 {
 	struct lagg_softc *sc = ifp->if_softc;
 	struct lagg_port *lp;
@@ -489,7 +489,7 @@ lagg_register_vlan(void *arg, struct ifnet *ifp, u_int16_t vtag)
  * unconfig EVENT
  */
 static void
-lagg_unregister_vlan(void *arg, struct ifnet *ifp, u_int16_t vtag)
+lagg_unregister_vlan(void *arg, struct ifnet *ifp, uint16_t vtag)
 {
 	struct lagg_softc *sc = ifp->if_softc;
 	struct lagg_port *lp;

@@ -64,7 +64,7 @@
 #include "page.h"
 #include "extern.h"
 
-static BUFHEAD *newbuf(HTAB *, u_int32_t, BUFHEAD *);
+static BUFHEAD *newbuf(HTAB *, uint32_t, BUFHEAD *);
 
 /* Unlink B from its place in the lru */
 #define BUF_REMOVE(B) { \
@@ -96,12 +96,12 @@ static BUFHEAD *newbuf(HTAB *, u_int32_t, BUFHEAD *);
  * address you are seeking.
  */
 BUFHEAD *
-__get_buf(HTAB *hashp, u_int32_t addr,
+__get_buf(HTAB *hashp, uint32_t addr,
     BUFHEAD *prev_bp,	/* If prev_bp set, indicates a new overflow page. */
     int newpage)
 {
 	BUFHEAD *bp;
-	u_int32_t is_disk_mask;
+	uint32_t is_disk_mask;
 	int is_disk, segment_ndx;
 	SEGMENT segp;
 
@@ -149,14 +149,14 @@ __get_buf(HTAB *hashp, u_int32_t addr,
  * If newbuf finds an error (returning NULL), it also sets errno.
  */
 static BUFHEAD *
-newbuf(HTAB *hashp, u_int32_t addr, BUFHEAD *prev_bp)
+newbuf(HTAB *hashp, uint32_t addr, BUFHEAD *prev_bp)
 {
 	BUFHEAD *bp;		/* The buffer we're going to use */
 	BUFHEAD *xbp;		/* Temp pointer */
 	BUFHEAD *next_xbp;
 	SEGMENT segp;
 	int segment_ndx;
-	u_int16_t oaddr, *shortp;
+	uint16_t oaddr, *shortp;
 
 	oaddr = 0;
 	bp = LRU;
@@ -206,7 +206,7 @@ newbuf(HTAB *hashp, u_int32_t addr, BUFHEAD *prev_bp)
 			 * Set oaddr before __put_page so that you get it
 			 * before bytes are swapped.
 			 */
-			shortp = (u_int16_t *)bp->page;
+			shortp = (uint16_t *)bp->page;
 			if (shortp[0])
 				oaddr = shortp[shortp[0] - 1];
 			if ((bp->flags & BUF_MOD) && __put_page(hashp, bp->page,
@@ -249,7 +249,7 @@ newbuf(HTAB *hashp, u_int32_t addr, BUFHEAD *prev_bp)
 				    (oaddr != xbp->addr))
 					break;
 
-				shortp = (u_int16_t *)xbp->page;
+				shortp = (uint16_t *)xbp->page;
 				if (shortp[0])
 					/* set before __put_page */
 					oaddr = shortp[shortp[0] - 1];

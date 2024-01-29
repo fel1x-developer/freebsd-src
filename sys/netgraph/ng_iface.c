@@ -564,7 +564,7 @@ ng_iface_constructor(node_p node)
 
 	/* Attach the interface */
 	if_attach(ifp);
-	bpfattach(ifp, DLT_NULL, sizeof(u_int32_t));
+	bpfattach(ifp, DLT_NULL, sizeof(uint32_t));
 
 	/* Done */
 	return (0);

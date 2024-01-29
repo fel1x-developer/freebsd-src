@@ -134,7 +134,7 @@ sbni_attach_isa(device_t dev)
 	} 
 #endif	/* SBNI_DUAL_COMPOUND */
 
-	*(u_int32_t*)&flags = device_get_flags(dev);
+	*(uint32_t*)&flags = device_get_flags(dev);
 
 	error = sbni_attach(sc, device_get_unit(dev) * 2, flags);
 	if (error) {

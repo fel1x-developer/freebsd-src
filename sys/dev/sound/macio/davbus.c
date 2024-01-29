@@ -120,7 +120,7 @@ static void	burgundy_set_outputs(struct davbus_softc *d, u_int mask);
 static u_int	burgundy_read_status(struct davbus_softc *d, u_int status);
 static int	burgundy_set(struct snd_mixer *m, unsigned dev, unsigned left,
 		    unsigned right);
-static u_int32_t	burgundy_setrecsrc(struct snd_mixer *m, u_int32_t src);
+static uint32_t	burgundy_setrecsrc(struct snd_mixer *m, uint32_t src);
 
 static kobj_method_t burgundy_mixer_methods[] = {
 	KOBJMETHOD(mixer_init, 		burgundy_init),
@@ -298,8 +298,8 @@ burgundy_set(struct snd_mixer *m, unsigned dev, unsigned left, unsigned right)
 	return (0);
 }
 
-static u_int32_t
-burgundy_setrecsrc(struct snd_mixer *m, u_int32_t src)
+static uint32_t
+burgundy_setrecsrc(struct snd_mixer *m, uint32_t src)
 {
 	return (0);
 }
@@ -316,7 +316,7 @@ static void	screamer_set_outputs(struct davbus_softc *d, u_int mask);
 static u_int	screamer_read_status(struct davbus_softc *d, u_int status);
 static int	screamer_set(struct snd_mixer *m, unsigned dev, unsigned left,
 		    unsigned right);
-static u_int32_t	screamer_setrecsrc(struct snd_mixer *m, u_int32_t src);
+static uint32_t	screamer_setrecsrc(struct snd_mixer *m, uint32_t src);
 
 static kobj_method_t screamer_mixer_methods[] = {
 	KOBJMETHOD(mixer_init, 		screamer_init),
@@ -483,8 +483,8 @@ screamer_set(struct snd_mixer *m, unsigned dev, unsigned left, unsigned right)
 	return (0);
 }
 
-static u_int32_t
-screamer_setrecsrc(struct snd_mixer *m, u_int32_t src)
+static uint32_t
+screamer_setrecsrc(struct snd_mixer *m, uint32_t src)
 {
 	return (0);
 }

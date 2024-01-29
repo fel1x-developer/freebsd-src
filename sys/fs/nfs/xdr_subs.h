@@ -88,14 +88,14 @@
     } while (0)
 
 #define	fxdr_hyper(f) 							\
-        ((((u_quad_t)ntohl(((u_int32_t *)(f))[0])) << 32) |		\
-	 (u_quad_t)(ntohl(((u_int32_t *)(f))[1])))
+        ((((u_quad_t)ntohl(((uint32_t *)(f))[0])) << 32) |		\
+	 (u_quad_t)(ntohl(((uint32_t *)(f))[1])))
 
 static inline void
 txdr_hyper(uint64_t f, uint32_t* t)
 {
-	t[0] = htonl((u_int32_t)(f >> 32));
-	t[1] = htonl((u_int32_t)(f & 0xffffffff));
+	t[0] = htonl((uint32_t)(f >> 32));
+	t[1] = htonl((uint32_t)(f & 0xffffffff));
 }
 
 #endif	/* _NFS_XDR_SUBS_H_ */

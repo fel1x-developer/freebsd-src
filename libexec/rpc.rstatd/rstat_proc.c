@@ -336,7 +336,7 @@ updatexfers(int numdevs, int *devs)
 	register int i, j, k, t;
 	struct statinfo stats;
 	int num_devices = 0;
-	u_int64_t total_transfers;
+	uint64_t total_transfers;
 
 	if ((num_devices = devstat_getnumdevs(NULL)) < 0) {
 		syslog(LOG_ERR, "rstatd: can't get number of devices: %s",

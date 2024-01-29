@@ -66,41 +66,41 @@
 #ifdef COMPAT_FREEBSD32
 struct pci_conf32 {
 	struct pcisel	pc_sel;		/* domain+bus+slot+function */
-	u_int8_t	pc_hdr;		/* PCI header type */
-	u_int16_t	pc_subvendor;	/* card vendor ID */
-	u_int16_t	pc_subdevice;	/* card device ID, assigned by
+	uint8_t	pc_hdr;		/* PCI header type */
+	uint16_t	pc_subvendor;	/* card vendor ID */
+	uint16_t	pc_subdevice;	/* card device ID, assigned by
 					   card vendor */
-	u_int16_t	pc_vendor;	/* chip vendor ID */
-	u_int16_t	pc_device;	/* chip device ID, assigned by
+	uint16_t	pc_vendor;	/* chip vendor ID */
+	uint16_t	pc_device;	/* chip device ID, assigned by
 					   chip vendor */
-	u_int8_t	pc_class;	/* chip PCI class */
-	u_int8_t	pc_subclass;	/* chip PCI subclass */
-	u_int8_t	pc_progif;	/* chip PCI programming interface */
-	u_int8_t	pc_revid;	/* chip revision ID */
+	uint8_t	pc_class;	/* chip PCI class */
+	uint8_t	pc_subclass;	/* chip PCI subclass */
+	uint8_t	pc_progif;	/* chip PCI programming interface */
+	uint8_t	pc_revid;	/* chip revision ID */
 	char		pd_name[PCI_MAXNAMELEN + 1];  /* device name */
-	u_int32_t	pd_unit;	/* device unit number */
+	uint32_t	pd_unit;	/* device unit number */
 };
 
 struct pci_match_conf32 {
 	struct pcisel		pc_sel;		/* domain+bus+slot+function */
 	char			pd_name[PCI_MAXNAMELEN + 1];  /* device name */
-	u_int32_t		pd_unit;	/* Unit number */
-	u_int16_t		pc_vendor;	/* PCI Vendor ID */
-	u_int16_t		pc_device;	/* PCI Device ID */
-	u_int8_t		pc_class;	/* PCI class */
-	u_int32_t		flags;		/* Matching expression */
+	uint32_t		pd_unit;	/* Unit number */
+	uint16_t		pc_vendor;	/* PCI Vendor ID */
+	uint16_t		pc_device;	/* PCI Device ID */
+	uint8_t		pc_class;	/* PCI class */
+	uint32_t		flags;		/* Matching expression */
 };
 
 struct pci_conf_io32 {
-	u_int32_t		pat_buf_len;	/* pattern buffer length */
-	u_int32_t		num_patterns;	/* number of patterns */
-	u_int32_t		patterns;	/* struct pci_match_conf ptr */
-	u_int32_t		match_buf_len;	/* match buffer length */
-	u_int32_t		num_matches;	/* number of matches returned */
-	u_int32_t		matches;	/* struct pci_conf ptr */
-	u_int32_t		offset;		/* offset into device list */
-	u_int32_t		generation;	/* device list generation */
-	u_int32_t		status;		/* request status */
+	uint32_t		pat_buf_len;	/* pattern buffer length */
+	uint32_t		num_patterns;	/* number of patterns */
+	uint32_t		patterns;	/* struct pci_match_conf ptr */
+	uint32_t		match_buf_len;	/* match buffer length */
+	uint32_t		num_matches;	/* number of matches returned */
+	uint32_t		matches;	/* struct pci_conf ptr */
+	uint32_t		offset;		/* offset into device list */
+	uint32_t		generation;	/* device list generation */
+	uint32_t		status;		/* request status */
 };
 
 #define	PCIOCGETCONF32	_IOC_NEWTYPE(PCIOCGETCONF, struct pci_conf_io32)
@@ -299,24 +299,24 @@ typedef enum {
 } pci_getconf_flags_old;
 
 struct pcisel_old {
-	u_int8_t	pc_bus;		/* bus number */
-	u_int8_t	pc_dev;		/* device on this bus */
-	u_int8_t	pc_func;	/* function on this device */
+	uint8_t	pc_bus;		/* bus number */
+	uint8_t	pc_dev;		/* device on this bus */
+	uint8_t	pc_func;	/* function on this device */
 };
 
 struct pci_conf_old {
 	struct pcisel_old pc_sel;	/* bus+slot+function */
-	u_int8_t	pc_hdr;		/* PCI header type */
-	u_int16_t	pc_subvendor;	/* card vendor ID */
-	u_int16_t	pc_subdevice;	/* card device ID, assigned by
+	uint8_t	pc_hdr;		/* PCI header type */
+	uint16_t	pc_subvendor;	/* card vendor ID */
+	uint16_t	pc_subdevice;	/* card device ID, assigned by
 					   card vendor */
-	u_int16_t	pc_vendor;	/* chip vendor ID */
-	u_int16_t	pc_device;	/* chip device ID, assigned by
+	uint16_t	pc_vendor;	/* chip vendor ID */
+	uint16_t	pc_device;	/* chip device ID, assigned by
 					   chip vendor */
-	u_int8_t	pc_class;	/* chip PCI class */
-	u_int8_t	pc_subclass;	/* chip PCI subclass */
-	u_int8_t	pc_progif;	/* chip PCI programming interface */
-	u_int8_t	pc_revid;	/* chip revision ID */
+	uint8_t	pc_class;	/* chip PCI class */
+	uint8_t	pc_subclass;	/* chip PCI subclass */
+	uint8_t	pc_progif;	/* chip PCI programming interface */
+	uint8_t	pc_revid;	/* chip revision ID */
 	char		pd_name[PCI_MAXNAMELEN + 1];  /* device name */
 	u_long		pd_unit;	/* device unit number */
 };
@@ -325,9 +325,9 @@ struct pci_match_conf_old {
 	struct pcisel_old	pc_sel;		/* bus+slot+function */
 	char			pd_name[PCI_MAXNAMELEN + 1];  /* device name */
 	u_long			pd_unit;	/* Unit number */
-	u_int16_t		pc_vendor;	/* PCI Vendor ID */
-	u_int16_t		pc_device;	/* PCI Device ID */
-	u_int8_t		pc_class;	/* PCI class */
+	uint16_t		pc_vendor;	/* PCI Vendor ID */
+	uint16_t		pc_device;	/* PCI Device ID */
+	uint8_t		pc_class;	/* PCI class */
 	pci_getconf_flags_old	flags;		/* Matching expression */
 };
 
@@ -335,7 +335,7 @@ struct pci_io_old {
 	struct pcisel_old pi_sel;	/* device to operate on */
 	int		pi_reg;		/* configuration register to examine */
 	int		pi_width;	/* width (in bytes) of read or write */
-	u_int32_t	pi_data;	/* data to write or result of read */
+	uint32_t	pi_data;	/* data to write or result of read */
 };
 
 #ifdef COMPAT_FREEBSD32
@@ -486,7 +486,7 @@ pci_conf_match_old32(struct pci_match_conf_old32 *matches, int num_matches,
 			continue;
 
 		if (((matches[i].flags & PCI_GETCONF_MATCH_UNIT_OLD) != 0) &&
-		    ((u_int32_t)match_buf->pd_unit != matches[i].pd_unit))
+		    ((uint32_t)match_buf->pd_unit != matches[i].pd_unit))
 			continue;
 
 		if (((matches[i].flags & PCI_GETCONF_MATCH_NAME_OLD) != 0) &&

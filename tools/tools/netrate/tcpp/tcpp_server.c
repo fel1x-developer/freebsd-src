@@ -64,8 +64,8 @@ struct connection {
 	int		conn_fd;
 	struct tcpp_header	conn_header;	/* Header buffer. */
 	u_int		conn_header_len;	/* Bytes so far. */
-	u_int64_t	conn_data_len;		/* How much to sink. */
-	u_int64_t	conn_data_received;	/* How much so far. */
+	uint64_t	conn_data_len;		/* How much to sink. */
+	uint64_t	conn_data_received;	/* How much so far. */
 };
 
 static pid_t			*pid_list;

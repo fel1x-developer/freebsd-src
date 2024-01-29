@@ -59,18 +59,18 @@
 #include "ripemd.h"
 
 #undef c2nl
-#define c2nl(c,l)	(l =(((u_int32_t)(*((c)++)))<<24), \
-			 l|=(((u_int32_t)(*((c)++)))<<16), \
-			 l|=(((u_int32_t)(*((c)++)))<< 8), \
-			 l|=(((u_int32_t)(*((c)++)))    ))
+#define c2nl(c,l)	(l =(((uint32_t)(*((c)++)))<<24), \
+			 l|=(((uint32_t)(*((c)++)))<<16), \
+			 l|=(((uint32_t)(*((c)++)))<< 8), \
+			 l|=(((uint32_t)(*((c)++)))    ))
 
 #undef p_c2nl
 #define p_c2nl(c,l,n)	{ \
 			switch (n) { \
-			case 0: l =((u_int32_t)(*((c)++)))<<24; \
-			case 1: l|=((u_int32_t)(*((c)++)))<<16; \
-			case 2: l|=((u_int32_t)(*((c)++)))<< 8; \
-			case 3: l|=((u_int32_t)(*((c)++))); \
+			case 0: l =((uint32_t)(*((c)++)))<<24; \
+			case 1: l|=((uint32_t)(*((c)++)))<<16; \
+			case 2: l|=((uint32_t)(*((c)++)))<< 8; \
+			case 3: l|=((uint32_t)(*((c)++))); \
 				} \
 			}
 
@@ -80,9 +80,9 @@
 			l=0; \
 			(c)+=n; \
 			switch (n) { \
-			case 3: l =((u_int32_t)(*(--(c))))<< 8; \
-			case 2: l|=((u_int32_t)(*(--(c))))<<16; \
-			case 1: l|=((u_int32_t)(*(--(c))))<<24; \
+			case 3: l =((uint32_t)(*(--(c))))<< 8; \
+			case 2: l|=((uint32_t)(*(--(c))))<<16; \
+			case 1: l|=((uint32_t)(*(--(c))))<<24; \
 				} \
 			}
 
@@ -90,11 +90,11 @@
 #define p_c2nl_p(c,l,sc,len) { \
 			switch (sc) \
 				{ \
-			case 0: l =((u_int32_t)(*((c)++)))<<24; \
+			case 0: l =((uint32_t)(*((c)++)))<<24; \
 				if (--len == 0) break; \
-			case 1: l|=((u_int32_t)(*((c)++)))<<16; \
+			case 1: l|=((uint32_t)(*((c)++)))<<16; \
 				if (--len == 0) break; \
-			case 2: l|=((u_int32_t)(*((c)++)))<< 8; \
+			case 2: l|=((uint32_t)(*((c)++)))<< 8; \
 				} \
 			}
 
@@ -105,18 +105,18 @@
 			 *((c)++)=(unsigned char)(((l)    )&0xff))
 
 #undef c2l
-#define c2l(c,l)	(l =(((u_int32_t)(*((c)++)))    ), \
-			 l|=(((u_int32_t)(*((c)++)))<< 8), \
-			 l|=(((u_int32_t)(*((c)++)))<<16), \
-			 l|=(((u_int32_t)(*((c)++)))<<24))
+#define c2l(c,l)	(l =(((uint32_t)(*((c)++)))    ), \
+			 l|=(((uint32_t)(*((c)++)))<< 8), \
+			 l|=(((uint32_t)(*((c)++)))<<16), \
+			 l|=(((uint32_t)(*((c)++)))<<24))
 
 #undef p_c2l
 #define p_c2l(c,l,n)	{ \
 			switch (n) { \
-			case 0: l =((u_int32_t)(*((c)++))); \
-			case 1: l|=((u_int32_t)(*((c)++)))<< 8; \
-			case 2: l|=((u_int32_t)(*((c)++)))<<16; \
-			case 3: l|=((u_int32_t)(*((c)++)))<<24; \
+			case 0: l =((uint32_t)(*((c)++))); \
+			case 1: l|=((uint32_t)(*((c)++)))<< 8; \
+			case 2: l|=((uint32_t)(*((c)++)))<<16; \
+			case 3: l|=((uint32_t)(*((c)++)))<<24; \
 				} \
 			}
 
@@ -126,9 +126,9 @@
 			l=0; \
 			(c)+=n; \
 			switch (n) { \
-			case 3: l =((u_int32_t)(*(--(c))))<<16; \
-			case 2: l|=((u_int32_t)(*(--(c))))<< 8; \
-			case 1: l|=((u_int32_t)(*(--(c)))); \
+			case 3: l =((uint32_t)(*(--(c))))<<16; \
+			case 2: l|=((uint32_t)(*(--(c))))<< 8; \
+			case 1: l|=((uint32_t)(*(--(c)))); \
 				} \
 			}
 
@@ -136,11 +136,11 @@
 #define p_c2l_p(c,l,sc,len) { \
 			switch (sc) \
 				{ \
-			case 0: l =((u_int32_t)(*((c)++))); \
+			case 0: l =((uint32_t)(*((c)++))); \
 				if (--len == 0) break; \
-			case 1: l|=((u_int32_t)(*((c)++)))<< 8; \
+			case 1: l|=((uint32_t)(*((c)++)))<< 8; \
 				if (--len == 0) break; \
-			case 2: l|=((u_int32_t)(*((c)++)))<<16; \
+			case 2: l|=((uint32_t)(*((c)++)))<<16; \
 				} \
 			}
 
@@ -162,14 +162,14 @@
 /* 5 instructions with rotate instruction, else 9 */
 #define Endian_Reverse32(a) \
 	{ \
-	u_int32_t l=(a); \
+	uint32_t l=(a); \
 	(a)=((ROTATE(l,8)&0x00FF00FF)|(ROTATE(l,24)&0xFF00FF00)); \
 	}
 #else
 /* 6 instructions with rotate instruction, else 8 */
 #define Endian_Reverse32(a) \
 	{ \
-	u_int32_t l=(a); \
+	uint32_t l=(a); \
 	l=(((l&0xFF00FF00)>>8L)|((l&0x00FF00FF)<<8L)); \
 	(a)=ROTATE(l,16L); \
 	}

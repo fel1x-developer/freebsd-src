@@ -48,7 +48,7 @@ NFSD_VNET_DECLARE(struct nfsstatsv1 *, nfsstatsv1_p);
 extern uint32_t nfs_srvmaxio;
 extern int nfsrv_lease;
 extern struct timeval nfsboottime;
-extern u_int32_t newnfs_true, newnfs_false;
+extern uint32_t newnfs_true, newnfs_false;
 extern struct mtx nfsrv_dslock_mtx;
 extern struct mtx nfsrv_recalllock_mtx;
 extern struct mtx nfsrv_dontlistlock_mtx;
@@ -125,7 +125,7 @@ NFSD_VNET_DEFINE(struct nfssessionhash *, nfssessionhash);
 struct nfslayouthash		*nfslayouthash;
 volatile int nfsrv_dontlistlen = 0;
 
-static u_int32_t nfsrv_openpluslock = 0, nfsrv_delegatecnt = 0;
+static uint32_t nfsrv_openpluslock = 0, nfsrv_delegatecnt = 0;
 static int nfsrv_returnoldstateid = 0, nfsrv_clients = 0;
 static int nfsrv_clienthighwater = NFSRV_CLIENTHIGHWATER;
 static int nfsrv_nogsscallback = 0;
@@ -149,7 +149,7 @@ static void nfsrv_freenfslock(struct nfslock *lop);
 static void nfsrv_freenfslockfile(struct nfslockfile *lfp);
 static void nfsrv_freedeleg(struct nfsstate *);
 static int nfsrv_getstate(struct nfsclient *clp, nfsv4stateid_t *stateidp, 
-    u_int32_t flags, struct nfsstate **stpp);
+    uint32_t flags, struct nfsstate **stpp);
 static void nfsrv_getowner(struct nfsstatehead *hp, struct nfsstate *new_stp,
     struct nfsstate **stpp);
 static int nfsrv_getlockfh(vnode_t vp, u_short flags,
@@ -161,18 +161,18 @@ static void nfsrv_insertlock(struct nfslock *new_lop,
 static void nfsrv_updatelock(struct nfsstate *stp, struct nfslock **new_lopp,
     struct nfslock **other_lopp, struct nfslockfile *lfp);
 static int nfsrv_getipnumber(u_char *cp);
-static int nfsrv_checkrestart(nfsquad_t clientid, u_int32_t flags,
+static int nfsrv_checkrestart(nfsquad_t clientid, uint32_t flags,
     nfsv4stateid_t *stateidp, int specialid);
 static int nfsrv_checkgrace(struct nfsrv_descript *nd, struct nfsclient *clp,
-    u_int32_t flags);
+    uint32_t flags);
 static int nfsrv_docallback(struct nfsclient *clp, int procnum,
     nfsv4stateid_t *stateidp, int trunc, fhandle_t *fhp,
     struct nfsvattr *nap, nfsattrbit_t *attrbitp, int laytype, NFSPROC_T *p);
 static int nfsrv_cbcallargs(struct nfsrv_descript *nd, struct nfsclient *clp,
     uint32_t callback, int op, const char *optag, struct nfsdsession **sepp,
     int *slotposp);
-static u_int32_t nfsrv_nextclientindex(void);
-static u_int32_t nfsrv_nextstateindex(struct nfsclient *clp);
+static uint32_t nfsrv_nextclientindex(void);
+static uint32_t nfsrv_nextstateindex(struct nfsclient *clp);
 static void nfsrv_markstable(struct nfsclient *clp);
 static void nfsrv_markreclaim(struct nfsclient *clp);
 static int nfsrv_checkstable(struct nfsclient *clp);
@@ -186,7 +186,7 @@ static int nfsrv_notsamecredname(int op, struct nfsrv_descript *nd,
     struct nfsclient *clp);
 static time_t nfsrv_leaseexpiry(void);
 static void nfsrv_delaydelegtimeout(struct nfsstate *stp);
-static int nfsrv_checkseqid(struct nfsrv_descript *nd, u_int32_t seqid,
+static int nfsrv_checkseqid(struct nfsrv_descript *nd, uint32_t seqid,
     struct nfsstate *stp, struct nfsrvcache *op);
 static int nfsrv_nootherstate(struct nfsstate *stp);
 static int nfsrv_locallock(vnode_t vp, struct nfslockfile *lfp, int flags,
@@ -262,7 +262,7 @@ nfsrv_setclient(struct nfsrv_descript *nd, struct nfsclient **new_clpp,
 #endif
 	struct nfsdsession *sep, *nsep;
 	int zapit = 0, gotit, hasstate = 0, igotlock;
-	static u_int64_t confirm_index = 0;
+	static uint64_t confirm_index = 0;
 
 	/*
 	 * Check for state resource limit exceeded.
@@ -1651,7 +1651,7 @@ nfsrv_freenfslockfile(struct nfslockfile *lfp)
  * This function looks up an nfsstate structure via stateid.
  */
 static int
-nfsrv_getstate(struct nfsclient *clp, nfsv4stateid_t *stateidp, __unused u_int32_t flags,
+nfsrv_getstate(struct nfsclient *clp, nfsv4stateid_t *stateidp, __unused uint32_t flags,
     struct nfsstate **stpp)
 {
 	struct nfsstate *stp;
@@ -1726,7 +1726,7 @@ nfsrv_lockctrl(vnode_t vp, struct nfsstate **new_stpp,
 	struct nfslock *other_lop = NULL;
 	struct nfsstate *stp, *lckstp = NULL;
 	struct nfsclient *clp = NULL;
-	u_int32_t bits;
+	uint32_t bits;
 	int error = 0, haslock = 0, ret, reterr;
 	int getlckret, delegation = 0, filestruct_locked, vnode_unlocked = 0;
 	fhandle_t nfh;
@@ -2697,7 +2697,7 @@ out:
 int
 nfsrv_openctrl(struct nfsrv_descript *nd, vnode_t vp,
     struct nfsstate **new_stpp, nfsquad_t clientid, nfsv4stateid_t *stateidp,
-    nfsv4stateid_t *delegstateidp, u_int32_t *rflagsp, struct nfsexstuff *exp,
+    nfsv4stateid_t *delegstateidp, uint32_t *rflagsp, struct nfsexstuff *exp,
     NFSPROC_T *p, u_quad_t filerev)
 {
 	struct nfsstate *new_stp = *new_stpp;
@@ -3476,7 +3476,7 @@ nfsrv_openupdate(vnode_t vp, struct nfsstate *new_stp, nfsquad_t clientid,
 	struct nfsstate *stp;
 	struct nfsclient *clp;
 	struct nfslockfile *lfp;
-	u_int32_t bits;
+	uint32_t bits;
 	int error = 0, gotstate = 0, len = 0;
 	u_char *clidp = NULL;
 
@@ -3926,7 +3926,7 @@ nfsrv_updatelock(struct nfsstate *stp, struct nfslock **new_lopp,
 	struct nfslock *lop, *tlop, *ilop;
 	struct nfslock *other_lop = *other_lopp;
 	int unlock = 0, myfile = 0;
-	u_int64_t tmp;
+	uint64_t tmp;
 
 	/*
 	 * Work down the list until the lock is merged.
@@ -4054,7 +4054,7 @@ nfsrv_updatelock(struct nfsstate *stp, struct nfslock **new_lopp,
  * It returns an error that indicates what the caller should do.
  */
 static int
-nfsrv_checkseqid(struct nfsrv_descript *nd, u_int32_t seqid,
+nfsrv_checkseqid(struct nfsrv_descript *nd, uint32_t seqid,
     struct nfsstate *stp, struct nfsrvcache *op)
 {
 	int error = 0;
@@ -4115,7 +4115,7 @@ out:
 int
 nfsrv_getclientipaddr(struct nfsrv_descript *nd, struct nfsclient *clp)
 {
-	u_int32_t *tl;
+	uint32_t *tl;
 	u_char *cp, *cp2;
 	int i, j, maxalen = 0, minalen = 0;
 	sa_family_t af;
@@ -4141,7 +4141,7 @@ nfsrv_getclientipaddr(struct nfsrv_descript *nd, struct nfsclient *clp)
 	clp->lc_req.nr_client = NULL;
 	clp->lc_req.nr_lock = 0;
 	af = AF_UNSPEC;
-	NFSM_DISSECT(tl, u_int32_t *, NFSX_UNSIGNED);
+	NFSM_DISSECT(tl, uint32_t *, NFSX_UNSIGNED);
 	i = fxdr_unsigned(int, *tl);
 	if (i >= 3 && i <= 4) {
 		error = nfsrv_mtostr(nd, addr, i);
@@ -4214,7 +4214,7 @@ nfsrv_getclientipaddr(struct nfsrv_descript *nd, struct nfsclient *clp)
 		break;
 #endif
 	}
-	NFSM_DISSECT(tl, u_int32_t *, NFSX_UNSIGNED);
+	NFSM_DISSECT(tl, uint32_t *, NFSX_UNSIGNED);
 	i = fxdr_unsigned(int, *tl);
 	if (i < 0) {
 		error = NFSERR_BADXDR;
@@ -4372,7 +4372,7 @@ nfsrv_getipnumber(u_char *cp)
  * This function checks for restart conditions.
  */
 static int
-nfsrv_checkrestart(nfsquad_t clientid, u_int32_t flags,
+nfsrv_checkrestart(nfsquad_t clientid, uint32_t flags,
     nfsv4stateid_t *stateidp, int specialid)
 {
 	int ret = 0;
@@ -4415,7 +4415,7 @@ out:
  */
 static int
 nfsrv_checkgrace(struct nfsrv_descript *nd, struct nfsclient *clp,
-    u_int32_t flags)
+    uint32_t flags)
 {
 	int error = 0, notreclaimed;
 	struct nfsrv_stable *sp;
@@ -4482,11 +4482,11 @@ nfsrv_docallback(struct nfsclient *clp, int procnum, nfsv4stateid_t *stateidp,
     int laytype, NFSPROC_T *p)
 {
 	struct mbuf *m;
-	u_int32_t *tl;
+	uint32_t *tl;
 	struct nfsrv_descript *nd;
 	struct ucred *cred;
 	int error = 0, slotpos;
-	u_int32_t callback;
+	uint32_t callback;
 	struct nfsdsession *sep = NULL;
 	uint64_t tval;
 	bool dotls;
@@ -4548,7 +4548,7 @@ nfsrv_docallback(struct nfsclient *clp, int procnum, nfsv4stateid_t *stateidp,
 			m_freem(nd->nd_mreq);
 			goto errout;
 		}
-		(void)nfsm_fhtom(NULL, nd, (u_int8_t *)fhp, NFSX_MYFH, 0);
+		(void)nfsm_fhtom(NULL, nd, (uint8_t *)fhp, NFSX_MYFH, 0);
 		(void)nfsrv_putattrbit(nd, attrbitp);
 	} else if (procnum == NFSV4OP_CBRECALL) {
 		nd->nd_procnum = NFSV4PROC_CBCOMPOUND;
@@ -4558,7 +4558,7 @@ nfsrv_docallback(struct nfsclient *clp, int procnum, nfsv4stateid_t *stateidp,
 			m_freem(nd->nd_mreq);
 			goto errout;
 		}
-		NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED + NFSX_STATEID);
+		NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED + NFSX_STATEID);
 		*tl++ = txdr_unsigned(stateidp->seqid);
 		NFSBCOPY((caddr_t)stateidp->other, (caddr_t)tl,
 		    NFSX_STATEIDOTHER);
@@ -4567,7 +4567,7 @@ nfsrv_docallback(struct nfsclient *clp, int procnum, nfsv4stateid_t *stateidp,
 			*tl = newnfs_true;
 		else
 			*tl = newnfs_false;
-		(void)nfsm_fhtom(NULL, nd, (u_int8_t *)fhp, NFSX_MYFH, 0);
+		(void)nfsm_fhtom(NULL, nd, (uint8_t *)fhp, NFSX_MYFH, 0);
 	} else if (procnum == NFSV4OP_CBLAYOUTRECALL) {
 		NFSD_DEBUG(4, "docallback layout recall\n");
 		nd->nd_procnum = NFSV4PROC_CBCOMPOUND;
@@ -4578,7 +4578,7 @@ nfsrv_docallback(struct nfsclient *clp, int procnum, nfsv4stateid_t *stateidp,
 			m_freem(nd->nd_mreq);
 			goto errout;
 		}
-		NFSM_BUILD(tl, u_int32_t *, 4 * NFSX_UNSIGNED);
+		NFSM_BUILD(tl, uint32_t *, 4 * NFSX_UNSIGNED);
 		*tl++ = txdr_unsigned(laytype);
 		*tl++ = txdr_unsigned(NFSLAYOUTIOMODE_ANY);
 		if (trunc)
@@ -4587,7 +4587,7 @@ nfsrv_docallback(struct nfsclient *clp, int procnum, nfsv4stateid_t *stateidp,
 			*tl++ = newnfs_false;
 		*tl = txdr_unsigned(NFSV4LAYOUTRET_FILE);
 		(void)nfsm_fhtom(NULL, nd, (uint8_t *)fhp, NFSX_MYFH, 0);
-		NFSM_BUILD(tl, u_int32_t *, 2 * NFSX_HYPER + NFSX_STATEID);
+		NFSM_BUILD(tl, uint32_t *, 2 * NFSX_HYPER + NFSX_STATEID);
 		tval = 0;
 		txdr_hyper(tval, tl); tl += 2;
 		tval = UINT64_MAX;
@@ -4755,7 +4755,7 @@ nfsrv_cbcallargs(struct nfsrv_descript *nd, struct nfsclient *clp,
 		error = nfsv4_setcbsequence(nd, clp, 1, sepp, slotposp);
 		if (error != 0)
 			return (error);
-		NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+		NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 		*tl = txdr_unsigned(op);
 	} else {
 		*tl++ = txdr_unsigned(NFSV4_MINORVERSION);
@@ -4774,10 +4774,10 @@ nfsrv_cbcallargs(struct nfsrv_descript *nd, struct nfsclient *clp,
  * approximately 136 years. (I think the server will have been shut
  * down or rebooted before then.)
  */
-static u_int32_t
+static uint32_t
 nfsrv_nextclientindex(void)
 {
-	static u_int32_t client_index = 0;
+	static uint32_t client_index = 0;
 
 	client_index++;
 	if (client_index != 0)
@@ -4793,12 +4793,12 @@ nfsrv_nextclientindex(void)
  * (will a BSD server stay up that long?), find
  * new start and end values.
  */
-static u_int32_t
+static uint32_t
 nfsrv_nextstateindex(struct nfsclient *clp)
 {
 	struct nfsstate *stp;
 	int i;
-	u_int32_t canuse, min_index, max_index;
+	uint32_t canuse, min_index, max_index;
 
 	if (!(clp->lc_flags & LCL_INDEXNOTOK)) {
 		clp->lc_stateindex++;

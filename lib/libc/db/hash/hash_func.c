@@ -40,14 +40,14 @@
 #include "extern.h"
 
 #ifdef notdef
-static u_int32_t hash1(const void *, size_t) __unused;
-static u_int32_t hash2(const void *, size_t) __unused;
-static u_int32_t hash3(const void *, size_t) __unused;
+static uint32_t hash1(const void *, size_t) __unused;
+static uint32_t hash2(const void *, size_t) __unused;
+static uint32_t hash3(const void *, size_t) __unused;
 #endif
-static u_int32_t hash4(const void *, size_t);
+static uint32_t hash4(const void *, size_t);
 
 /* Default hash function. */
-u_int32_t (*__default_hash)(const void *, size_t) = hash4;
+uint32_t (*__default_hash)(const void *, size_t) = hash4;
 
 #ifdef notdef
 /*
@@ -59,14 +59,14 @@ u_int32_t (*__default_hash)(const void *, size_t) = hash4;
 #define PRIME1		37
 #define PRIME2		1048583
 
-u_int32_t
+uint32_t
 hash1(const void *key, size_t len)
 {
-	u_int32_t h;
-	u_int8_t *k;
+	uint32_t h;
+	uint8_t *k;
 
 	h = 0;
-	k = (u_int8_t *)key;
+	k = (uint8_t *)key;
 	/* Convert string to integer */
 	while (len--)
 		h = h * PRIME1 ^ (*k++ - ' ');
@@ -79,13 +79,13 @@ hash1(const void *key, size_t len)
  */
 #define dcharhash(h, c)	((h) = 0x63c63cd9*(h) + 0x9c39c33d + (c))
 
-u_int32_t
+uint32_t
 hash2(const void *key, size_t len)
 {
-	u_int32_t h;
-	u_int8_t *e, c, *k;
+	uint32_t h;
+	uint8_t *e, c, *k;
 
-	k = (u_int8_t *)key;
+	k = (uint8_t *)key;
 	e = k + len;
 	for (h = 0; k != e;) {
 		c = *k++;
@@ -105,16 +105,16 @@ hash2(const void *key, size_t len)
  *
  * Ozan Yigit's original sdbm hash.
  */
-u_int32_t
+uint32_t
 hash3(const void *key, size_t len)
 {
-	u_int32_t n, loop;
-	u_int8_t *k;
+	uint32_t n, loop;
+	uint8_t *k;
 
 #define HASHC   n = *k++ + 65599 * n
 
 	n = 0;
-	k = (u_int8_t *)key;
+	k = (uint8_t *)key;
 	if (len > 0) {
 		loop = (len + 8 - 1) >> 3;
 
@@ -145,11 +145,11 @@ hash3(const void *key, size_t len)
 #endif /* notdef */
 
 /* Chris Torek's hash function. */
-u_int32_t
+uint32_t
 hash4(const void *key, size_t len)
 {
-	u_int32_t h, loop;
-	const u_int8_t *k;
+	uint32_t h, loop;
+	const uint8_t *k;
 
 #define HASH4a   h = (h << 5) - h + *k++;
 #define HASH4b   h = (h << 5) + h + *k++;

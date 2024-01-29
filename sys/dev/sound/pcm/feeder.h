@@ -28,9 +28,9 @@
  */
 
 struct pcm_feederdesc {
-	u_int32_t type;
-	u_int32_t in, out;
-	u_int32_t flags;
+	uint32_t type;
+	uint32_t in, out;
+	uint32_t flags;
 	int idx;
 };
 
@@ -53,15 +53,15 @@ struct pcm_feeder {
 void feeder_register(void *p);
 struct feeder_class *feeder_getclass(struct pcm_feederdesc *desc);
 
-u_int32_t snd_fmtscore(u_int32_t fmt);
-u_int32_t snd_fmtbestbit(u_int32_t fmt, u_int32_t *fmts);
-u_int32_t snd_fmtbestchannel(u_int32_t fmt, u_int32_t *fmts);
-u_int32_t snd_fmtbest(u_int32_t fmt, u_int32_t *fmts);
+uint32_t snd_fmtscore(uint32_t fmt);
+uint32_t snd_fmtbestbit(uint32_t fmt, uint32_t *fmts);
+uint32_t snd_fmtbestchannel(uint32_t fmt, uint32_t *fmts);
+uint32_t snd_fmtbest(uint32_t fmt, uint32_t *fmts);
 
 int chn_addfeeder(struct pcm_channel *c, struct feeder_class *fc,
     struct pcm_feederdesc *desc);
 int chn_removefeeder(struct pcm_channel *c);
-struct pcm_feeder *chn_findfeeder(struct pcm_channel *c, u_int32_t type);
+struct pcm_feeder *chn_findfeeder(struct pcm_channel *c, uint32_t type);
 void feeder_printchain(struct pcm_feeder *head);
 int feeder_chain(struct pcm_channel *);
 

@@ -461,29 +461,29 @@
  * This looks suspiciously like the ThunderLAN, doesn't it.
  */
 struct xl_frag {
-	u_int32_t		xl_addr;	/* 63 addr/len pairs */
-	u_int32_t		xl_len;
+	uint32_t		xl_addr;	/* 63 addr/len pairs */
+	uint32_t		xl_len;
 };
 
 struct xl_list {
-	u_int32_t		xl_next;	/* final entry has 0 nextptr */
-	u_int32_t		xl_status;
+	uint32_t		xl_next;	/* final entry has 0 nextptr */
+	uint32_t		xl_status;
 	struct xl_frag		xl_frag[XL_MAXFRAGS];
 };
 
 struct xl_list_onefrag {
-	u_int32_t		xl_next;	/* final entry has 0 nextptr */
-	volatile u_int32_t	xl_status;
+	uint32_t		xl_next;	/* final entry has 0 nextptr */
+	volatile uint32_t	xl_status;
 	volatile struct xl_frag	xl_frag;
 };
 
 struct xl_list_data {
 	struct xl_list_onefrag	*xl_rx_list;
 	struct xl_list		*xl_tx_list;
-	u_int32_t		xl_rx_dmaaddr;
+	uint32_t		xl_rx_dmaaddr;
 	bus_dma_tag_t		xl_rx_tag;
 	bus_dmamap_t		xl_rx_dmamap;
-	u_int32_t		xl_tx_dmaaddr;
+	uint32_t		xl_tx_dmaaddr;
 	bus_dma_tag_t		xl_tx_tag;
 	bus_dmamap_t		xl_tx_dmamap;
 };
@@ -493,7 +493,7 @@ struct xl_chain {
 	struct mbuf		*xl_mbuf;
 	struct xl_chain		*xl_next;
 	struct xl_chain		*xl_prev;
-	u_int32_t		xl_phys;
+	uint32_t		xl_phys;
 	bus_dmamap_t		xl_map;
 };
 
@@ -554,8 +554,8 @@ struct xl_chain_data {
 #define XL_CAPABILITY_BM	0x20
 
 struct xl_type {
-	u_int16_t		xl_vid;
-	u_int16_t		xl_did;
+	uint16_t		xl_vid;
+	uint16_t		xl_did;
 	const char		*xl_name;
 };
 
@@ -598,11 +598,11 @@ struct xl_softc {
 	const struct xl_type	*xl_info;	/* 3Com adapter info */
 	bus_dma_tag_t		xl_mtag;
 	bus_dmamap_t		xl_tmpmap;	/* spare DMA map */
-	u_int8_t		xl_type;
-	u_int32_t		xl_xcvr;
-	u_int16_t		xl_media;
-	u_int16_t		xl_caps;
-	u_int16_t		xl_tx_thresh;
+	uint8_t		xl_type;
+	uint32_t		xl_xcvr;
+	uint16_t		xl_media;
+	uint16_t		xl_caps;
+	uint16_t		xl_tx_thresh;
 	int			xl_pmcap;
 	int			xl_if_flags;
 	struct xl_list_data	xl_ldata;
@@ -631,19 +631,19 @@ struct xl_softc {
 	((x.xl_upper_frames_ok & 0x30) << 4) | x.xl_tx_frames_ok
 
 struct xl_stats {
-	u_int8_t		xl_carrier_lost;
-	u_int8_t		xl_sqe_errs;
-	u_int8_t		xl_tx_multi_collision;
-	u_int8_t		xl_tx_single_collision;
-	u_int8_t		xl_tx_late_collision;
-	u_int8_t		xl_rx_overrun;
-	u_int8_t		xl_tx_frames_ok;
-	u_int8_t		xl_rx_frames_ok;
-	u_int8_t		xl_tx_deferred;
-	u_int8_t		xl_upper_frames_ok;
-	u_int16_t		xl_rx_bytes_ok;
-	u_int16_t		xl_tx_bytes_ok;
-	u_int16_t		status;
+	uint8_t		xl_carrier_lost;
+	uint8_t		xl_sqe_errs;
+	uint8_t		xl_tx_multi_collision;
+	uint8_t		xl_tx_single_collision;
+	uint8_t		xl_tx_late_collision;
+	uint8_t		xl_rx_overrun;
+	uint8_t		xl_tx_frames_ok;
+	uint8_t		xl_rx_frames_ok;
+	uint8_t		xl_tx_deferred;
+	uint8_t		xl_upper_frames_ok;
+	uint16_t		xl_rx_bytes_ok;
+	uint16_t		xl_tx_bytes_ok;
+	uint16_t		status;
 };
 
 /*

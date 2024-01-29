@@ -37,16 +37,16 @@
 /* #define TWS_DEBUG on */
 
 void tws_trace(const char *file, const char *fun, int linenum,
-         struct tws_softc *sc,  char *desc, u_int64_t val1, u_int64_t val2);
+         struct tws_softc *sc,  char *desc, uint64_t val1, uint64_t val2);
 void tws_log(struct tws_softc *sc, int index);
-u_int32_t tws_read_reg(struct tws_softc *sc, 
+uint32_t tws_read_reg(struct tws_softc *sc, 
                   int offset, int size);
 void tws_write_reg(struct tws_softc *sc, int offset,
-                  u_int32_t value, int size);
+                  uint32_t value, int size);
 
-u_int16_t tws_swap16(u_int16_t val);
-u_int32_t tws_swap32(u_int32_t val);
-u_int64_t tws_swap64(u_int64_t val);
+uint16_t tws_swap16(uint16_t val);
+uint32_t tws_swap32(uint32_t val);
+uint64_t tws_swap64(uint64_t val);
 
 void tws_init_qs(struct tws_softc *sc);
 
@@ -62,7 +62,7 @@ void tws_init_qs(struct tws_softc *sc);
     #define __tws_debug
     #define TWS_TRACE_DEBUG(sc, desc, val1, val2) \
             tws_trace(__FILE__, __func__, __LINE__, sc, desc, \
-                                   (u_int64_t)val1, (u_int64_t)val2)
+                                   (uint64_t)val1, (uint64_t)val2)
 #else
     #define __tws_debug __unused
     #define TWS_TRACE_DEBUG(sc, desc, val1, val2)
@@ -71,7 +71,7 @@ void tws_init_qs(struct tws_softc *sc);
 #ifdef TWS_TRACE_ON
     #define TWS_TRACE(sc, desc, val1, val2) \
             tws_trace(__FILE__, __func__, __LINE__, sc, desc, \
-                                   (u_int64_t)val1, (u_int64_t)val2)
+                                   (uint64_t)val1, (uint64_t)val2)
 #else
     #define TWS_TRACE(sc, desc, val1, val2)
 #endif
@@ -106,7 +106,7 @@ enum severity {
 
 struct error_desc {
     char desc[256];
-    u_int32_t error_code;
+    uint32_t error_code;
     int severity_level;
     char *fmt;
     char *error_str;

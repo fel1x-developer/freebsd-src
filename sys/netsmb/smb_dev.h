@@ -97,13 +97,13 @@ struct smbioc_rq {
 	char *		ioc_rpbuf;
 	u_char		ioc_rwc;
 	u_short		ioc_rbc;
-	u_int8_t	ioc_errclass;
-	u_int16_t	ioc_serror;
-	u_int32_t	ioc_error;
+	uint8_t	ioc_errclass;
+	uint16_t	ioc_serror;
+	uint32_t	ioc_error;
 };
 
 struct smbioc_t2rq {
-	u_int16_t	ioc_setup[3];
+	uint16_t	ioc_setup[3];
 	int		ioc_setupcnt;
 	char *		ioc_name;
 	u_short		ioc_tparamcnt;

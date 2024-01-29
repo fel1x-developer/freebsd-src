@@ -84,8 +84,8 @@ struct ng_ksocket_private {
 	int		fn_sent;	/* FN call on incoming event was sent */
 	LIST_HEAD(, ng_ksocket_private)	embryos;
 	LIST_ENTRY(ng_ksocket_private)	siblings;
-	u_int32_t	flags;
-	u_int32_t	response_token;
+	uint32_t	flags;
+	uint32_t	response_token;
 	ng_ID_t		response_addr;
 };
 typedef struct ng_ksocket_private *priv_p;

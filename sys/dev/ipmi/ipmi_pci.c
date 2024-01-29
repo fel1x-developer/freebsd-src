@@ -51,8 +51,8 @@ static int ipmi_pci_attach(device_t dev);
 
 static struct ipmi_ident
 {
-	u_int16_t	vendor;
-	u_int16_t	device;
+	uint16_t	vendor;
+	uint16_t	device;
 	char		*desc;
 } ipmi_identifiers[] = {
 	{0x1028, 0x000d, "Dell PE2650 SMIC interface"},

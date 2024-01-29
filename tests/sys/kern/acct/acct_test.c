@@ -41,7 +41,7 @@
 
 #define KASSERT(val, msg) assert(val)
 
-typedef u_int32_t comp_t;
+typedef uint32_t comp_t;
 
 #define AHZ 1000000
 

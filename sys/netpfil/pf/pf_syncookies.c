@@ -114,7 +114,7 @@ struct pf_syncookie_status {
 VNET_DEFINE_STATIC(struct pf_syncookie_status, pf_syncookie_status);
 #define V_pf_syncookie_status	VNET(pf_syncookie_status)
 
-static int	pf_syncookies_setmode(u_int8_t);
+static int	pf_syncookies_setmode(uint8_t);
 void		pf_syncookie_rotate(void *);
 void		pf_syncookie_newkey(void);
 uint32_t	pf_syncookie_mac(struct pf_pdesc *, union pf_syncookie,
@@ -247,7 +247,7 @@ errout:
 }
 
 static int
-pf_syncookies_setmode(u_int8_t mode)
+pf_syncookies_setmode(uint8_t mode)
 {
 	if (mode > PF_SYNCOOKIES_MODE_MAX)
 		return (EINVAL);

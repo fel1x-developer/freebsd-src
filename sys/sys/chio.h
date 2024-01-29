@@ -65,11 +65,11 @@
  * Structure used to execute a MOVE MEDIUM command.
  */
 struct changer_move {
-	u_int16_t	cm_fromtype;	/* element type to move from */
-	u_int16_t	cm_fromunit;	/* logical unit of from element */
-	u_int16_t	cm_totype;	/* element type to move to */
-	u_int16_t	cm_tounit;	/* logical unit of to element */
-	u_int16_t	cm_flags;	/* misc. flags */
+	uint16_t	cm_fromtype;	/* element type to move from */
+	uint16_t	cm_fromunit;	/* logical unit of from element */
+	uint16_t	cm_totype;	/* element type to move to */
+	uint16_t	cm_tounit;	/* logical unit of to element */
+	uint16_t	cm_flags;	/* misc. flags */
 };
 
 /* cm_flags */
@@ -89,13 +89,13 @@ struct changer_move {
  * are the same.
  */
 struct changer_exchange {
-	u_int16_t	ce_srctype;	/* element type of source */
-	u_int16_t	ce_srcunit;	/* logical unit of source */
-	u_int16_t	ce_fdsttype;	/* element type of first destination */
-	u_int16_t	ce_fdstunit;	/* logical unit of first destination */
-	u_int16_t	ce_sdsttype;	/* element type of second destination */
-	u_int16_t	ce_sdstunit;	/* logical unit of second destination */
-	u_int16_t	ce_flags;	/* misc. flags */
+	uint16_t	ce_srctype;	/* element type of source */
+	uint16_t	ce_srcunit;	/* logical unit of source */
+	uint16_t	ce_fdsttype;	/* element type of first destination */
+	uint16_t	ce_fdstunit;	/* logical unit of first destination */
+	uint16_t	ce_sdsttype;	/* element type of second destination */
+	uint16_t	ce_sdstunit;	/* logical unit of second destination */
+	uint16_t	ce_flags;	/* misc. flags */
 };
 
 /* ce_flags */
@@ -107,9 +107,9 @@ struct changer_exchange {
  * moves the current picker in front of the specified element.
  */
 struct changer_position {
-	u_int16_t	cp_type;	/* element type */
-	u_int16_t	cp_unit;	/* logical unit of element */
-	u_int16_t	cp_flags;	/* misc. flags */
+	uint16_t	cp_type;	/* element type */
+	uint16_t	cp_unit;	/* logical unit of element */
+	uint16_t	cp_flags;	/* misc. flags */
 };
 
 /* cp_flags */
@@ -119,10 +119,10 @@ struct changer_position {
  * Data returned by CHIOGPARAMS.
  */
 struct changer_params {
-	u_int16_t	cp_npickers;	/* number of pickers */
-	u_int16_t	cp_nslots;	/* number of slots */
-	u_int16_t	cp_nportals;	/* number of import/export portals */
-	u_int16_t	cp_ndrives;	/* number of drives */
+	uint16_t	cp_npickers;	/* number of pickers */
+	uint16_t	cp_nslots;	/* number of slots */
+	uint16_t	cp_nportals;	/* number of import/export portals */
+	uint16_t	cp_ndrives;	/* number of drives */
 };
 
 /*
@@ -131,7 +131,7 @@ struct changer_params {
 
 struct changer_voltag {
 	u_char		cv_volid[CH_VOLTAG_MAXLEN+1];
-	u_int16_t	cv_serial;
+	uint16_t	cv_serial;
 };
 
 typedef struct changer_voltag changer_voltag_t;
@@ -159,36 +159,36 @@ typedef enum {
 } ces_status_flags;
 
 struct changer_element_status {
-	u_int8_t		ces_type;	  /* element type */
-	u_int16_t		ces_addr;	  /* logical element address */
-	u_int16_t		ces_int_addr;	  /* changer element address */
+	uint8_t		ces_type;	  /* element type */
+	uint16_t		ces_addr;	  /* logical element address */
+	uint16_t		ces_int_addr;	  /* changer element address */
 	ces_status_flags	ces_flags;	  /* 
 						   * see CESTATUS definitions
 						   * below 
 						   */ 
-	u_int8_t		ces_sensecode;	  /* 
+	uint8_t		ces_sensecode;	  /* 
 						   * additional sense
 						   * code for element */
-	u_int8_t		ces_sensequal;	  /*
+	uint8_t		ces_sensequal;	  /*
 						   * additional sense
 						   * code qualifier 
 						   */
-	u_int8_t		ces_source_type;  /* 
+	uint8_t		ces_source_type;  /* 
 						   * element type of
 						   * source address 
 						   */
-	u_int16_t		ces_source_addr;  /* 
+	uint16_t		ces_source_addr;  /* 
 						   * source address of medium
 						   */
 	changer_voltag_t     	ces_pvoltag;	  /* primary volume tag */
 	changer_voltag_t	ces_avoltag;	  /* alternate volume tag */
-	u_int8_t		ces_scsi_id;	  /* SCSI id of element */
-	u_int8_t		ces_scsi_lun;	  /* SCSI lun of element */
+	uint8_t		ces_scsi_id;	  /* SCSI id of element */
+	uint8_t		ces_scsi_lun;	  /* SCSI lun of element */
 
 	/*
 	 * Data members for SMC3 and later versions
 	 */
-	u_int8_t		ces_medium_type;
+	uint8_t		ces_medium_type;
 #define	CES_MEDIUM_TYPE_UNKNOWN		0	/* Medium type unspecified */
 #define	CES_MEDIUM_TYPE_DATA		1	/* Data medium */
 #define	CES_MEDIUM_TYPE_CLEANING	2	/* Cleaning medium */
@@ -196,7 +196,7 @@ struct changer_element_status {
 #define	CES_MEDIUM_TYPE_WORM		4	/* WORM medium */
 #define	CES_MEDIUM_TYPE_MICROCODE	5	/* Microcode image medium */
 
-	u_int8_t		ces_protocol_id;
+	uint8_t		ces_protocol_id;
 #define	CES_PROTOCOL_ID_FCP_4	0	/* Fiber channel */
 #define	CES_PROTOCOL_ID_SPI_5	1	/* Parallel SCSI */
 #define	CES_PROTOCOL_ID_SSA_S3P	2	/* SSA */
@@ -207,12 +207,12 @@ struct changer_element_status {
 #define	CES_PROTOCOL_ID_ADT_2	7	/* Automation/Drive Interface */
 #define	CES_PROTOCOL_ID_ACS_2	8	/* ATA */
 
-	u_int8_t		ces_assoc;
+	uint8_t		ces_assoc;
 #define	CES_ASSOC_LOGICAL_UNIT	0
 #define	CES_ASSOC_TARGET_PORT	1
 #define	CES_ASSOC_TARGET_DEVICE	2
 
-	u_int8_t		ces_designator_type;
+	uint8_t		ces_designator_type;
 #define	CES_DESIGNATOR_TYPE_VENDOR_SPECIFIC	0
 #define	CES_DESIGNATOR_TYPE_T10_VENDOR_ID	1
 #define	CES_DESIGNATOR_TYPE_EUI_64		2
@@ -223,34 +223,34 @@ struct changer_element_status {
 #define	CES_DESIGNATOR_TYPE_MD5_LOGICAL_UNIT_ID	7
 #define	CES_DESIGNATOR_TYPE_SCSI_NAME_STRING	8
 
-	u_int8_t		ces_code_set;
+	uint8_t		ces_code_set;
 #define	CES_CODE_SET_RESERVED	0
 #define	CES_CODE_SET_BINARY	1
 #define	CES_CODE_SET_ASCII	2
 #define	CES_CODE_SET_UTF_8	3
 
-	u_int8_t		ces_designator_length;
+	uint8_t		ces_designator_length;
 
 #define	CES_MAX_DESIGNATOR_LENGTH (1 << 8)
-	u_int8_t		ces_designator[CES_MAX_DESIGNATOR_LENGTH + 1];
+	uint8_t		ces_designator[CES_MAX_DESIGNATOR_LENGTH + 1];
 };
 
 struct changer_element_status_request {
-	u_int16_t			cesr_element_type;
-	u_int16_t			cesr_element_base;
-	u_int16_t			cesr_element_count;
+	uint16_t			cesr_element_type;
+	uint16_t			cesr_element_base;
+	uint16_t			cesr_element_count;
 
-	u_int16_t			cesr_flags;
+	uint16_t			cesr_flags;
 #define	CESR_VOLTAGS	0x01
 
 	struct changer_element_status	*cesr_element_status;
 };
 
 struct changer_set_voltag_request {
-	u_int16_t		csvr_type;
-	u_int16_t		csvr_addr;
+	uint16_t		csvr_type;
+	uint16_t		csvr_addr;
 
-	u_int16_t		csvr_flags;
+	uint16_t		csvr_flags;
 #define	CSVR_MODE_MASK		0x0f	/* mode mask, acceptable modes below: */
 #define	CSVR_MODE_SET		0x00	/* set volume tag if not set */
 #define	CSVR_MODE_REPLACE	0x01	/* unconditionally replace volume tag */
@@ -270,7 +270,7 @@ struct changer_set_voltag_request {
 #define	CHIOGPICKER	_IOR('c', 0x04, int)
 #define	CHIOSPICKER	_IOW('c', 0x05, int)
 #define	CHIOGPARAMS	_IOR('c', 0x06, struct changer_params)
-#define	CHIOIELEM	_IOW('c', 0x07, u_int32_t)
+#define	CHIOIELEM	_IOW('c', 0x07, uint32_t)
 #define	OCHIOGSTATUS	_IOW('c', 0x08, struct changer_element_status_request)
 #define	CHIOSETVOLTAG	_IOW('c', 0x09, struct changer_set_voltag_request)
 #define	CHIOGSTATUS	_IOW('c', 0x0A, struct changer_element_status_request)

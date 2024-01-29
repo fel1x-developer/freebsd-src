@@ -126,7 +126,7 @@ MODULE_DEPEND(ata, ata, 1, 1, 1);
  * PCI ID search table
  */
 static const struct kauai_pci_dev {
-        u_int32_t	kpd_devid;
+        uint32_t	kpd_devid;
         const char	*kpd_desc;
 } kauai_pci_devlist[] = {
         { 0x0033106b, "Uninorth2 Kauai ATA Controller" },
@@ -194,7 +194,7 @@ static const u_int udma_timing_shasta[] = {
 static int
 ata_kauai_probe(device_t dev)
 {
-	u_int32_t devid;
+	uint32_t devid;
 	int i, found;
 
 	found = 0;

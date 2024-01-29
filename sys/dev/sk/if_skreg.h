@@ -1286,26 +1286,26 @@
 	bus_read_1((sc)->sk_res[0], (reg))
 
 struct sk_type {
-	u_int16_t		sk_vid;
-	u_int16_t		sk_did;
+	uint16_t		sk_vid;
+	uint16_t		sk_did;
 	const char		*sk_name;
 };
 
-#define SK_ADDR_LO(x)	((u_int64_t) (x) & 0xffffffff)
-#define SK_ADDR_HI(x)	((u_int64_t) (x) >> 32)
+#define SK_ADDR_LO(x)	((uint64_t) (x) & 0xffffffff)
+#define SK_ADDR_HI(x)	((uint64_t) (x) >> 32)
 
 #define SK_RING_ALIGN	64
 
 /* RX queue descriptor data structure */
 struct sk_rx_desc {
-	u_int32_t		sk_ctl;
-	u_int32_t		sk_next;
-	u_int32_t		sk_data_lo;
-	u_int32_t		sk_data_hi;
-	u_int32_t		sk_xmac_rxstat;
-	u_int32_t		sk_timestamp;
-	u_int32_t		sk_csum;
-	u_int32_t		sk_csum_start;
+	uint32_t		sk_ctl;
+	uint32_t		sk_next;
+	uint32_t		sk_data_lo;
+	uint32_t		sk_data_hi;
+	uint32_t		sk_xmac_rxstat;
+	uint32_t		sk_timestamp;
+	uint32_t		sk_csum;
+	uint32_t		sk_csum_start;
 };
 
 #define SK_OPCODE_DEFAULT	0x00550000
@@ -1326,14 +1326,14 @@ struct sk_rx_desc {
 	(SK_RXCTL_EOF_INTR|SK_RXCTL_LASTFRAG|SK_RXCTL_FIRSTFRAG|SK_RXCTL_OWN)
 
 struct sk_tx_desc {
-	u_int32_t		sk_ctl;
-	u_int32_t		sk_next;
-	u_int32_t		sk_data_lo;
-	u_int32_t		sk_data_hi;
-	u_int32_t		sk_xmac_txstat;
-	u_int32_t		sk_csum_startval;
-	u_int32_t		sk_csum_start;
-	u_int32_t		sk_rsvd1;
+	uint32_t		sk_ctl;
+	uint32_t		sk_next;
+	uint32_t		sk_data_lo;
+	uint32_t		sk_data_hi;
+	uint32_t		sk_xmac_txstat;
+	uint32_t		sk_csum_startval;
+	uint32_t		sk_csum_start;
+	uint32_t		sk_rsvd1;
 };
 
 #define SK_TXCTL_LEN		0x0000FFFF
@@ -1441,14 +1441,14 @@ struct sk_softc {
 	struct resource_spec	*sk_res_spec;
 	void			*sk_intrhand;	/* irq handler handle */
 	device_t		sk_dev;
-	u_int8_t		sk_type;
-	u_int8_t		sk_rev;
-	u_int8_t		spare;
-	u_int32_t		sk_rboff;	/* RAMbuffer offset */
-	u_int32_t		sk_ramsize;	/* amount of RAM on NIC */
-	u_int32_t		sk_pmd;		/* physical media type */
-	u_int32_t		sk_coppertype;
-	u_int32_t		sk_intrmask;
+	uint8_t		sk_type;
+	uint8_t		sk_rev;
+	uint8_t		spare;
+	uint32_t		sk_rboff;	/* RAMbuffer offset */
+	uint32_t		sk_ramsize;	/* amount of RAM on NIC */
+	uint32_t		sk_pmd;		/* physical media type */
+	uint32_t		sk_coppertype;
+	uint32_t		sk_intrmask;
 	int			sk_int_mod;
 	int			sk_int_ticks;
 	int			sk_suspended;
@@ -1472,12 +1472,12 @@ struct sk_if_softc {
 	if_t			sk_ifp;	/* interface info */
 	device_t		sk_miibus;
 	device_t		sk_if_dev;
-	u_int8_t		sk_port;	/* port # on controller */
-	u_int8_t		sk_xmac_rev;	/* XMAC chip rev (B2 or C1) */
-	u_int32_t		sk_rx_ramstart;
-	u_int32_t		sk_rx_ramend;
-	u_int32_t		sk_tx_ramstart;
-	u_int32_t		sk_tx_ramend;
+	uint8_t		sk_port;	/* port # on controller */
+	uint8_t		sk_xmac_rev;	/* XMAC chip rev (B2 or C1) */
+	uint32_t		sk_rx_ramstart;
+	uint32_t		sk_rx_ramend;
+	uint32_t		sk_tx_ramstart;
+	uint32_t		sk_tx_ramend;
 	int			sk_phytype;
 	int			sk_phyaddr;
 	int			sk_link;

@@ -1417,7 +1417,7 @@ ipf_pcksum(fr_info_t *fin, int hlen, u_int sum)
 
 #ifdef	USE_INET6
 u_int
-ipf_pcksum6(struct mbuf *m, ip6_t *ip6, u_int32_t off, u_int32_t len)
+ipf_pcksum6(struct mbuf *m, ip6_t *ip6, uint32_t off, uint32_t len)
 {
 #ifdef	_KERNEL
 	int sum;

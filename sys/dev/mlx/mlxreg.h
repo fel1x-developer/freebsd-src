@@ -198,8 +198,8 @@
  */
 struct mlx_sgentry 
 {
-    u_int32_t	sg_addr;
-    u_int32_t	sg_count;
+    uint32_t	sg_addr;
+    uint32_t	sg_count;
 } __packed;
 
 /*
@@ -208,143 +208,143 @@ struct mlx_sgentry
 
 struct mlx_enquiry_old	/* MLX_CMD_ENQUIRY_OLD */
 {
-    u_int8_t		me_num_sys_drvs;
-    u_int8_t		res1[3];
-    u_int32_t		me_drvsize[8];
-    u_int16_t		me_flash_age;
-    u_int8_t		me_status_flags;
-    u_int8_t		me_free_state_change_count;
-    u_int8_t		me_fwminor;
-    u_int8_t		me_fwmajor;
-    u_int8_t		me_rebuild_flag;
-    u_int8_t		me_max_commands;
-    u_int8_t		me_offline_sd_count;
-    u_int8_t		res3;
-    u_int8_t		me_critical_sd_count;
-    u_int8_t		res4[3];
-    u_int8_t		me_dead_count;
-    u_int8_t		res5;
-    u_int8_t		me_rebuild_count;
-    u_int8_t		me_misc_flags;
+    uint8_t		me_num_sys_drvs;
+    uint8_t		res1[3];
+    uint32_t		me_drvsize[8];
+    uint16_t		me_flash_age;
+    uint8_t		me_status_flags;
+    uint8_t		me_free_state_change_count;
+    uint8_t		me_fwminor;
+    uint8_t		me_fwmajor;
+    uint8_t		me_rebuild_flag;
+    uint8_t		me_max_commands;
+    uint8_t		me_offline_sd_count;
+    uint8_t		res3;
+    uint8_t		me_critical_sd_count;
+    uint8_t		res4[3];
+    uint8_t		me_dead_count;
+    uint8_t		res5;
+    uint8_t		me_rebuild_count;
+    uint8_t		me_misc_flags;
     struct 
     {
-	u_int8_t	dd_targ;
-	u_int8_t	dd_chan;
+	uint8_t	dd_targ;
+	uint8_t	dd_chan;
     } __packed me_dead[20];
 } __packed;
 
 struct mlx_enquiry	/* MLX_CMD_ENQUIRY */
 {
-    u_int8_t		me_num_sys_drvs;
-    u_int8_t		res1[3];
-    u_int32_t		me_drvsize[32];
-    u_int16_t		me_flash_age;
-    u_int8_t		me_status_flags;
+    uint8_t		me_num_sys_drvs;
+    uint8_t		res1[3];
+    uint32_t		me_drvsize[32];
+    uint16_t		me_flash_age;
+    uint8_t		me_status_flags;
 #define MLX_ENQ_SFLAG_DEFWRERR	(1<<0)	/* deferred write error indicator */
 #define MLX_ENQ_SFLAG_BATTLOW	(1<<1)	/* battery low */
-    u_int8_t		res2;
-    u_int8_t		me_fwminor;
-    u_int8_t		me_fwmajor;
-    u_int8_t		me_rebuild_flag;
-    u_int8_t		me_max_commands;
-    u_int8_t		me_offline_sd_count;
-    u_int8_t		res3;
-    u_int16_t		me_event_log_seq_num;
-    u_int8_t		me_critical_sd_count;
-    u_int8_t		res4[3];
-    u_int8_t		me_dead_count;
-    u_int8_t		res5;
-    u_int8_t		me_rebuild_count;
-    u_int8_t		me_misc_flags;
+    uint8_t		res2;
+    uint8_t		me_fwminor;
+    uint8_t		me_fwmajor;
+    uint8_t		me_rebuild_flag;
+    uint8_t		me_max_commands;
+    uint8_t		me_offline_sd_count;
+    uint8_t		res3;
+    uint16_t		me_event_log_seq_num;
+    uint8_t		me_critical_sd_count;
+    uint8_t		res4[3];
+    uint8_t		me_dead_count;
+    uint8_t		res5;
+    uint8_t		me_rebuild_count;
+    uint8_t		me_misc_flags;
 #define MLX_ENQ_MISC_BBU	(1<<3)	/* battery backup present */
     struct 
     {
-	u_int8_t	dd_targ;
-	u_int8_t	dd_chan;
+	uint8_t	dd_targ;
+	uint8_t	dd_chan;
     } __packed me_dead[20];
 } __packed;
 
 struct mlx_enquiry2	/* MLX_CMD_ENQUIRY2 */
 {
-    u_int32_t		me_hardware_id;
-    u_int32_t		me_firmware_id;
-    u_int32_t		res1;
-    u_int8_t		me_configured_channels;
-    u_int8_t		me_actual_channels;
-    u_int8_t		me_max_targets;
-    u_int8_t		me_max_tags;
-    u_int8_t		me_max_sys_drives;
-    u_int8_t		me_max_arms;
-    u_int8_t		me_max_spans;
-    u_int8_t		res2;
-    u_int32_t		res3;
-    u_int32_t		me_mem_size;
-    u_int32_t		me_cache_size;
-    u_int32_t		me_flash_size;
-    u_int32_t		me_nvram_size;
-    u_int16_t		me_mem_type;
-    u_int16_t		me_clock_speed;
-    u_int16_t		me_mem_speed;
-    u_int16_t		me_hardware_speed;
-    u_int8_t		res4[12];
-    u_int16_t		me_max_commands;
-    u_int16_t		me_max_sg;
-    u_int16_t		me_max_dp;
-    u_int16_t		me_max_iod;
-    u_int16_t		me_max_comb;
-    u_int8_t		me_latency;
-    u_int8_t		res5;
-    u_int8_t		me_scsi_timeout;
-    u_int8_t		res6;
-    u_int16_t		me_min_freelines;
-    u_int8_t		res7[8];
-    u_int8_t		me_rate_const;
-    u_int8_t		res8[11];
-    u_int16_t		me_physblk;
-    u_int16_t		me_logblk;
-    u_int16_t		me_maxblk;
-    u_int16_t		me_blocking_factor;
-    u_int16_t		me_cacheline;
-    u_int8_t		me_scsi_cap;
-    u_int8_t		res9[5];
-    u_int16_t		me_firmware_build;
-    u_int8_t		me_fault_mgmt_type;
-    u_int8_t		res10;
-    u_int32_t		me_firmware_features;
-    u_int8_t		res11[8];
+    uint32_t		me_hardware_id;
+    uint32_t		me_firmware_id;
+    uint32_t		res1;
+    uint8_t		me_configured_channels;
+    uint8_t		me_actual_channels;
+    uint8_t		me_max_targets;
+    uint8_t		me_max_tags;
+    uint8_t		me_max_sys_drives;
+    uint8_t		me_max_arms;
+    uint8_t		me_max_spans;
+    uint8_t		res2;
+    uint32_t		res3;
+    uint32_t		me_mem_size;
+    uint32_t		me_cache_size;
+    uint32_t		me_flash_size;
+    uint32_t		me_nvram_size;
+    uint16_t		me_mem_type;
+    uint16_t		me_clock_speed;
+    uint16_t		me_mem_speed;
+    uint16_t		me_hardware_speed;
+    uint8_t		res4[12];
+    uint16_t		me_max_commands;
+    uint16_t		me_max_sg;
+    uint16_t		me_max_dp;
+    uint16_t		me_max_iod;
+    uint16_t		me_max_comb;
+    uint8_t		me_latency;
+    uint8_t		res5;
+    uint8_t		me_scsi_timeout;
+    uint8_t		res6;
+    uint16_t		me_min_freelines;
+    uint8_t		res7[8];
+    uint8_t		me_rate_const;
+    uint8_t		res8[11];
+    uint16_t		me_physblk;
+    uint16_t		me_logblk;
+    uint16_t		me_maxblk;
+    uint16_t		me_blocking_factor;
+    uint16_t		me_cacheline;
+    uint8_t		me_scsi_cap;
+    uint8_t		res9[5];
+    uint16_t		me_firmware_build;
+    uint8_t		me_fault_mgmt_type;
+    uint8_t		res10;
+    uint32_t		me_firmware_features;
+    uint8_t		res11[8];
 } __packed;
 
 struct mlx_enq_sys_drive /* MLX_CMD_ENQSYSDRIVE returns an array of 32 of these */
 {
-    u_int32_t		sd_size;
-    u_int8_t		sd_state;
-    u_int8_t		sd_raidlevel;
-    u_int16_t		res1;
+    uint32_t		sd_size;
+    uint8_t		sd_state;
+    uint8_t		sd_raidlevel;
+    uint16_t		res1;
 } __packed;
 
 struct mlx_eventlog_entry	/* MLX_CMD_LOGOP/MLX_LOGOP_GET */
 {
-    u_int8_t		el_type;
-    u_int8_t		el_length;
+    uint8_t		el_type;
+    uint8_t		el_length;
     u_char		el_target:5;
     u_char		el_channel:3;
     u_char		el_lun:6;
     u_char		res1:2;
-    u_int16_t		el_seqno;
+    uint16_t		el_seqno;
     u_char		el_errorcode:7;
     u_char		el_valid:1;
-    u_int8_t		el_segment;
+    uint8_t		el_segment;
     u_char		el_sensekey:4;
     u_char		res2:1;
     u_char		el_ILI:1;
     u_char		el_EOM:1;
     u_char		el_filemark:1;
-    u_int8_t		el_information[4];
-    u_int8_t		el_addsense;
-    u_int8_t		el_csi[4];
-    u_int8_t		el_asc;
-    u_int8_t		el_asq;
-    u_int8_t		res3[12];
+    uint8_t		el_information[4];
+    uint8_t		el_addsense;
+    uint8_t		el_csi[4];
+    uint8_t		el_asc;
+    uint8_t		el_asq;
+    uint8_t		res3[12];
 } __packed;
 
 #define MLX_LOGOP_GET		0x00	/* operation codes for MLX_CMD_LOGOP */
@@ -352,14 +352,14 @@ struct mlx_eventlog_entry	/* MLX_CMD_LOGOP/MLX_LOGOP_GET */
 
 struct mlx_rebuild_stat	/* MLX_CMD_REBUILDSTAT */
 {
-    u_int32_t	rb_drive;
-    u_int32_t	rb_size;
-    u_int32_t	rb_remaining;
+    uint32_t	rb_drive;
+    uint32_t	rb_size;
+    uint32_t	rb_remaining;
 } __packed;
 
 struct mlx_config2
 {
-    u_int16_t	cf_flags1;
+    uint16_t	cf_flags1;
 #define MLX_CF2_ACTV_NEG	(1<<1)
 #define MLX_CF2_NORSTRTRY	(1<<7)
 #define MLX_CF2_STRGWRK		(1<<8)
@@ -368,50 +368,50 @@ struct mlx_config2
 #define MLX_CF2_ARM    		(1<<13)
 #define MLX_CF2_OFM		(1<<15)
 #define MLX_CF2_AEMI (MLX_CF2_ARM | MLX_CF2_OFM)
-    u_int8_t	cf_oemid;
-    u_int8_t	cf_oem_model;
-    u_int8_t	cf_physical_sector;
-    u_int8_t	cf_logical_sector;
-    u_int8_t	cf_blockfactor;
-    u_int8_t	cf_flags2;
+    uint8_t	cf_oemid;
+    uint8_t	cf_oem_model;
+    uint8_t	cf_physical_sector;
+    uint8_t	cf_logical_sector;
+    uint8_t	cf_blockfactor;
+    uint8_t	cf_flags2;
 #define MLX_CF2_READAH		(1<<0)
 #define MLX_CF2_BIOSDLY		(1<<1)
 #define MLX_CF2_REASS1S		(1<<4)
 #define MLX_CF2_FUAENABL	(1<<6)
 #define MLX_CF2_R5ALLS		(1<<7)
-    u_int8_t	cf_rcrate;
-    u_int8_t	cf_res1;
-    u_int8_t	cf_blocks_per_cache_line;
-    u_int8_t	cf_blocks_per_stripe;
-    u_int8_t	cf_scsi_param_0;
-    u_int8_t	cf_scsi_param_1;
-    u_int8_t	cf_scsi_param_2;
-    u_int8_t	cf_scsi_param_3;
-    u_int8_t	cf_scsi_param_4;
-    u_int8_t	cf_scsi_param_5;
-    u_int8_t	cf_scsi_initiator_id;    
-    u_int8_t	cf_res2;
-    u_int8_t	cf_startup_mode;
-    u_int8_t	cf_simultaneous_spinup_devices;
-    u_int8_t	cf_delay_between_spinups;
-    u_int8_t	cf_res3;
-    u_int16_t	cf_checksum;
+    uint8_t	cf_rcrate;
+    uint8_t	cf_res1;
+    uint8_t	cf_blocks_per_cache_line;
+    uint8_t	cf_blocks_per_stripe;
+    uint8_t	cf_scsi_param_0;
+    uint8_t	cf_scsi_param_1;
+    uint8_t	cf_scsi_param_2;
+    uint8_t	cf_scsi_param_3;
+    uint8_t	cf_scsi_param_4;
+    uint8_t	cf_scsi_param_5;
+    uint8_t	cf_scsi_initiator_id;    
+    uint8_t	cf_res2;
+    uint8_t	cf_startup_mode;
+    uint8_t	cf_simultaneous_spinup_devices;
+    uint8_t	cf_delay_between_spinups;
+    uint8_t	cf_res3;
+    uint16_t	cf_checksum;
 } __packed;
 
 struct mlx_sys_drv_span
 {
-    u_int32_t	sp_start_lba;
-    u_int32_t	sp_nblks;
-    u_int8_t	sp_arm[8];
+    uint32_t	sp_start_lba;
+    uint32_t	sp_nblks;
+    uint8_t	sp_arm[8];
 } __packed;
 
 struct mlx_sys_drv
 {
-    u_int8_t	sd_status;
-    u_int8_t	sd_ext_status;
-    u_int8_t	sd_mod1;
-    u_int8_t	sd_mod2;
-    u_int8_t	sd_raidlevel;
+    uint8_t	sd_status;
+    uint8_t	sd_ext_status;
+    uint8_t	sd_mod1;
+    uint8_t	sd_mod2;
+    uint8_t	sd_raidlevel;
 #define MLX_SYS_DRV_WRITEBACK	(1<<7)
 #define MLX_SYS_DRV_RAID0	0
 #define MLX_SYS_DRV_RAID1	1
@@ -419,18 +419,18 @@ struct mlx_sys_drv
 #define MLX_SYS_DRV_RAID5	5
 #define MLX_SYS_DRV_RAID6	6
 #define MLX_SYS_DRV_JBOD	7
-    u_int8_t	sd_valid_arms;
-    u_int8_t	sd_valid_spans;
-    u_int8_t	sd_init_state;
+    uint8_t	sd_valid_arms;
+    uint8_t	sd_valid_spans;
+    uint8_t	sd_init_state;
 #define MLX_SYS_DRV_INITTED	0x81;
     struct mlx_sys_drv_span sd_span[4];
 } __packed;
 
 struct mlx_phys_drv
 {
-    u_int8_t	pd_flags1;
+    uint8_t	pd_flags1;
 #define	MLX_PHYS_DRV_PRESENT	(1<<0)
-    u_int8_t	pd_flags2;
+    uint8_t	pd_flags2;
 #define MLX_PHYS_DRV_OTHER	0x00
 #define MLX_PHYS_DRV_DISK	0x01
 #define MLX_PHYS_DRV_SEQUENTIAL	0x02
@@ -440,30 +440,30 @@ struct mlx_phys_drv
 #define MLX_PHYS_DRV_FAST	(1<<5)
 #define MLX_PHYS_DRV_WIDE	(1<<6)
 #define MLX_PHYS_DRV_TAG	(1<<7)
-    u_int8_t	pd_status;
+    uint8_t	pd_status;
 #define MLX_PHYS_DRV_DEAD	0x00
 #define MLX_PHYS_DRV_WRONLY	0x02
 #define MLX_PHYS_DRV_ONLINE	0x03
 #define MLX_PHYS_DRV_STANDBY	0x10
-    u_int8_t	pd_res1;
-    u_int8_t	pd_period;
-    u_int8_t	pd_offset;
-    u_int32_t	pd_config_size;
+    uint8_t	pd_res1;
+    uint8_t	pd_period;
+    uint8_t	pd_offset;
+    uint32_t	pd_config_size;
 } __packed;
 
 struct mlx_core_cfg
 {
-    u_int8_t	cc_num_sys_drives;
-    u_int8_t	cc_res1[3];
+    uint8_t	cc_num_sys_drives;
+    uint8_t	cc_res1[3];
     struct mlx_sys_drv	cc_sys_drives[32];
     struct mlx_phys_drv cc_phys_drives[5 * 16];
 } __packed;
 
 struct mlx_dcdb
 {
-    u_int8_t	dcdb_target:4;
-    u_int8_t	dcdb_channel:4;
-    u_int8_t	dcdb_flags;
+    uint8_t	dcdb_target:4;
+    uint8_t	dcdb_channel:4;
+    uint8_t	dcdb_flags;
 #define MLX_DCDB_NO_DATA	0x00
 #define MLX_DCDB_DATA_IN	0x01
 #define MLX_DCDB_DATA_OUT	0x02
@@ -474,25 +474,25 @@ struct mlx_dcdb
 #define MLX_DCDB_TIMEOUT_24H	0x40
 #define MLX_DCDB_NO_AUTO_SENSE	(1<<6)
 #define MLX_DCDB_DISCONNECT	(1<<7)
-    u_int16_t	dcdb_datasize;
-    u_int32_t	dcdb_physaddr;
-    u_int8_t	dcdb_cdb_length:4;
-    u_int8_t	dcdb_datasize_high:4;
-    u_int8_t	dcdb_sense_length;
-    u_int8_t	dcdb_cdb[12];
-    u_int8_t	dcdb_sense[64];
-    u_int8_t	dcdb_status;
-    u_int8_t	res1;
+    uint16_t	dcdb_datasize;
+    uint32_t	dcdb_physaddr;
+    uint8_t	dcdb_cdb_length:4;
+    uint8_t	dcdb_datasize_high:4;
+    uint8_t	dcdb_sense_length;
+    uint8_t	dcdb_cdb[12];
+    uint8_t	dcdb_sense[64];
+    uint8_t	dcdb_status;
+    uint8_t	res1;
 } __packed;
 
 struct mlx_bbtable_entry 
 {
-    u_int32_t	bbt_block_number;
-    u_int8_t	bbt_extent;
-    u_int8_t	res1;
-    u_int8_t	bbt_entry_type;
-    u_int8_t	bbt_system_drive:5;
-    u_int8_t	res2:3;
+    uint32_t	bbt_block_number;
+    uint8_t	bbt_extent;
+    uint8_t	res1;
+    uint8_t	bbt_entry_type;
+    uint8_t	bbt_system_drive:5;
+    uint8_t	res2:3;
 } __packed;
 
 #ifdef _KERNEL
@@ -501,12 +501,12 @@ struct mlx_bbtable_entry
  */
 static __inline void
 mlx_make_type1(struct mlx_command *mc,
-	       u_int8_t code, 
-	       u_int16_t f1,
-	       u_int32_t f2,
-	       u_int8_t f3,
-	       u_int32_t f4,
-	       u_int8_t f5) 
+	       uint8_t code, 
+	       uint16_t f1,
+	       uint32_t f2,
+	       uint8_t f3,
+	       uint32_t f4,
+	       uint8_t f5) 
 {
     mc->mc_mailbox[0x0] = code;
     mc->mc_mailbox[0x2] = f1 & 0xff;
@@ -524,15 +524,15 @@ mlx_make_type1(struct mlx_command *mc,
 
 static __inline void
 mlx_make_type2(struct mlx_command *mc,
-	       u_int8_t code, 
-	       u_int8_t f1,
-	       u_int8_t f2,
-	       u_int8_t f3,
-	       u_int8_t f4,
-	       u_int8_t f5,
-	       u_int8_t f6,
-	       u_int32_t f7,
-	       u_int8_t f8)
+	       uint8_t code, 
+	       uint8_t f1,
+	       uint8_t f2,
+	       uint8_t f3,
+	       uint8_t f4,
+	       uint8_t f5,
+	       uint8_t f6,
+	       uint32_t f7,
+	       uint8_t f8)
 {
     mc->mc_mailbox[0x0] = code;
     mc->mc_mailbox[0x2] = f1;
@@ -550,14 +550,14 @@ mlx_make_type2(struct mlx_command *mc,
 
 static __inline void
 mlx_make_type3(struct mlx_command *mc,
-	       u_int8_t code, 
-	       u_int8_t f1,
-	       u_int8_t f2,
-	       u_int16_t f3,
-	       u_int8_t f4,
-	       u_int8_t f5,
-	       u_int32_t f6,
-	       u_int8_t f7)
+	       uint8_t code, 
+	       uint8_t f1,
+	       uint8_t f2,
+	       uint16_t f3,
+	       uint8_t f4,
+	       uint8_t f5,
+	       uint32_t f6,
+	       uint8_t f7)
 {
     mc->mc_mailbox[0x0] = code;
     mc->mc_mailbox[0x2] = f1;
@@ -575,11 +575,11 @@ mlx_make_type3(struct mlx_command *mc,
 
 static __inline void
 mlx_make_type4(struct mlx_command *mc,
-	       u_int8_t code, 
-	       u_int16_t f1,
-	       u_int32_t f2,
-	       u_int32_t f3,
-	       u_int8_t f4)
+	       uint8_t code, 
+	       uint16_t f1,
+	       uint32_t f2,
+	       uint32_t f3,
+	       uint8_t f4)
 {
     mc->mc_mailbox[0x0] = code;
     mc->mc_mailbox[0x2] = f1 & 0xff;
@@ -597,12 +597,12 @@ mlx_make_type4(struct mlx_command *mc,
 
 static __inline void
 mlx_make_type5(struct mlx_command *mc,
-	       u_int8_t code, 
-	       u_int8_t f1,
-	       u_int8_t f2,
-	       u_int32_t f3,
-	       u_int32_t f4,
-	       u_int8_t f5)
+	       uint8_t code, 
+	       uint8_t f1,
+	       uint8_t f2,
+	       uint32_t f3,
+	       uint32_t f4,
+	       uint8_t f5)
 {
     mc->mc_mailbox[0x0] = code;
     mc->mc_mailbox[0x2] = f1;

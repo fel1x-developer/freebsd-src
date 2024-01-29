@@ -131,7 +131,7 @@ struct lv1_atapi_cmd {
 
 static void ps3cdrom_action(struct cam_sim *sim, union ccb *ccb);
 static void ps3cdrom_poll(struct cam_sim *sim);
-static void ps3cdrom_async(void *callback_arg, u_int32_t code,
+static void ps3cdrom_async(void *callback_arg, uint32_t code,
     struct cam_path* path, void *arg);
 
 static void ps3cdrom_intr(void *arg);
@@ -140,7 +140,7 @@ static void ps3cdrom_transfer(void *arg, bus_dma_segment_t *segs, int nsegs,
     int error);
 
 static int ps3cdrom_decode_lv1_status(uint64_t status,
-	u_int8_t *sense_key, u_int8_t *asc, u_int8_t *ascq);
+	uint8_t *sense_key, uint8_t *asc, uint8_t *ascq);
 
 static int
 ps3cdrom_probe(device_t dev)
@@ -449,7 +449,7 @@ ps3cdrom_poll(struct cam_sim *sim)
 }
 
 static void
-ps3cdrom_async(void *callback_arg, u_int32_t code,
+ps3cdrom_async(void *callback_arg, uint32_t code,
 	struct cam_path* path, void *arg)
 {
 	switch (code) {
@@ -469,7 +469,7 @@ ps3cdrom_intr(void *arg)
 	uint64_t devid = ps3bus_get_device(dev);
 	struct ps3cdrom_xfer *xp;
 	union ccb *ccb;
-	u_int8_t *cdb, sense_key, asc, ascq;
+	uint8_t *cdb, sense_key, asc, ascq;
 	uint64_t tag, status;
 
 	if (lv1_storage_get_async_status(devid, &tag, &status) != 0)
@@ -551,7 +551,7 @@ ps3cdrom_transfer(void *arg, bus_dma_segment_t *segs, int nsegs, int error)
 	device_t dev = sc->sc_dev;
 	uint64_t devid = ps3bus_get_device(dev);
 	union ccb *ccb = xp->x_ccb;
-	u_int8_t *cdb;
+	uint8_t *cdb;
 	uint64_t start_sector, block_count;
 	int err;
 
@@ -676,8 +676,8 @@ ps3cdrom_transfer(void *arg, bus_dma_segment_t *segs, int nsegs, int error)
 }
 
 static int
-ps3cdrom_decode_lv1_status(uint64_t status, u_int8_t *sense_key, u_int8_t *asc,
-    u_int8_t *ascq)
+ps3cdrom_decode_lv1_status(uint64_t status, uint8_t *sense_key, uint8_t *asc,
+    uint8_t *ascq)
 {
 	if (((status >> 24) & 0xff) != SCSI_STATUS_CHECK_COND)
 		return -1;

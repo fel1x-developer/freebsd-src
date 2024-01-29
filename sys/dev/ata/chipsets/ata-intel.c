@@ -60,17 +60,17 @@ static int ata_intel_sch_setmode(device_t dev, int target, int mode);
 static int ata_intel_sata_getrev(device_t dev, int target);
 static int ata_intel_sata_status(device_t dev);
 static int ata_intel_sata_ahci_read(device_t dev, int port,
-    int reg, u_int32_t *result);
+    int reg, uint32_t *result);
 static int ata_intel_sata_cscr_read(device_t dev, int port,
-    int reg, u_int32_t *result);
+    int reg, uint32_t *result);
 static int ata_intel_sata_sidpr_read(device_t dev, int port,
-    int reg, u_int32_t *result);
+    int reg, uint32_t *result);
 static int ata_intel_sata_ahci_write(device_t dev, int port,
-    int reg, u_int32_t result);
+    int reg, uint32_t result);
 static int ata_intel_sata_cscr_write(device_t dev, int port,
-    int reg, u_int32_t result);
+    int reg, uint32_t result);
 static int ata_intel_sata_sidpr_write(device_t dev, int port,
-    int reg, u_int32_t result);
+    int reg, uint32_t result);
 static int ata_intel_sata_sidpr_test(device_t dev);
 static int ata_intel_31244_ch_attach(device_t dev);
 static int ata_intel_31244_ch_detach(device_t dev);
@@ -479,13 +479,13 @@ ata_intel_new_setmode(device_t dev, int target, int mode)
 	struct ata_channel *ch = device_get_softc(dev);
 	int devno = (ch->unit << 1) + target;
 	int piomode;
-	u_int32_t reg40 = pci_read_config(parent, 0x40, 4);
-	u_int8_t reg44 = pci_read_config(parent, 0x44, 1);
-	u_int8_t reg48 = pci_read_config(parent, 0x48, 1);
-	u_int16_t reg4a = pci_read_config(parent, 0x4a, 2);
-	u_int16_t reg54 = pci_read_config(parent, 0x54, 2);
-	u_int32_t mask40 = 0, new40 = 0;
-	u_int8_t mask44 = 0, new44 = 0;
+	uint32_t reg40 = pci_read_config(parent, 0x40, 4);
+	uint8_t reg44 = pci_read_config(parent, 0x44, 1);
+	uint8_t reg48 = pci_read_config(parent, 0x48, 1);
+	uint16_t reg4a = pci_read_config(parent, 0x4a, 2);
+	uint16_t reg54 = pci_read_config(parent, 0x54, 2);
+	uint32_t mask40 = 0, new40 = 0;
+	uint8_t mask44 = 0, new44 = 0;
 	static const uint8_t timings[] =
 	    { 0x00, 0x00, 0x10, 0x21, 0x23, 0x00, 0x21, 0x23 };
 	static const uint8_t utimings[] =
@@ -549,8 +549,8 @@ ata_intel_sch_setmode(device_t dev, int target, int mode)
 {
 	device_t parent = device_get_parent(dev);
 	struct ata_pci_controller *ctlr = device_get_softc(parent);
-	u_int8_t dtim = 0x80 + (target << 2);
-	u_int32_t tim = pci_read_config(parent, dtim, 4);
+	uint8_t dtim = 0x80 + (target << 2);
+	uint32_t tim = pci_read_config(parent, dtim, 4);
 	int piomode;
 
 	mode = min(mode, ctlr->chip->max_dma);
@@ -597,7 +597,7 @@ ata_intel_sata_status(device_t dev)
 }
 
 static int
-ata_intel_sata_ahci_read(device_t dev, int port, int reg, u_int32_t *result)
+ata_intel_sata_ahci_read(device_t dev, int port, int reg, uint32_t *result)
 {
 	struct ata_pci_controller *ctlr;
 	struct ata_channel *ch;
@@ -629,7 +629,7 @@ ata_intel_sata_ahci_read(device_t dev, int port, int reg, u_int32_t *result)
 }
 
 static int
-ata_intel_sata_cscr_read(device_t dev, int port, int reg, u_int32_t *result)
+ata_intel_sata_cscr_read(device_t dev, int port, int reg, uint32_t *result)
 {
 	struct ata_pci_controller *ctlr;
 	struct ata_channel *ch;
@@ -663,7 +663,7 @@ ata_intel_sata_cscr_read(device_t dev, int port, int reg, u_int32_t *result)
 }
 
 static int
-ata_intel_sata_sidpr_read(device_t dev, int port, int reg, u_int32_t *result)
+ata_intel_sata_sidpr_read(device_t dev, int port, int reg, uint32_t *result)
 {
 	struct ata_pci_controller *ctlr;
 	struct ata_channel *ch;
@@ -694,7 +694,7 @@ ata_intel_sata_sidpr_read(device_t dev, int port, int reg, u_int32_t *result)
 }
 
 static int
-ata_intel_sata_ahci_write(device_t dev, int port, int reg, u_int32_t value)
+ata_intel_sata_ahci_write(device_t dev, int port, int reg, uint32_t value)
 {
 	struct ata_pci_controller *ctlr;
 	struct ata_channel *ch;
@@ -726,7 +726,7 @@ ata_intel_sata_ahci_write(device_t dev, int port, int reg, u_int32_t value)
 }
 
 static int
-ata_intel_sata_cscr_write(device_t dev, int port, int reg, u_int32_t value)
+ata_intel_sata_cscr_write(device_t dev, int port, int reg, uint32_t value)
 {
 	struct ata_pci_controller *ctlr;
 	struct ata_channel *ch;
@@ -760,7 +760,7 @@ ata_intel_sata_cscr_write(device_t dev, int port, int reg, u_int32_t value)
 }
 
 static int
-ata_intel_sata_sidpr_write(device_t dev, int port, int reg, u_int32_t value)
+ata_intel_sata_sidpr_write(device_t dev, int port, int reg, uint32_t value)
 {
 	struct ata_pci_controller *ctlr;
 	struct ata_channel *ch;

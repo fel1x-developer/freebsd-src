@@ -87,8 +87,8 @@ MALLOC_DECLARE(M_IPSBUF);
 struct ips_softc;
 
 typedef struct {
-	u_int32_t 	status[IPS_MAX_CMD_NUM];
-	u_int32_t 	base_phys_addr;
+	uint32_t 	status[IPS_MAX_CMD_NUM];
+	uint32_t 	base_phys_addr;
 	int 		nextstatus;
 	bus_dma_tag_t	dmatag;
 	bus_dmamap_t	dmamap;
@@ -96,15 +96,15 @@ typedef struct {
 
 /* used to keep track of current commands to the card */
 typedef struct ips_command{
-	u_int8_t		command_number;
-	u_int8_t 		id;
-	u_int8_t		timeout;
+	uint8_t		command_number;
+	uint8_t 		id;
+	uint8_t		timeout;
 	struct ips_softc *	sc;
 	bus_dma_tag_t		data_dmatag;
 	bus_dmamap_t		data_dmamap;
 	bus_dmamap_t		command_dmamap;
 	void *			command_buffer;
-	u_int32_t		command_phys_addr;/*WARNING! must be changed if 64bit addressing ever used*/	
+	uint32_t		command_phys_addr;/*WARNING! must be changed if 64bit addressing ever used*/	
 	ips_cmd_status_t	status;
 	SLIST_ENTRY(ips_command)	next;
 	void *			data_buffer;
@@ -128,16 +128,16 @@ typedef struct ips_softc{
         device_t                dev;
         struct cdev *device_file;
 	struct callout		timer;
-	u_int16_t		adapter_type;
+	uint16_t		adapter_type;
 	ips_adapter_info_t	adapter_info;
 	device_t		diskdev[IPS_MAX_NUM_DRIVES];
 	ips_drive_t		drives[IPS_MAX_NUM_DRIVES];
-	u_int8_t		drivecount;
-	u_int16_t		ffdc_resetcount;
+	uint8_t		drivecount;
+	uint16_t		ffdc_resetcount;
 	struct timeval		ffdc_resettime;
-	u_int8_t		next_drive;
-	u_int8_t		max_cmds;
-	volatile u_int8_t	used_commands;
+	uint8_t		next_drive;
+	uint8_t		max_cmds;
+	volatile uint8_t	used_commands;
 	ips_command_t		*commandarray;
 	ips_command_t		*staticcmd;
 	SLIST_HEAD(command_list, ips_command) free_cmd_list;

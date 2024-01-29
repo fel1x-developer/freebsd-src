@@ -86,7 +86,7 @@
 #endif
 
 /* Native initial function */
-extern u_int64_t hammer_time(u_int64_t, u_int64_t);
+extern uint64_t hammer_time(uint64_t, uint64_t);
 /* Xen initial function */
 uint64_t hammer_time_xen(vm_paddr_t);
 
@@ -442,7 +442,7 @@ static void
 xen_pvh_parse_memmap(caddr_t kmdp, vm_paddr_t *physmap, int *physmap_idx)
 {
 	struct xen_memory_map memmap;
-	u_int32_t size;
+	uint32_t size;
 	int rc;
 
 	/* We should only reach here if we're running under Xen. */

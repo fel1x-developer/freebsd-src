@@ -89,7 +89,7 @@ static int viapm_debug = 0;
 
 struct viapm_softc {
 	int type;
-	u_int32_t base;
+	uint32_t base;
 	int iorid;
 	int irqrid;
 	struct resource *iores;
@@ -183,9 +183,9 @@ static int
 viapm_586b_probe(device_t dev)
 {
 	struct viapm_softc *viapm = (struct viapm_softc *)device_get_softc(dev);
-	u_int32_t l;
-	u_int16_t s;
-	u_int8_t c;
+	uint32_t l;
+	uint16_t s;
+	uint8_t c;
 
 	switch (pci_get_devid(dev)) {
 	case VIA_586B_PMU_ID:
@@ -242,9 +242,9 @@ viapm_pro_probe(device_t dev)
 {
 	struct viapm_softc *viapm = (struct viapm_softc *)device_get_softc(dev);
 #ifdef VIAPM_BASE_ADDR
-	u_int32_t l;
+	uint32_t l;
 #endif
-	u_int32_t base_cfgreg;
+	uint32_t base_cfgreg;
 	char *desc;
 
 	switch (pci_get_devid(dev)) {
@@ -337,7 +337,7 @@ static int
 viapm_pro_attach(device_t dev)
 {
 	struct viapm_softc *viapm = (struct viapm_softc *)device_get_softc(dev);
-	u_int32_t l;
+	uint32_t l;
 
 	mtx_init(&viapm->lock, device_get_nameunit(dev), "viapm", MTX_DEF);
 	if (!(viapm->iores = bus_alloc_resource_any(dev, SYS_RES_IOPORT,

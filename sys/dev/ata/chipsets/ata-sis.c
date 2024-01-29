@@ -114,7 +114,7 @@ ata_sis_probe(device_t dev)
 	return ENXIO;
 
     if (idx->cfg2) {
-	u_int8_t reg57 = pci_read_config(dev, 0x57, 1);
+	uint8_t reg57 = pci_read_config(dev, 0x57, 1);
 
 	pci_write_config(dev, 0x57, (reg57 & 0x7f), 1);
 	if (pci_read_config(dev, PCIR_DEVVENDOR, 4) == ATA_SIS5518) {
@@ -128,7 +128,7 @@ ata_sis_probe(device_t dev)
 	pci_write_config(dev, 0x57, reg57, 1);
     }
     if (idx->cfg2 && !found) {
-	u_int8_t reg4a = pci_read_config(dev, 0x4a, 1);
+	uint8_t reg4a = pci_read_config(dev, 0x4a, 1);
 
 	pci_write_config(dev, 0x4a, (reg4a | 0x10), 1);
 	if (pci_read_config(dev, PCIR_DEVVENDOR, 4) == ATA_SIS5517) {
@@ -264,7 +264,7 @@ ata_sis_setmode(device_t dev, int target, int mode)
 		{ 0x28269008, 0x0c266008, 0x04263008, 0x0c0a3008, 0x05093008,
 		  0x22196008, 0x0c0a3008, 0x05093008, 0x050939fc, 0x050936ac,
 		  0x0509347c, 0x0509325c, 0x0509323c, 0x0509322c, 0x0509321c};
-	    u_int32_t reg;
+	    uint32_t reg;
 
 	    reg = (pci_read_config(parent, 0x57, 1)&0x40?0x70:0x40)+(devno<<2);
 	    pci_write_config(parent, reg, timings[ata_mode2idx(mode)], 4);
@@ -275,7 +275,7 @@ ata_sis_setmode(device_t dev, int target, int mode)
 	     { 0x00cb, 0x0067, 0x0044, 0x0033, 0x0031, 0x0044, 0x0033, 0x0031,
 	       0x8f31, 0x8a31, 0x8731, 0x8531, 0x8331, 0x8231, 0x8131 };
 		  
-	    u_int16_t reg = 0x40 + (devno << 1);
+	    uint16_t reg = 0x40 + (devno << 1);
 
 	    pci_write_config(parent, reg, timings[ata_mode2idx(mode)], 2);
 	    break;
@@ -284,7 +284,7 @@ ata_sis_setmode(device_t dev, int target, int mode)
 	    static const uint16_t timings[] =
 		{ 0x00cb, 0x0067, 0x0044, 0x0033, 0x0031, 0x0044, 0x0033,
 		  0x0031, 0x8b31, 0x8731, 0x8531, 0x8431, 0x8231, 0x8131 };
-	    u_int16_t reg = 0x40 + (devno << 1);
+	    uint16_t reg = 0x40 + (devno << 1);
 
 	    pci_write_config(parent, reg, timings[ata_mode2idx(mode)], 2);
 	    break;
@@ -295,7 +295,7 @@ ata_sis_setmode(device_t dev, int target, int mode)
 	    static const uint16_t timings[] =
 		{ 0x0c0b, 0x0607, 0x0404, 0x0303, 0x0301, 0x0404, 0x0303,
 		  0x0301, 0xf301, 0xd301, 0xb301, 0xa301, 0x9301, 0x8301 };
-	    u_int16_t reg = 0x40 + (devno << 1);
+	    uint16_t reg = 0x40 + (devno << 1);
 
 	    pci_write_config(parent, reg, timings[ata_mode2idx(mode)], 2);
 	    break;

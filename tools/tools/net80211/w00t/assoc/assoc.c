@@ -179,8 +179,8 @@ void send_auth(struct params *p)
 /* 
  * Add an ssid element to a frame.
  */
-static u_int8_t *
-ieee80211_add_ssid(u_int8_t *frm, const u_int8_t *ssid, u_int len)
+static uint8_t *
+ieee80211_add_ssid(uint8_t *frm, const uint8_t *ssid, u_int len)
 {
 	*frm++ = IEEE80211_ELEMID_SSID;
 	*frm++ = len;

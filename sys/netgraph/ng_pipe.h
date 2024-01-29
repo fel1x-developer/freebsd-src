@@ -46,12 +46,12 @@
 
 /* Statistics structure for one hook */
 struct ng_pipe_hookstat {
-	u_int64_t		fwd_octets;
-	u_int64_t		fwd_frames;
-	u_int64_t		in_disc_octets;
-	u_int64_t		in_disc_frames;
-	u_int64_t		out_disc_octets;
-	u_int64_t		out_disc_frames;
+	uint64_t		fwd_octets;
+	uint64_t		fwd_frames;
+	uint64_t		in_disc_octets;
+	uint64_t		in_disc_frames;
+	uint64_t		out_disc_octets;
+	uint64_t		out_disc_frames;
 };
 
 /* Keep this in sync with the above structure definition */
@@ -80,11 +80,11 @@ struct ng_pipe_stats {
 
 /* Runtime structure for one hook */
 struct ng_pipe_hookrun {
-	u_int32_t		fifo_queues;
-	u_int32_t		qin_octets;
-	u_int32_t		qin_frames;
-	u_int32_t		qout_octets;
-	u_int32_t		qout_frames;
+	uint32_t		fifo_queues;
+	uint32_t		qin_octets;
+	uint32_t		qin_frames;
+	uint32_t		qout_octets;
+	uint32_t		qout_frames;
 };
 
 /* Keep this in sync with the above structure definition */
@@ -112,16 +112,16 @@ struct ng_pipe_run {
 
 /* Config structure for one hook */
 struct ng_pipe_hookcfg {
-	u_int64_t		bandwidth;
-	u_int64_t		ber;
-	u_int32_t		qin_size_limit;
-	u_int32_t		qout_size_limit;
-	u_int32_t		duplicate;
-	u_int32_t		fifo;
-	u_int32_t		drr;
-	u_int32_t		wfq;
-	u_int32_t		droptail;
-	u_int32_t		drophead;
+	uint64_t		bandwidth;
+	uint64_t		ber;
+	uint32_t		qin_size_limit;
+	uint32_t		qout_size_limit;
+	uint32_t		duplicate;
+	uint32_t		fifo;
+	uint32_t		drr;
+	uint32_t		wfq;
+	uint32_t		droptail;
+	uint32_t		drophead;
 };
 
 /* Keep this in sync with the above structure definition */
@@ -141,10 +141,10 @@ struct ng_pipe_hookcfg {
 
 /* Config structure returned by NGM_PIPE_GET_CFG */
 struct ng_pipe_cfg {
-	u_int64_t		bandwidth;
-	u_int64_t		delay;
-	u_int32_t		header_offset;
-	u_int32_t		overhead;
+	uint64_t		bandwidth;
+	uint64_t		delay;
+	uint32_t		header_offset;
+	uint32_t		overhead;
 	struct ng_pipe_hookcfg	downstream;
 	struct ng_pipe_hookcfg	upstream;
 };

@@ -31,13 +31,13 @@ typedef enum {
 
 typedef struct {
 	HAL_BT_MODULE	bt_module;
-	u_int8_t	bt_coex_config;
-	u_int8_t	bt_gpio_bt_active;
-	u_int8_t	bt_gpio_bt_priority;
-	u_int8_t	bt_gpio_wlan_active;
-	u_int8_t	bt_active_polarity;
+	uint8_t	bt_coex_config;
+	uint8_t	bt_gpio_bt_active;
+	uint8_t	bt_gpio_bt_priority;
+	uint8_t	bt_gpio_wlan_active;
+	uint8_t	bt_active_polarity;
 	HAL_BOOL	bt_single_ant;
-	u_int8_t	bt_isolation;
+	uint8_t	bt_isolation;
 } HAL_BT_COEX_INFO;
 
 typedef enum {
@@ -104,7 +104,7 @@ typedef enum {
 
 typedef struct {
 	/* extend rx_clear after tx/rx to protect the burst (in usec). */
-	u_int8_t	bt_time_extend;
+	uint8_t	bt_time_extend;
 
 	/*
 	 * extend rx_clear as long as txsm is
@@ -139,7 +139,7 @@ typedef struct {
 	 * from the rising edge of BT_ACTIVE to the time
 	 * BT_PRIORITY can be sampled to indicate priority.
 	 */
-	u_int8_t	bt_priority_time;
+	uint8_t	bt_priority_time;
 
 	/*
 	 * slotted mode only. indicate the time in usec
@@ -147,7 +147,7 @@ typedef struct {
 	 * BT_PRIORITY can be sampled to indicate tx/rx and
 	 * BT_FREQ is sampled.
 	 */
-	u_int8_t	bt_first_slot_time;
+	uint8_t	bt_first_slot_time;
 
 	/*
 	 * slotted mode only. rx_clear and bt_ant decision
@@ -307,21 +307,21 @@ enum {
 
 #define MCI_GPM_RECYCLE(_p_gpm) \
     {                           \
-        *(((u_int32_t *)(_p_gpm)) + MCI_GPM_COEX_W_GPM_PAYLOAD) = MCI_GPM_RSVD_PATTERN32; \
+        *(((uint32_t *)(_p_gpm)) + MCI_GPM_COEX_W_GPM_PAYLOAD) = MCI_GPM_RSVD_PATTERN32; \
     }
 #define MCI_GPM_TYPE(_p_gpm)    \
-    (*(((u_int8_t *)(_p_gpm)) + MCI_GPM_COEX_B_GPM_TYPE) & 0xff)
+    (*(((uint8_t *)(_p_gpm)) + MCI_GPM_COEX_B_GPM_TYPE) & 0xff)
 #define MCI_GPM_OPCODE(_p_gpm)  \
-    (*(((u_int8_t *)(_p_gpm)) + MCI_GPM_COEX_B_GPM_OPCODE) & 0xff)
+    (*(((uint8_t *)(_p_gpm)) + MCI_GPM_COEX_B_GPM_OPCODE) & 0xff)
 
 #define MCI_GPM_SET_CAL_TYPE(_p_gpm, _cal_type)             \
     {                                                       \
-        *(((u_int8_t *)(_p_gpm)) + MCI_GPM_COEX_B_GPM_TYPE) = (_cal_type) & 0xff; \
+        *(((uint8_t *)(_p_gpm)) + MCI_GPM_COEX_B_GPM_TYPE) = (_cal_type) & 0xff; \
     }
 #define MCI_GPM_SET_TYPE_OPCODE(_p_gpm, _type, _opcode)     \
     {                                                       \
-        *(((u_int8_t *)(_p_gpm)) + MCI_GPM_COEX_B_GPM_TYPE) = (_type) & 0xff;     \
-        *(((u_int8_t *)(_p_gpm)) + MCI_GPM_COEX_B_GPM_OPCODE) = (_opcode) & 0xff;   \
+        *(((uint8_t *)(_p_gpm)) + MCI_GPM_COEX_B_GPM_TYPE) = (_type) & 0xff;     \
+        *(((uint8_t *)(_p_gpm)) + MCI_GPM_COEX_B_GPM_OPCODE) = (_opcode) & 0xff;   \
     }
 #define MCI_GPM_IS_CAL_TYPE(_type) ((_type) <= MCI_GPM_WLAN_CAL_DONE)
 
@@ -330,7 +330,7 @@ enum {
 #define MCI_GPM_SET_CHANNEL_BIT(_p_gpm, _bt_chan)                   \
     {                                                               \
         if (_bt_chan < MCI_NUM_BT_CHANNELS) {                       \
-            *(((u_int8_t *)(_p_gpm)) + MCI_GPM_COEX_B_CHANNEL_MAP + \
+            *(((uint8_t *)(_p_gpm)) + MCI_GPM_COEX_B_CHANNEL_MAP + \
                 (_bt_chan / 8)) |= 1 << (_bt_chan & 7);             \
         }                                                           \
     }
@@ -338,7 +338,7 @@ enum {
 #define MCI_GPM_CLR_CHANNEL_BIT(_p_gpm, _bt_chan)                   \
     {                                                               \
         if (_bt_chan < MCI_NUM_BT_CHANNELS) {                       \
-            *(((u_int8_t *)(_p_gpm)) + MCI_GPM_COEX_B_CHANNEL_MAP + \
+            *(((uint8_t *)(_p_gpm)) + MCI_GPM_COEX_B_CHANNEL_MAP + \
                 (_bt_chan / 8)) &= ~(1 << (_bt_chan & 7));          \
         }                                                           \
     }

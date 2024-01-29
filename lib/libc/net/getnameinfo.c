@@ -74,7 +74,7 @@ static int ip6_sa2str(const struct sockaddr_in6 *, char *, size_t, int);
 static int getnameinfo_link(const struct afd *,
     const struct sockaddr *, socklen_t, char *,
     size_t, char *, size_t, int);
-static int hexname(const u_int8_t *, size_t, char *, size_t);
+static int hexname(const uint8_t *, size_t, char *, size_t);
 static int getnameinfo_un(const struct afd *,
     const struct sockaddr *, socklen_t, char *,
     size_t, char *, size_t, int);
@@ -182,7 +182,7 @@ getnameinfo_inet(const struct afd *afd,
 	struct hostent *hp;
 	u_short port;
 	const char *addr;
-	u_int32_t v4a;
+	uint32_t v4a;
 	int h_error;
 	char numserv[512];
 	char numaddr[512];
@@ -219,7 +219,7 @@ getnameinfo_inet(const struct afd *afd,
 
 	switch (sa->sa_family) {
 	case AF_INET:
-		v4a = (u_int32_t)
+		v4a = (uint32_t)
 		    ntohl(((const struct sockaddr_in *)sa)->sin_addr.s_addr);
 		if (IN_MULTICAST(v4a) || IN_EXPERIMENTAL(v4a) ||
 		    IN_ZERONET(v4a))
@@ -456,7 +456,7 @@ getnameinfo_link(const struct afd *afd,
 		    sizeof(iha->sender_unique_ID_lo))
 			return EAI_FAMILY;
 		iha = (const struct fw_hwaddr *)(const void *)LLADDR(sdl);
-		return hexname((const u_int8_t *)&iha->sender_unique_ID_hi,
+		return hexname((const uint8_t *)&iha->sender_unique_ID_hi,
 		    sizeof(iha->sender_unique_ID_hi) +
 		    sizeof(iha->sender_unique_ID_lo),
 		    host, hostlen);
@@ -481,13 +481,13 @@ getnameinfo_link(const struct afd *afd,
 	case IFT_HIPPI:
 	case IFT_ISO88025:
 	default:
-		return hexname((u_int8_t *)LLADDR(sdl), (size_t)sdl->sdl_alen,
+		return hexname((uint8_t *)LLADDR(sdl), (size_t)sdl->sdl_alen,
 		    host, hostlen);
 	}
 }
 
 static int
-hexname(const u_int8_t *cp, size_t len, char *host, size_t hostlen)
+hexname(const uint8_t *cp, size_t len, char *host, size_t hostlen)
 {
 	int i, n;
 	char *outp = host;

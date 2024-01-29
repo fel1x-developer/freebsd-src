@@ -62,13 +62,13 @@ struct agp_ati_softc {
 	struct resource *regs;	/* memory mapped control registers */
 	bus_space_tag_t bst;	/* bus_space tag */
 	bus_space_handle_t bsh;	/* bus_space handle */
-	u_int32_t	initial_aperture; /* aperture size at startup */
+	uint32_t	initial_aperture; /* aperture size at startup */
 	char		is_rs300;
 
 	/* The GATT */
-	u_int32_t	ag_entries;
-	u_int32_t      *ag_virtual;	/* virtual address of gatt */
-	u_int32_t      *ag_vdir;	/* virtual address of page dir */
+	uint32_t	ag_entries;
+	uint32_t      *ag_virtual;	/* virtual address of gatt */
+	uint32_t      *ag_vdir;	/* virtual address of page dir */
 	vm_offset_t	ag_pdir;	/* physical address of page dir */
 };
 
@@ -122,9 +122,9 @@ static int
 agp_ati_alloc_gatt(device_t dev)
 {
 	struct agp_ati_softc *sc = device_get_softc(dev);
-	u_int32_t apsize = AGP_GET_APERTURE(dev);
-	u_int32_t entries = apsize >> AGP_PAGE_SHIFT;
-	u_int32_t apbase_offset;
+	uint32_t apsize = AGP_GET_APERTURE(dev);
+	uint32_t entries = apsize >> AGP_PAGE_SHIFT;
+	uint32_t apbase_offset;
 	int i;
 
 	/* Alloc the GATT -- pointers to pages of AGP memory */
@@ -167,8 +167,8 @@ agp_ati_attach(device_t dev)
 {
 	struct agp_ati_softc *sc = device_get_softc(dev);
 	int error, rid;
-	u_int32_t temp;
-	u_int32_t apsize_reg, agpmode_reg;
+	uint32_t temp;
+	uint32_t apsize_reg, agpmode_reg;
 
 	error = agp_generic_attach(dev);
 	if (error)
@@ -241,7 +241,7 @@ static int
 agp_ati_detach(device_t dev)
 {
 	struct agp_ati_softc *sc = device_get_softc(dev);
-	u_int32_t apsize_reg, temp;
+	uint32_t apsize_reg, temp;
 
 	agp_free_cdev(dev);
 
@@ -268,7 +268,7 @@ agp_ati_detach(device_t dev)
 	return 0;
 }
 
-static u_int32_t
+static uint32_t
 agp_ati_get_aperture(device_t dev)
 {
 	struct agp_ati_softc *sc = device_get_softc(dev);
@@ -286,11 +286,11 @@ agp_ati_get_aperture(device_t dev)
 }
 
 static int
-agp_ati_set_aperture(device_t dev, u_int32_t aperture)
+agp_ati_set_aperture(device_t dev, uint32_t aperture)
 {
 	struct agp_ati_softc *sc = device_get_softc(dev);
 	int size_value;
-	u_int32_t apsize_reg;
+	uint32_t apsize_reg;
 
 	if (sc->is_rs300)
 		apsize_reg = ATI_RS300_APSIZE;

@@ -312,7 +312,7 @@ dircheck(struct inodesc *idesc, struct bufarea *bp, struct direct *dp)
 {
 	size_t size;
 	char *cp;
-	u_int8_t namlen;
+	uint8_t namlen;
 	int spaceleft, modified, unused;
 
 	spaceleft = DIRBLKSIZ - (idesc->id_loc % DIRBLKSIZ);

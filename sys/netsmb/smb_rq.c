@@ -108,7 +108,7 @@ smb_rq_new(struct smb_rq *rqp, u_char cmd)
 	struct smb_vc *vcp = rqp->sr_vc;
 	struct mbchain *mbp = &rqp->sr_rq;
 	int error;
-	u_int16_t flags2;
+	uint16_t flags2;
 
 	rqp->sr_sendcnt = 0;
 	mb_done(mbp);
@@ -131,12 +131,12 @@ smb_rq_new(struct smb_rq *rqp, u_char cmd)
 		rqp->sr_rqsig = NULL;
 	} else {
 		mb_put_uint16le(mbp, 0 /*scred->sc_p->p_pid >> 16*/);
-		rqp->sr_rqsig = (u_int8_t *)mb_reserve(mbp, 8);
+		rqp->sr_rqsig = (uint8_t *)mb_reserve(mbp, 8);
 		mb_put_uint16le(mbp, 0);
 	}
-	rqp->sr_rqtid = mb_reserve(mbp, sizeof(u_int16_t));
+	rqp->sr_rqtid = mb_reserve(mbp, sizeof(uint16_t));
 	mb_put_uint16le(mbp, 1 /*scred->sc_p->p_pid & 0xffff*/);
-	rqp->sr_rquid = mb_reserve(mbp, sizeof(u_int16_t));
+	rqp->sr_rquid = mb_reserve(mbp, sizeof(uint16_t));
 	mb_put_uint16le(mbp, rqp->sr_mid);
 	return 0;
 }
@@ -213,7 +213,7 @@ smb_rq_enqueue(struct smb_rq *rqp)
 void
 smb_rq_wstart(struct smb_rq *rqp)
 {
-	rqp->sr_wcount = mb_reserve(&rqp->sr_rq, sizeof(u_int8_t));
+	rqp->sr_wcount = mb_reserve(&rqp->sr_rq, sizeof(uint8_t));
 	rqp->sr_rq.mb_count = 0;
 }
 
@@ -321,8 +321,8 @@ static int
 smb_rq_reply(struct smb_rq *rqp)
 {
 	struct mdchain *mdp = &rqp->sr_rp;
-	u_int32_t tdw;
-	u_int8_t tb;
+	uint32_t tdw;
+	uint8_t tb;
 	int error, rperror = 0;
 
 	error = smb_iod_waitrq(rqp);
@@ -419,7 +419,7 @@ smb_t2_done(struct smb_t2rq *t2p)
 }
 
 static int
-smb_t2_placedata(struct mbuf *mtop, u_int16_t offset, u_int16_t count,
+smb_t2_placedata(struct mbuf *mtop, uint16_t offset, uint16_t count,
 	struct mdchain *mdp)
 {
 	struct mbuf *m0;
@@ -447,9 +447,9 @@ smb_t2_reply(struct smb_t2rq *t2p)
 	struct mdchain *mdp;
 	struct smb_rq *rqp = t2p->t2_rq;
 	int error, totpgot, totdgot;
-	u_int16_t totpcount, totdcount, pcount, poff, doff, pdisp, ddisp;
-	u_int16_t tmp, bc, dcount;
-	u_int8_t wc;
+	uint16_t totpcount, totdcount, pcount, poff, doff, pdisp, ddisp;
+	uint16_t tmp, bc, dcount;
+	uint8_t wc;
 
 	error = smb_rq_reply(rqp);
 	if (error)

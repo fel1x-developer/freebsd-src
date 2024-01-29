@@ -510,12 +510,12 @@ ng_ether_rcvmsg(node_p node, item_p item, hook_p lasthook)
 			strlcpy(resp->data, priv->ifp->if_xname, IFNAMSIZ);
 			break;
 		case NGM_ETHER_GET_IFINDEX:
-			NG_MKRESPONSE(resp, msg, sizeof(u_int32_t), M_NOWAIT);
+			NG_MKRESPONSE(resp, msg, sizeof(uint32_t), M_NOWAIT);
 			if (resp == NULL) {
 				error = ENOMEM;
 				break;
 			}
-			*((u_int32_t *)resp->data) = priv->ifp->if_index;
+			*((uint32_t *)resp->data) = priv->ifp->if_index;
 			break;
 		case NGM_ETHER_GET_ENADDR:
 			NG_MKRESPONSE(resp, msg, ETHER_ADDR_LEN, M_NOWAIT);
@@ -537,22 +537,22 @@ ng_ether_rcvmsg(node_p node, item_p item, hook_p lasthook)
 			break;
 		    }
 		case NGM_ETHER_GET_PROMISC:
-			NG_MKRESPONSE(resp, msg, sizeof(u_int32_t), M_NOWAIT);
+			NG_MKRESPONSE(resp, msg, sizeof(uint32_t), M_NOWAIT);
 			if (resp == NULL) {
 				error = ENOMEM;
 				break;
 			}
-			*((u_int32_t *)resp->data) = priv->promisc;
+			*((uint32_t *)resp->data) = priv->promisc;
 			break;
 		case NGM_ETHER_SET_PROMISC:
 		    {
 			u_char want;
 
-			if (msg->header.arglen != sizeof(u_int32_t)) {
+			if (msg->header.arglen != sizeof(uint32_t)) {
 				error = EINVAL;
 				break;
 			}
-			want = !!*((u_int32_t *)msg->data);
+			want = !!*((uint32_t *)msg->data);
 			if (want ^ priv->promisc) {
 				if ((error = ifpromisc(priv->ifp, want)) != 0)
 					break;
@@ -561,19 +561,19 @@ ng_ether_rcvmsg(node_p node, item_p item, hook_p lasthook)
 			break;
 		    }
 		case NGM_ETHER_GET_AUTOSRC:
-			NG_MKRESPONSE(resp, msg, sizeof(u_int32_t), M_NOWAIT);
+			NG_MKRESPONSE(resp, msg, sizeof(uint32_t), M_NOWAIT);
 			if (resp == NULL) {
 				error = ENOMEM;
 				break;
 			}
-			*((u_int32_t *)resp->data) = priv->autoSrcAddr;
+			*((uint32_t *)resp->data) = priv->autoSrcAddr;
 			break;
 		case NGM_ETHER_SET_AUTOSRC:
-			if (msg->header.arglen != sizeof(u_int32_t)) {
+			if (msg->header.arglen != sizeof(uint32_t)) {
 				error = EINVAL;
 				break;
 			}
-			priv->autoSrcAddr = !!*((u_int32_t *)msg->data);
+			priv->autoSrcAddr = !!*((uint32_t *)msg->data);
 			break;
 		case NGM_ETHER_ADD_MULTI:
 		    {

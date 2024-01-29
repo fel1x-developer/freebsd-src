@@ -510,7 +510,7 @@ interface_link_status(char *ifname)
 }
 
 void
-interface_set_mtu_unpriv(int privfd, u_int16_t mtu)
+interface_set_mtu_unpriv(int privfd, uint16_t mtu)
 {
 	struct imsg_hdr hdr;
 	struct buf *buf;
@@ -518,7 +518,7 @@ interface_set_mtu_unpriv(int privfd, u_int16_t mtu)
 
 	hdr.code = IMSG_SET_INTERFACE_MTU;
 	hdr.len = sizeof(hdr) +
-		sizeof(u_int16_t);
+		sizeof(uint16_t);
 
 	if ((buf = buf_open(hdr.len)) == NULL)
 		error("buf_open: %m");
@@ -533,11 +533,11 @@ interface_set_mtu_unpriv(int privfd, u_int16_t mtu)
 }
 
 void
-interface_set_mtu_priv(char *ifname, u_int16_t mtu)
+interface_set_mtu_priv(char *ifname, uint16_t mtu)
 {
 	struct ifreq ifr;
 	int sock;
-	u_int16_t old_mtu;
+	uint16_t old_mtu;
 
 	if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
 		error("Can't create socket");

@@ -85,8 +85,8 @@ smb_time_local2NT(struct timespec *tsp, int tzoff, int64_t *nsec)
 }
 
 void
-smb_time_unix2dos(struct timespec *tsp, int tzoff, u_int16_t *ddp, 
-	u_int16_t *dtp,	u_int8_t *dhp)
+smb_time_unix2dos(struct timespec *tsp, int tzoff, uint16_t *ddp, 
+	uint16_t *dtp,	uint8_t *dhp)
 {
 	struct timespec tt;
 	u_long t;

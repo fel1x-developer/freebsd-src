@@ -68,17 +68,17 @@ static int ata_marvell_dummy_chipinit(device_t dev);
 	((ch->unit & 3) * 0x2000) + (ch->unit > 3 ? 0x30000 : 0x20000)
 
 struct ata_marvell_response {
-    u_int16_t   tag;
-    u_int8_t    edma_status;
-    u_int8_t    dev_status;
-    u_int32_t   timestamp;
+    uint16_t   tag;
+    uint8_t    edma_status;
+    uint8_t    dev_status;
+    uint32_t   timestamp;
 };
 
 struct ata_marvell_dma_prdentry {
-    u_int32_t addrlo;
-    u_int32_t count;
-    u_int32_t addrhi;
-    u_int32_t reserved;
+    uint32_t addrlo;
+    uint32_t count;
+    uint32_t addrhi;
+    uint32_t reserved;
 };  
 
 static int

@@ -75,7 +75,7 @@ static int		opalpci_attach(device_t);
 static uint32_t		opalpci_read_config(device_t, u_int, u_int, u_int,
 			    u_int, int);
 static void		opalpci_write_config(device_t, u_int, u_int, u_int,
-			    u_int, u_int32_t, int);
+			    u_int, uint32_t, int);
 static int		opalpci_alloc_msi(device_t dev, device_t child,
 			    int count, int maxcount, int *irqs);
 static int		opalpci_release_msi(device_t dev, device_t child,

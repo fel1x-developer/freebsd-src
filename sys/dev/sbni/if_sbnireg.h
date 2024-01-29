@@ -62,13 +62,13 @@ struct sbni_csr1 {
 	unsigned 	: 1;
 };
 
-#define FRAME_ACK_MASK  (u_int16_t)0x7000
-#define FRAME_LEN_MASK  (u_int16_t)0x03FF
-#define FRAME_FIRST     (u_int16_t)0x8000
-#define FRAME_RETRY     (u_int16_t)0x0800
+#define FRAME_ACK_MASK  (uint16_t)0x7000
+#define FRAME_LEN_MASK  (uint16_t)0x03FF
+#define FRAME_FIRST     (uint16_t)0x8000
+#define FRAME_RETRY     (uint16_t)0x0800
 
-#define FRAME_SENT_BAD  (u_int16_t)0x4000
-#define FRAME_SENT_OK   (u_int16_t)0x3000
+#define FRAME_SENT_BAD  (uint16_t)0x4000
+#define FRAME_SENT_OK   (uint16_t)0x3000
 
 enum {
 	FL_WAIT_ACK    = 1,

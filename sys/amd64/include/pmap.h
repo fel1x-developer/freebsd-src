@@ -295,11 +295,11 @@
 
 #include <vm/_vm_radix.h>
 
-typedef u_int64_t pd_entry_t;
-typedef u_int64_t pt_entry_t;
-typedef u_int64_t pdp_entry_t;
-typedef u_int64_t pml4_entry_t;
-typedef u_int64_t pml5_entry_t;
+typedef uint64_t pd_entry_t;
+typedef uint64_t pt_entry_t;
+typedef uint64_t pdp_entry_t;
+typedef uint64_t pml4_entry_t;
+typedef uint64_t pml5_entry_t;
 
 /*
  * Address of current address space page table maps and directories.
@@ -324,8 +324,8 @@ typedef u_int64_t pml5_entry_t;
 #define	P5Dmap		((pd_entry_t *)(addr_P5Dmap))
 
 extern int nkpt;		/* Initial number of kernel page tables */
-extern u_int64_t KPML4phys;	/* physical address of kernel level 4 */
-extern u_int64_t KPML5phys;	/* physical address of kernel level 5 */
+extern uint64_t KPML4phys;	/* physical address of kernel level 4 */
+extern uint64_t KPML5phys;	/* physical address of kernel level 5 */
 
 /*
  * virtual address to page table entry and

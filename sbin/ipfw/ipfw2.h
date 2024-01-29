@@ -421,7 +421,7 @@ int ipfw_check_nat64prefix(const struct in6_addr *prefix, int length);
 #ifdef PF
 /* altq.c */
 void altq_set_enabled(int enabled);
-u_int32_t altq_name_to_qid(const char *name);
+uint32_t altq_name_to_qid(const char *name);
 void print_altq_cmd(struct buf_pr *bp, const struct _ipfw_insn_altq *altqptr);
 #else
 #define NO_ALTQ

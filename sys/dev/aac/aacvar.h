@@ -142,7 +142,7 @@ struct aac_disk
 	int				ad_cylinders;
 	int				ad_heads;
 	int				ad_sectors;
-	u_int64_t			ad_size;
+	uint64_t			ad_size;
 	int				unit;
 };
 
@@ -157,10 +157,10 @@ struct aac_command
 
 	struct aac_fib		*cm_fib;	/* FIB associated with this
 						 * command */
-	u_int64_t		cm_fibphys;	/* bus address of the FIB */
+	uint64_t		cm_fibphys;	/* bus address of the FIB */
 	void			*cm_data;	/* pointer to data in kernel
 						 * space */
-	u_int32_t		cm_datalen;	/* data length */
+	uint32_t		cm_datalen;	/* data length */
 	bus_dmamap_t		cm_datamap;	/* DMA map for bio data */
 	struct aac_sg_table	*cm_sgtable;	/* pointer to s/g table in
 						 * command */
@@ -219,7 +219,7 @@ struct aac_common {
 	struct aac_adapter_init	ac_init;
 
 	/* arena within which the queue structures are kept */
-	u_int8_t		ac_qbuf[sizeof(struct aac_queue_table) +
+	uint8_t		ac_qbuf[sizeof(struct aac_queue_table) +
 				AAC_QUEUE_ALIGN];
 
 	/* buffer for text messages from the controller */
@@ -238,9 +238,9 @@ struct aac_interface
 	void	(*aif_qnotify)(struct aac_softc *sc, int qbit);
 	int	(*aif_get_istatus)(struct aac_softc *sc);
 	void	(*aif_clr_istatus)(struct aac_softc *sc, int mask);
-	void	(*aif_set_mailbox)(struct aac_softc *sc, u_int32_t command,
-				   u_int32_t arg0, u_int32_t arg1,
-				   u_int32_t arg2, u_int32_t arg3);
+	void	(*aif_set_mailbox)(struct aac_softc *sc, uint32_t command,
+				   uint32_t arg0, uint32_t arg1,
+				   uint32_t arg2, uint32_t arg3);
 	int	(*aif_get_mailbox)(struct aac_softc *sc, int mb);
 	void	(*aif_set_interrupts)(struct aac_softc *sc, int enable);
 	int (*aif_send_command)(struct aac_softc *sc, struct aac_command *cm);
@@ -298,7 +298,7 @@ extern const struct aac_interface	aac_rkt_interface;
 
 /* fib context (IOCTL) */
 struct aac_fib_context {
-	u_int32_t		unique;
+	uint32_t		unique;
 	int			ctx_idx;
 	int			ctx_wrap;
 	struct aac_fib_context *next, *prev;
@@ -341,7 +341,7 @@ struct aac_softc
 	bus_dmamap_t		aac_common_dmamap;	/* common structure
 							 * DMA map */
 	struct aac_common	*aac_common;
-	u_int32_t		aac_common_busaddr;
+	uint32_t		aac_common_busaddr;
 	const struct aac_interface	*aac_if;
 
 	/* command/fib resources */
@@ -395,7 +395,7 @@ struct aac_softc
 #define AAC_AIFFLAGS_UNUSED1	(1 << 4)
 #define	AAC_AIFFLAGS_ALLOCFIBS	(1 << 5)
 #define AAC_AIFFLAGS_PENDING	AAC_AIFFLAGS_ALLOCFIBS
-	u_int32_t		flags;
+	uint32_t		flags;
 #define AAC_FLAGS_PERC2QC	(1 << 0)
 #define	AAC_FLAGS_ENABLE_CAM	(1 << 1)	/* No SCSI passthrough */
 #define	AAC_FLAGS_CAM_NORESET	(1 << 2)	/* Fake SCSI resets */
@@ -414,17 +414,17 @@ struct aac_softc
 #define	AAC_FLAGS_LBA_64BIT	(1 << 14)	/* 64-bit LBA support */
 #define	AAC_FLAGS_NOMSI		(1U << 31)	/* Broken MSI */
 
-	u_int32_t		supported_options;
-	u_int32_t		scsi_method_id;
+	uint32_t		supported_options;
+	uint32_t		scsi_method_id;
 	TAILQ_HEAD(,aac_sim)	aac_sim_tqh;
 
 	struct callout	aac_daemontime;		/* clock daemon callout */
 
-	u_int32_t	aac_max_fibs;		/* max. FIB count */
-	u_int32_t	aac_max_fibs_alloc;		/* max. alloc. per alloc_commands() */
-	u_int32_t	aac_max_fib_size;		/* max. FIB size */
-	u_int32_t	aac_sg_tablesize;		/* max. sg count from host */
-	u_int32_t	aac_max_sectors;		/* max. I/O size from host (blocks) */
+	uint32_t	aac_max_fibs;		/* max. FIB count */
+	uint32_t	aac_max_fibs_alloc;		/* max. alloc. per alloc_commands() */
+	uint32_t	aac_max_fib_size;		/* max. FIB size */
+	uint32_t	aac_sg_tablesize;		/* max. sg count from host */
+	uint32_t	aac_max_sectors;		/* max. I/O size from host (blocks) */
 #define AAC_CAM_TARGET_WILDCARD ~0
 	void			(*cam_rescan_cb)(struct aac_softc *, uint32_t,
 				    uint32_t);
@@ -464,9 +464,9 @@ extern void		aac_startio(struct aac_softc *sc);
 extern int		aac_alloc_command(struct aac_softc *sc,
 					  struct aac_command **cmp);
 extern void		aac_release_command(struct aac_command *cm);
-extern int		aac_sync_fib(struct aac_softc *sc, u_int32_t command,
-				     u_int32_t xferstate, struct aac_fib *fib,
-				     u_int16_t datasize);
+extern int		aac_sync_fib(struct aac_softc *sc, uint32_t command,
+				     uint32_t xferstate, struct aac_fib *fib,
+				     uint16_t datasize);
 extern void		aac_add_event(struct aac_softc *sc, struct aac_event
 				      *event);
 
@@ -504,7 +504,7 @@ extern void	aac_print_aif(struct aac_softc *sc,
 
 struct aac_code_lookup {
 	const char	*string;
-	u_int32_t	code;
+	uint32_t	code;
 };
 
 /*

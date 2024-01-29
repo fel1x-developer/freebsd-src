@@ -58,20 +58,20 @@ int hpt_iop_dbg_level = 0;
 #define HPT_IOCTL_MAGIC32   0x1A2B3C4D
 
 struct hpt_iopmu_itl {
-	u_int32_t resrved0[4];
-	u_int32_t inbound_msgaddr0;
-	u_int32_t inbound_msgaddr1;
-	u_int32_t outbound_msgaddr0;
-	u_int32_t outbound_msgaddr1;
-	u_int32_t inbound_doorbell;
-	u_int32_t inbound_intstatus;
-	u_int32_t inbound_intmask;
-	u_int32_t outbound_doorbell;
-	u_int32_t outbound_intstatus;
-	u_int32_t outbound_intmask;
-	u_int32_t reserved1[2];
-	u_int32_t inbound_queue;
-	u_int32_t outbound_queue;
+	uint32_t resrved0[4];
+	uint32_t inbound_msgaddr0;
+	uint32_t inbound_msgaddr1;
+	uint32_t outbound_msgaddr0;
+	uint32_t outbound_msgaddr1;
+	uint32_t inbound_doorbell;
+	uint32_t inbound_intstatus;
+	uint32_t inbound_intmask;
+	uint32_t outbound_doorbell;
+	uint32_t outbound_intstatus;
+	uint32_t outbound_intmask;
+	uint32_t reserved1[2];
+	uint32_t inbound_queue;
+	uint32_t outbound_queue;
 };
 
 #define IOPMU_QUEUE_EMPTY            0xffffffff
@@ -96,23 +96,23 @@ struct hpt_iopmu_itl {
 
 #define MVIOP_QUEUE_LEN  512
 struct hpt_iopmu_mv {
-	u_int32_t inbound_head;
-	u_int32_t inbound_tail;
-	u_int32_t outbound_head;
-	u_int32_t outbound_tail;
-	u_int32_t inbound_msg;
-	u_int32_t outbound_msg;
-	u_int32_t reserve[10];
-	u_int64_t inbound_q[MVIOP_QUEUE_LEN];
-	u_int64_t outbound_q[MVIOP_QUEUE_LEN];
+	uint32_t inbound_head;
+	uint32_t inbound_tail;
+	uint32_t outbound_head;
+	uint32_t outbound_tail;
+	uint32_t inbound_msg;
+	uint32_t outbound_msg;
+	uint32_t reserve[10];
+	uint64_t inbound_q[MVIOP_QUEUE_LEN];
+	uint64_t outbound_q[MVIOP_QUEUE_LEN];
 };
 
 struct hpt_iopmv_regs {
-	u_int32_t reserved[0x20400 / 4];
-	u_int32_t inbound_doorbell;
-	u_int32_t inbound_intmask;
-	u_int32_t outbound_doorbell;
-	u_int32_t outbound_intmask;
+	uint32_t reserved[0x20400 / 4];
+	uint32_t inbound_doorbell;
+	uint32_t inbound_intmask;
+	uint32_t outbound_doorbell;
+	uint32_t outbound_intmask;
 };
 
 #define CL_POINTER_TOGGLE        0x00004000
@@ -120,59 +120,59 @@ struct hpt_iopmv_regs {
 
 #pragma pack(1)
 struct hpt_iopmu_mvfrey {
-	u_int32_t reserved[0x4000 / 4];
+	uint32_t reserved[0x4000 / 4];
 
 	/* hpt_frey_com_reg */
-	u_int32_t inbound_base; /* 0x4000 : 0 */
-	u_int32_t inbound_base_high; /* 4 */
-	u_int32_t reserved2[(0x18 - 8)/ 4];
-	u_int32_t inbound_write_ptr; /* 0x18 */
-	u_int32_t inbound_read_ptr; /* 0x1c */
-	u_int32_t reserved3[(0x2c - 0x20) / 4];
-	u_int32_t inbound_conf_ctl; /* 0x2c */
-	u_int32_t reserved4[(0x50 - 0x30) / 4];
-	u_int32_t outbound_base; /* 0x50 */
-	u_int32_t outbound_base_high; /* 0x54 */
-	u_int32_t outbound_shadow_base; /* 0x58 */
-	u_int32_t outbound_shadow_base_high; /* 0x5c */
-	u_int32_t reserved5[(0x68 - 0x60) / 4];
-	u_int32_t outbound_write; /* 0x68 */
-	u_int32_t reserved6[(0x70 - 0x6c) / 4];
-	u_int32_t outbound_read; /* 0x70 */
-	u_int32_t reserved7[(0x88 - 0x74) / 4];
-	u_int32_t isr_cause; /* 0x88 */
-	u_int32_t isr_enable; /* 0x8c */
+	uint32_t inbound_base; /* 0x4000 : 0 */
+	uint32_t inbound_base_high; /* 4 */
+	uint32_t reserved2[(0x18 - 8)/ 4];
+	uint32_t inbound_write_ptr; /* 0x18 */
+	uint32_t inbound_read_ptr; /* 0x1c */
+	uint32_t reserved3[(0x2c - 0x20) / 4];
+	uint32_t inbound_conf_ctl; /* 0x2c */
+	uint32_t reserved4[(0x50 - 0x30) / 4];
+	uint32_t outbound_base; /* 0x50 */
+	uint32_t outbound_base_high; /* 0x54 */
+	uint32_t outbound_shadow_base; /* 0x58 */
+	uint32_t outbound_shadow_base_high; /* 0x5c */
+	uint32_t reserved5[(0x68 - 0x60) / 4];
+	uint32_t outbound_write; /* 0x68 */
+	uint32_t reserved6[(0x70 - 0x6c) / 4];
+	uint32_t outbound_read; /* 0x70 */
+	uint32_t reserved7[(0x88 - 0x74) / 4];
+	uint32_t isr_cause; /* 0x88 */
+	uint32_t isr_enable; /* 0x8c */
 
-	u_int32_t reserved8[(0x10200 - 0x4090) / 4];
+	uint32_t reserved8[(0x10200 - 0x4090) / 4];
 
 	/* hpt_frey_intr_ctl intr_ctl */
-	u_int32_t main_int_cuase; /* 0x10200: 0 */
-	u_int32_t main_irq_enable; /* 4 */
-	u_int32_t main_fiq_enable; /* 8 */
-	u_int32_t pcie_f0_int_enable; /* 0xc */
-	u_int32_t pcie_f1_int_enable; /* 0x10 */
-	u_int32_t pcie_f2_int_enable; /* 0x14 */
-	u_int32_t pcie_f3_int_enable; /* 0x18 */
+	uint32_t main_int_cuase; /* 0x10200: 0 */
+	uint32_t main_irq_enable; /* 4 */
+	uint32_t main_fiq_enable; /* 8 */
+	uint32_t pcie_f0_int_enable; /* 0xc */
+	uint32_t pcie_f1_int_enable; /* 0x10 */
+	uint32_t pcie_f2_int_enable; /* 0x14 */
+	uint32_t pcie_f3_int_enable; /* 0x18 */
 
-	u_int32_t reserved9[(0x10400 - 0x1021c) / 4];
+	uint32_t reserved9[(0x10400 - 0x1021c) / 4];
 
 	/* hpt_frey_msg_drbl */
-	u_int32_t f0_to_cpu_msg_a; /* 0x10400: 0 */
-	u_int32_t reserved10[(0x20 - 4) / 4];
-	u_int32_t cpu_to_f0_msg_a; /* 0x20 */
-	u_int32_t reserved11[(0x80 - 0x24) / 4];
-	u_int32_t f0_doorbell; /* 0x80 */
-	u_int32_t f0_doorbell_enable; /* 0x84 */
+	uint32_t f0_to_cpu_msg_a; /* 0x10400: 0 */
+	uint32_t reserved10[(0x20 - 4) / 4];
+	uint32_t cpu_to_f0_msg_a; /* 0x20 */
+	uint32_t reserved11[(0x80 - 0x24) / 4];
+	uint32_t f0_doorbell; /* 0x80 */
+	uint32_t f0_doorbell_enable; /* 0x84 */
 };
 
 struct mvfrey_inlist_entry {
-	u_int64_t addr;
-	u_int32_t intrfc_len;
-	u_int32_t reserved;
+	uint64_t addr;
+	uint32_t intrfc_len;
+	uint32_t reserved;
 };
 
 struct mvfrey_outlist_entry {
-	u_int32_t val;
+	uint32_t val;
 };
 
 #pragma pack()
@@ -248,38 +248,38 @@ enum hpt_iop_result_type {
 
 #pragma pack(1)
 struct hpt_iop_request_header {
-	u_int32_t size;
-	u_int32_t type;
-	u_int32_t flags;
-	u_int32_t result;
-	u_int64_t context; /* host context */
+	uint32_t size;
+	uint32_t type;
+	uint32_t flags;
+	uint32_t result;
+	uint64_t context; /* host context */
 };
 
 struct hpt_iop_request_get_config {
 	struct hpt_iop_request_header header;
-	u_int32_t interface_version;
-	u_int32_t firmware_version;
-	u_int32_t max_requests;
-	u_int32_t request_size;
-	u_int32_t max_sg_count;
-	u_int32_t data_transfer_length;
-	u_int32_t alignment_mask;
-	u_int32_t max_devices;
-	u_int32_t sdram_size;
+	uint32_t interface_version;
+	uint32_t firmware_version;
+	uint32_t max_requests;
+	uint32_t request_size;
+	uint32_t max_sg_count;
+	uint32_t data_transfer_length;
+	uint32_t alignment_mask;
+	uint32_t max_devices;
+	uint32_t sdram_size;
 };
 
 struct hpt_iop_request_set_config {
 	struct hpt_iop_request_header header;
-	u_int32_t iop_id;
-	u_int16_t vbus_id;
-	u_int16_t max_host_request_size;
-	u_int32_t reserve[6];
+	uint32_t iop_id;
+	uint16_t vbus_id;
+	uint16_t max_host_request_size;
+	uint32_t reserve[6];
 };
 
 struct hpt_iopsg {
-	u_int32_t size;
-	u_int32_t eot; /* non-zero: end of table */
-	u_int64_t pci_address;
+	uint32_t size;
+	uint32_t eot; /* non-zero: end of table */
+	uint64_t pci_address;
 };
 
 #define IOP_BLOCK_COMMAND_READ     1
@@ -289,44 +289,44 @@ struct hpt_iopsg {
 #define IOP_BLOCK_COMMAND_SHUTDOWN 5
 struct hpt_iop_request_block_command {
 	struct hpt_iop_request_header header;
-	u_int8_t     channel;
-	u_int8_t     target;
-	u_int8_t     lun;
-	u_int8_t     pad1;
-	u_int16_t    command; /* IOP_BLOCK_COMMAND_{READ,WRITE} */
-	u_int16_t    sectors;
-	u_int64_t    lba;
+	uint8_t     channel;
+	uint8_t     target;
+	uint8_t     lun;
+	uint8_t     pad1;
+	uint16_t    command; /* IOP_BLOCK_COMMAND_{READ,WRITE} */
+	uint16_t    sectors;
+	uint64_t    lba;
 	struct hpt_iopsg sg_list[1];
 };
 
 struct hpt_iop_request_scsi_command {
 	struct hpt_iop_request_header header;
-	u_int8_t     channel;
-	u_int8_t     target;
-	u_int8_t     lun;
-	u_int8_t     pad1;
-	u_int8_t     cdb[16];
-	u_int32_t    dataxfer_length;
+	uint8_t     channel;
+	uint8_t     target;
+	uint8_t     lun;
+	uint8_t     pad1;
+	uint8_t     cdb[16];
+	uint32_t    dataxfer_length;
 	struct hpt_iopsg sg_list[1];
 };
 
 struct hpt_iop_request_ioctl_command {
 	struct hpt_iop_request_header header;
-	u_int32_t    ioctl_code;
-	u_int32_t    inbuf_size;
-	u_int32_t    outbuf_size;
-	u_int32_t    bytes_returned;
-	u_int8_t     buf[1];
+	uint32_t    ioctl_code;
+	uint32_t    inbuf_size;
+	uint32_t    outbuf_size;
+	uint32_t    bytes_returned;
+	uint8_t     buf[1];
 	/* out data should be put at buf[(inbuf_size+3)&~3] */
 };
 
 struct hpt_iop_ioctl_param {
-	u_int32_t        Magic;                 /* used to check if it's a valid ioctl packet */
-	u_int32_t        dwIoControlCode;       /* operation control code */
+	uint32_t        Magic;                 /* used to check if it's a valid ioctl packet */
+	uint32_t        dwIoControlCode;       /* operation control code */
 	unsigned long    lpInBuffer;            /* input data buffer */
-	u_int32_t        nInBufferSize;         /* size of input data buffer */
+	uint32_t        nInBufferSize;         /* size of input data buffer */
 	unsigned long    lpOutBuffer;           /* output data buffer */
-	u_int32_t        nOutBufferSize;        /* size of output data buffer */
+	uint32_t        nOutBufferSize;        /* size of output data buffer */
 	unsigned long    lpBytesReturned;       /* count of HPT_U8s returned */
 } __packed;
 
@@ -354,29 +354,29 @@ struct hpt_iop_hba {
 			int internal_mem_size;
 			int list_count;
 			struct mvfrey_inlist_entry *inlist;
-			u_int64_t inlist_phy;
-			u_int32_t inlist_wptr;
+			uint64_t inlist_phy;
+			uint32_t inlist_wptr;
 			struct mvfrey_outlist_entry *outlist;
-			u_int64_t outlist_phy;
-			u_int32_t *outlist_cptr; /* copy pointer shadow */
-			u_int64_t outlist_cptr_phy;
-			u_int32_t outlist_rptr;
+			uint64_t outlist_phy;
+			uint32_t *outlist_cptr; /* copy pointer shadow */
+			uint64_t outlist_cptr_phy;
+			uint32_t outlist_rptr;
 		} mvfrey;
 	} u;
 	
 	struct hpt_iop_hba    *next;
 	
-	u_int32_t             firmware_version;
-	u_int32_t             interface_version;
-	u_int32_t             max_devices;
-	u_int32_t             max_requests;
-	u_int32_t             max_request_size;
-	u_int32_t             max_sg_count;
+	uint32_t             firmware_version;
+	uint32_t             interface_version;
+	uint32_t             max_devices;
+	uint32_t             max_requests;
+	uint32_t             max_request_size;
+	uint32_t             max_sg_count;
 
-	u_int32_t             msg_done;
+	uint32_t             msg_done;
 
 	device_t              pcidev;
-	u_int32_t             pciunit;
+	uint32_t             pciunit;
 	ioctl_dev_t           ioctl_dev;
 
 	bus_dma_tag_t         parent_dmat;
@@ -398,7 +398,7 @@ struct hpt_iop_hba {
 	int                   bar2_rid;
 	
 	/* to release */
-	u_int8_t              *uncached_ptr;
+	uint8_t              *uncached_ptr;
 	void		      *ctlcfg_ptr;
 	/* for scsi request block */
 	struct hpt_iop_srb    *srb_list;
@@ -409,9 +409,9 @@ struct hpt_iop_hba {
 	/* for ioctl and set/get config */
 	struct resource	      *ctlcfg_res;
 	void		      *ctlcfg_handle;
-	u_int64_t             ctlcfgcmd_phy;
-	u_int32_t             config_done; /* can be negative value */
-	u_int32_t             initialized:1;
+	uint64_t             ctlcfgcmd_phy;
+	uint32_t             config_done; /* can be negative value */
+	uint32_t             initialized:1;
 
 	/* other resources */
 	struct cam_sim        *sim;
@@ -419,7 +419,7 @@ struct hpt_iop_hba {
 	void                  *req;
 	struct mtx            lock;
 #define HPT_IOCTL_FLAG_OPEN     1
-	u_int32_t             flag;
+	uint32_t             flag;
 	struct hpt_iop_srb* srb[HPT_SRB_MAX_QUEUE_SIZE];
 };
 #pragma pack()
@@ -433,7 +433,7 @@ enum hptiop_family {
 
 struct hptiop_adapter_ops {
 	enum hptiop_family family;
-	int  (*iop_wait_ready)(struct hpt_iop_hba *hba, u_int32_t millisec);
+	int  (*iop_wait_ready)(struct hpt_iop_hba *hba, uint32_t millisec);
 	int  (*internal_memalloc)(struct hpt_iop_hba *hba);
 	int  (*internal_memfree)(struct hpt_iop_hba *hba);
 	int  (*alloc_pci_res)(struct hpt_iop_hba *hba);
@@ -445,20 +445,20 @@ struct hptiop_adapter_ops {
 	int  (*set_config)(struct hpt_iop_hba *hba,
 				struct hpt_iop_request_set_config *config);
 	int  (*iop_intr)(struct hpt_iop_hba *hba);
-	void (*post_msg)(struct hpt_iop_hba *hba, u_int32_t msg);
+	void (*post_msg)(struct hpt_iop_hba *hba, uint32_t msg);
 	void (*post_req)(struct hpt_iop_hba *hba, struct hpt_iop_srb *srb, bus_dma_segment_t *segs, int nsegs);
 	int (*do_ioctl)(struct hpt_iop_hba *hba, struct hpt_iop_ioctl_param * pParams);
 	int (*reset_comm)(struct hpt_iop_hba *hba);
 };
 
 struct hpt_iop_srb {
-	u_int8_t             req[HPT_SRB_MAX_REQ_SIZE];
+	uint8_t             req[HPT_SRB_MAX_REQ_SIZE];
 	struct hpt_iop_hba   *hba;
 	union ccb            *ccb;
 	struct hpt_iop_srb   *next;
 	bus_dmamap_t         dma_map;
-	u_int64_t            phy_addr;
-	u_int32_t            srb_flag;
+	uint64_t            phy_addr;
+	uint32_t            srb_flag;
 	int                  index;
 	struct callout	     timeout;
 };

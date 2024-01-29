@@ -269,9 +269,9 @@
 #define SIIS_WORK_SIZE		(SIIS_PRB_SIZE * SIIS_MAX_SLOTS)
 
 struct siis_dma_prd {
-    u_int64_t			dba;
-    u_int32_t			dbc;
-    u_int32_t			control;
+    uint64_t			dba;
+    uint32_t			dbc;
+    uint32_t			control;
 #define SIIS_PRD_TRM		0x80000000
 #define SIIS_PRD_LNK		0x40000000
 #define SIIS_PRD_DRD		0x20000000
@@ -283,12 +283,12 @@ struct siis_cmd_ata {
 } __packed;
 
 struct siis_cmd_atapi {
-    u_int8_t			ccb[16];
+    uint8_t			ccb[16];
     struct siis_dma_prd		prd[1];
 } __packed;
 
 struct siis_cmd {
-    u_int16_t			control;
+    uint16_t			control;
 #define SIIS_PRB_PROTOCOL_OVERRIDE	0x0001
 #define SIIS_PRB_RETRANSMIT		0x0002
 #define SIIS_PRB_EXTERNAL_COMMAND	0x0004
@@ -297,15 +297,15 @@ struct siis_cmd {
 #define SIIS_PRB_PACKET_WRITE		0x0020
 #define SIIS_PRB_INTERRUPT_MASK		0x0040
 #define SIIS_PRB_SOFT_RESET		0x0080
-    u_int16_t			protocol_override;
+    uint16_t			protocol_override;
 #define SIIS_PRB_PROTO_PACKET		0x0001
 #define SIIS_PRB_PROTO_TCQ		0x0002
 #define SIIS_PRB_PROTO_NCQ		0x0004
 #define SIIS_PRB_PROTO_READ		0x0008
 #define SIIS_PRB_PROTO_WRITE		0x0010
 #define SIIS_PRB_PROTO_TRANSPARENT	0x0020
-    u_int32_t			transfer_count;
-    u_int8_t			fis[24];
+    uint32_t			transfer_count;
+    uint8_t			fis[24];
     union {
 	struct siis_cmd_ata	ata;
 	struct siis_cmd_atapi	atapi;
@@ -339,7 +339,7 @@ enum siis_slot_states {
 
 struct siis_slot {
     device_t                    dev;            /* Device handle */
-    u_int8_t			slot;           /* Number of this slot */
+    uint8_t			slot;           /* Number of this slot */
     enum siis_slot_states	state;          /* Slot state */
     u_int			prb_offset;	/* PRB offset */
     union ccb			*ccb;		/* CCB occupying slot */

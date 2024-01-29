@@ -83,7 +83,7 @@
 #ifdef ATH_DEBUG
 static void
 ath_keyprint(struct ath_softc *sc, const char *tag, u_int ix,
-	const HAL_KEYVAL *hk, const u_int8_t mac[IEEE80211_ADDR_LEN])
+	const HAL_KEYVAL *hk, const uint8_t mac[IEEE80211_ADDR_LEN])
 {
 	static const char *ciphers[] = {
 		"WEP",
@@ -120,10 +120,10 @@ ath_keyprint(struct ath_softc *sc, const char *tag, u_int ix,
  */
 static int
 ath_keyset_tkip(struct ath_softc *sc, const struct ieee80211_key *k,
-	HAL_KEYVAL *hk, const u_int8_t mac[IEEE80211_ADDR_LEN])
+	HAL_KEYVAL *hk, const uint8_t mac[IEEE80211_ADDR_LEN])
 {
 #define	IEEE80211_KEY_XR	(IEEE80211_KEY_XMIT | IEEE80211_KEY_RECV)
-	static const u_int8_t zerobssid[IEEE80211_ADDR_LEN];
+	static const uint8_t zerobssid[IEEE80211_ADDR_LEN];
 	struct ath_hal *ah = sc->sc_ah;
 
 	KASSERT(k->wk_cipher->ic_cipher == IEEE80211_CIPHER_TKIP,
@@ -184,19 +184,19 @@ ath_keyset(struct ath_softc *sc, struct ieee80211vap *vap,
 	const struct ieee80211_key *k,
 	struct ieee80211_node *bss)
 {
-	static const u_int8_t ciphermap[] = {
+	static const uint8_t ciphermap[] = {
 		HAL_CIPHER_WEP,		/* IEEE80211_CIPHER_WEP */
 		HAL_CIPHER_TKIP,	/* IEEE80211_CIPHER_TKIP */
 		HAL_CIPHER_AES_OCB,	/* IEEE80211_CIPHER_AES_OCB */
 		HAL_CIPHER_AES_CCM,	/* IEEE80211_CIPHER_AES_CCM */
-		(u_int8_t) -1,		/* 4 is not allocated */
+		(uint8_t) -1,		/* 4 is not allocated */
 		HAL_CIPHER_CKIP,	/* IEEE80211_CIPHER_CKIP */
 		HAL_CIPHER_CLR,		/* IEEE80211_CIPHER_NONE */
 	};
 	struct ath_hal *ah = sc->sc_ah;
 	const struct ieee80211_cipher *cip = k->wk_cipher;
-	u_int8_t gmac[IEEE80211_ADDR_LEN];
-	const u_int8_t *mac;
+	uint8_t gmac[IEEE80211_ADDR_LEN];
+	const uint8_t *mac;
 	HAL_KEYVAL hk;
 	int ret;
 
@@ -271,7 +271,7 @@ ath_keyset(struct ath_softc *sc, struct ieee80211vap *vap,
  * Allocate tx/rx key slots for TKIP.  We allocate two slots for
  * each key, one for decrypt/encrypt and the other for the MIC.
  */
-static u_int16_t
+static uint16_t
 key_alloc_2pair(struct ath_softc *sc,
 	ieee80211_keyix *txkeyix, ieee80211_keyix *rxkeyix)
 {
@@ -280,7 +280,7 @@ key_alloc_2pair(struct ath_softc *sc,
 	KASSERT(sc->sc_splitmic, ("key cache !split"));
 	/* XXX could optimize */
 	for (i = 0; i < nitems(sc->sc_keymap)/4; i++) {
-		u_int8_t b = sc->sc_keymap[i];
+		uint8_t b = sc->sc_keymap[i];
 		if (b != 0xff) {
 			/*
 			 * One or more slots in this byte are free.
@@ -324,7 +324,7 @@ key_alloc_2pair(struct ath_softc *sc,
  * Allocate tx/rx key slots for TKIP.  We allocate two slots for
  * each key, one for decrypt/encrypt and the other for the MIC.
  */
-static u_int16_t
+static uint16_t
 key_alloc_pair(struct ath_softc *sc,
 	ieee80211_keyix *txkeyix, ieee80211_keyix *rxkeyix)
 {
@@ -333,7 +333,7 @@ key_alloc_pair(struct ath_softc *sc,
 	KASSERT(!sc->sc_splitmic, ("key cache split"));
 	/* XXX could optimize */
 	for (i = 0; i < nitems(sc->sc_keymap)/4; i++) {
-		u_int8_t b = sc->sc_keymap[i];
+		uint8_t b = sc->sc_keymap[i];
 		if (b != 0xff) {
 			/*
 			 * One or more slots in this byte are free.
@@ -385,7 +385,7 @@ key_alloc_single(struct ath_softc *sc,
 
 	/* XXX try i,i+32,i+64,i+32+64 to minimize key pair conflicts */
 	for (i = 0; i < nitems(sc->sc_keymap); i++) {
-		u_int8_t b = sc->sc_keymap[i];
+		uint8_t b = sc->sc_keymap[i];
 		if (b != 0xff) {
 			/*
 			 * One or more slots are free.

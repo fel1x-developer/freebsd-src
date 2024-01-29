@@ -59,7 +59,7 @@ jn(int n, double x)
 	EXTRACT_WORDS(hx,lx,x);
 	ix = 0x7fffffff&hx;
     /* if J(n,NaN) is NaN */
-	if((ix|((u_int32_t)(lx|-lx))>>31)>0x7ff00000) return x+x;
+	if((ix|((uint32_t)(lx|-lx))>>31)>0x7ff00000) return x+x;
 	if(n<0){
 		n = -n;
 		x = -x;
@@ -218,7 +218,7 @@ yn(int n, double x)
 	EXTRACT_WORDS(hx,lx,x);
 	ix = 0x7fffffff&hx;
 	/* yn(n,NaN) = NaN */
-	if((ix|((u_int32_t)(lx|-lx))>>31)>0x7ff00000) return x+x;
+	if((ix|((uint32_t)(lx|-lx))>>31)>0x7ff00000) return x+x;
 	/* yn(n,+-0) = -inf and raise divide-by-zero exception. */
 	if((ix|lx)==0) return -one/vzero;
 	/* yn(n,x<0) = NaN and raise invalid exception. */
@@ -254,7 +254,7 @@ yn(int n, double x)
 		}
 		b = invsqrtpi*temp/sqrt(x);
 	} else {
-	    u_int32_t high;
+	    uint32_t high;
 	    a = y0(x);
 	    b = y1(x);
 	/* quit if b is -inf */

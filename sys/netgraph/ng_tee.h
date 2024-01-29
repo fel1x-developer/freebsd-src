@@ -55,10 +55,10 @@
 
 /* Statistics structure for one hook */
 struct ng_tee_hookstat {
-	u_int64_t	inOctets;
-	u_int64_t	inFrames;
-	u_int64_t	outOctets;
-	u_int64_t	outFrames;
+	uint64_t	inOctets;
+	uint64_t	inFrames;
+	uint64_t	outOctets;
+	uint64_t	outFrames;
 };
 
 /* Keep this in sync with the above structure definition */

@@ -534,7 +534,7 @@ bundle_DescriptorRead(struct fdescriptor *d __unused, struct bundle *bundle,
 {
   struct datalink *dl;
   unsigned secs;
-  u_int32_t af;
+  uint32_t af;
 
   if (descriptor_IsSet(&bundle->ncp.mp.server.desc, fdset))
     descriptor_Read(&bundle->ncp.mp.server.desc, bundle, fdset);

@@ -2651,7 +2651,7 @@ dc_newbuf(struct dc_softc *sc, int i)
 	if (m == NULL)
 		return (ENOBUFS);
 	m->m_len = m->m_pkthdr.len = MCLBYTES;
-	m_adj(m, sizeof(u_int64_t));
+	m_adj(m, sizeof(uint64_t));
 
 	/*
 	 * If this is a PNIC chip, zero the buffer. This is part

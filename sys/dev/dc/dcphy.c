@@ -187,7 +187,7 @@ dcphy_service(struct mii_softc *sc, struct mii_data *mii, int cmd)
 	struct dc_softc		*dc_sc;
 	struct ifmedia_entry *ife = mii->mii_media.ifm_cur;
 	int reg;
-	u_int32_t		mode;
+	uint32_t		mode;
 
 	dc_sc = if_getsoftc(mii->mii_ifp);
 

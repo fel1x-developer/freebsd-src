@@ -175,7 +175,7 @@ smb_zmalloc(size_t size, struct malloc_type *type, int flags)
 }
 
 void
-smb_strtouni(u_int16_t *dst, const char *src)
+smb_strtouni(uint16_t *dst, const char *src)
 {
 	while (*src) {
 		*dst++ = htole16(*src++);

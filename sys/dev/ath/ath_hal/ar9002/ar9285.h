@@ -51,6 +51,6 @@ extern HAL_BOOL ar9285SetBoardValues(struct ath_hal *,
 /* ar9285_btcoex.h */
 extern	void ar9285BTCoexAntennaDiversity(struct ath_hal *ah);
 extern	void ar9285BTCoexSetParameter(struct ath_hal *ah,
-		u_int32_t value, u_int32_t type);
+		uint32_t value, uint32_t type);
 
 #endif	/* _ATH_AR9285_H_ */

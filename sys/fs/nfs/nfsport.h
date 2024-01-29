@@ -667,8 +667,8 @@ struct nfs_vattr {
 struct nfsvattr {
 	struct vattr	na_vattr;
 	nfsattrbit_t	na_suppattr;
-	u_int64_t	na_mntonfileno;
-	u_int64_t	na_filesid[2];
+	uint64_t	na_mntonfileno;
+	uint64_t	na_filesid[2];
 };
 
 #define	na_type		na_vattr.va_type
@@ -728,7 +728,7 @@ struct nfsrv_stablefirst {
  * nst_client array is actually the size of the client string name.
  */
 struct nfst_rec {
-	u_int16_t	len;
+	uint16_t	len;
 	u_char		flag;
 	u_char		client[1];
 };
@@ -989,7 +989,7 @@ MALLOC_DECLARE(M_NEWNFSDSESSION);
  * Define this as the largest file size supported. (It should probably
  * be available via a VFS_xxx Op, but it isn't.
  */
-#define	NFSRV_MAXFILESIZE	((u_int64_t)0x800000000000)
+#define	NFSRV_MAXFILESIZE	((uint64_t)0x800000000000)
 
 /*
  * Set this macro to index() or strchr(), whichever is supported.
@@ -1167,7 +1167,7 @@ int newnfs_vncmpf(struct vnode *, void *);
  */
 struct nfsreq {
 	TAILQ_ENTRY(nfsreq) r_chain;
-	u_int32_t	r_flags;	/* flags on request, see below */
+	uint32_t	r_flags;	/* flags on request, see below */
 	struct nfsmount *r_nmp;		/* Client mnt ptr */
 	struct mtx	r_mtx;		/* Mutex lock for this structure */
 };

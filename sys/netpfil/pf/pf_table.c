@@ -394,7 +394,7 @@ _bad:
 int
 pfr_set_addrs(struct pfr_table *tbl, struct pfr_addr *addr, int size,
     int *size2, int *nadd, int *ndel, int *nchange, int flags,
-    u_int32_t ignore_pfrt_flags)
+    uint32_t ignore_pfrt_flags)
 {
 	struct pfr_ktable	*kt, *tmpkt;
 	struct pfr_kentryworkq	 addq, delq, changeq;
@@ -1438,7 +1438,7 @@ _skip:
 }
 
 int
-pfr_ina_begin(struct pfr_table *trs, u_int32_t *ticket, int *ndel, int flags)
+pfr_ina_begin(struct pfr_table *trs, uint32_t *ticket, int *ndel, int flags)
 {
 	struct pfr_ktableworkq	 workq;
 	struct pfr_ktable	*p;
@@ -1472,7 +1472,7 @@ pfr_ina_begin(struct pfr_table *trs, u_int32_t *ticket, int *ndel, int flags)
 
 int
 pfr_ina_define(struct pfr_table *tbl, struct pfr_addr *addr, int size,
-    int *nadd, int *naddr, u_int32_t ticket, int flags)
+    int *nadd, int *naddr, uint32_t ticket, int flags)
 {
 	struct pfr_ktableworkq	 tableq;
 	struct pfr_kentryworkq	 addrq;
@@ -1572,7 +1572,7 @@ _bad:
 }
 
 int
-pfr_ina_rollback(struct pfr_table *trs, u_int32_t ticket, int *ndel, int flags)
+pfr_ina_rollback(struct pfr_table *trs, uint32_t ticket, int *ndel, int flags)
 {
 	struct pfr_ktableworkq	 workq;
 	struct pfr_ktable	*p;
@@ -1605,7 +1605,7 @@ pfr_ina_rollback(struct pfr_table *trs, u_int32_t ticket, int *ndel, int flags)
 }
 
 int
-pfr_ina_commit(struct pfr_table *trs, u_int32_t ticket, int *nadd,
+pfr_ina_commit(struct pfr_table *trs, uint32_t ticket, int *nadd,
     int *nchange, int flags)
 {
 	struct pfr_ktable	*p, *q;
@@ -2083,7 +2083,7 @@ pfr_match_addr(struct pfr_ktable *kt, struct pf_addr *a, sa_family_t af)
 
 void
 pfr_update_stats(struct pfr_ktable *kt, struct pf_addr *a, sa_family_t af,
-    u_int64_t len, int dir_out, int op_pass, int notrule)
+    uint64_t len, int dir_out, int op_pass, int notrule)
 {
 	struct pfr_kentry	*ke = NULL;
 

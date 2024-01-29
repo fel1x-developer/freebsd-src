@@ -381,7 +381,7 @@ le_advertizing_report(ng_hci_unit_p unit, struct mbuf *event)
 	bdaddr_t			 bdaddr;
 	int				 error = 0;
 	int				 num_reports = 0;
-	u_int8_t addr_type;
+	uint8_t addr_type;
 
 	NG_HCI_M_PULLUP(event, sizeof(*ep));
 	if (event == NULL)
@@ -394,16 +394,16 @@ le_advertizing_report(ng_hci_unit_p unit, struct mbuf *event)
 
 	for (; num_reports > 0; num_reports --) {
 		/* event_type */
-		m_adj(event, sizeof(u_int8_t));
+		m_adj(event, sizeof(uint8_t));
 
 		/* Get remote unit address */
-		NG_HCI_M_PULLUP(event, sizeof(u_int8_t));
+		NG_HCI_M_PULLUP(event, sizeof(uint8_t));
 		if (event == NULL) {
 			error = ENOBUFS;
 			goto out;
 		}
-		addr_type = *mtod(event, u_int8_t *);
-		m_adj(event, sizeof(u_int8_t));
+		addr_type = *mtod(event, uint8_t *);
+		m_adj(event, sizeof(uint8_t));
 
 		m_copydata(event, 0, sizeof(bdaddr), (caddr_t) &bdaddr);
 		m_adj(event, sizeof(bdaddr));
@@ -429,15 +429,15 @@ le_advertizing_report(ng_hci_unit_p unit, struct mbuf *event)
 			 * TODO: Make these information 
 			 * Available from userland.
 			 */
-			u_int8_t length_data;
+			uint8_t length_data;
 			
-			event = m_pullup(event, sizeof(u_int8_t));
+			event = m_pullup(event, sizeof(uint8_t));
 			if(event == NULL){
 				NG_HCI_WARN("%s: Event datasize Pullup Failed\n", __func__);
 				goto out;
 			}
-			length_data = *mtod(event, u_int8_t *);
-			m_adj(event, sizeof(u_int8_t));
+			length_data = *mtod(event, uint8_t *);
+			m_adj(event, sizeof(uint8_t));
 			n->extinq_size = (length_data < NG_HCI_EXTINQ_MAX)?
 				length_data : NG_HCI_EXTINQ_MAX;
 			
@@ -457,7 +457,7 @@ le_advertizing_report(ng_hci_unit_p unit, struct mbuf *event)
 				goto out;
 			}				
 			n->page_scan_mode = *mtod(event, char *);
-			m_adj(event, sizeof(u_int8_t));
+			m_adj(event, sizeof(uint8_t));
 		}
 	}
  out:
@@ -647,14 +647,14 @@ inquiry_result(ng_hci_unit_p unit, struct mbuf *event)
 
 		/* XXX call m_pullup here? */
 
-		n->page_scan_rep_mode = *mtod(event, u_int8_t *);
-		m_adj(event, sizeof(u_int8_t));
+		n->page_scan_rep_mode = *mtod(event, uint8_t *);
+		m_adj(event, sizeof(uint8_t));
 
 		/* page_scan_period_mode */
-		m_adj(event, sizeof(u_int8_t));
+		m_adj(event, sizeof(uint8_t));
 
-		n->page_scan_mode = *mtod(event, u_int8_t *);
-		m_adj(event, sizeof(u_int8_t));
+		n->page_scan_mode = *mtod(event, uint8_t *);
+		m_adj(event, sizeof(uint8_t));
 
 		/* class */
 		m_adj(event, NG_HCI_CLASS_SIZE);
@@ -888,7 +888,7 @@ discon_compl(ng_hci_unit_p unit, struct mbuf *event)
 	ng_hci_discon_compl_ep	*ep = NULL;
 	ng_hci_unit_con_p	 con = NULL;
 	int			 error = 0;
-	u_int16_t		 h;
+	uint16_t		 h;
 
 	NG_HCI_M_PULLUP(event, sizeof(*ep));
 	if (event == NULL)
@@ -934,7 +934,7 @@ encryption_change(ng_hci_unit_p unit, struct mbuf *event)
 	ng_hci_encryption_change_ep	*ep = NULL;
 	ng_hci_unit_con_p		 con = NULL;
 	int				 error = 0;
-	u_int16_t	h;
+	uint16_t	h;
 
 	NG_HCI_M_PULLUP(event, sizeof(*ep));
 	if (event == NULL)
@@ -981,7 +981,7 @@ read_remote_features_compl(ng_hci_unit_p unit, struct mbuf *event)
 	ng_hci_read_remote_features_compl_ep	*ep = NULL;
 	ng_hci_unit_con_p			 con = NULL;
 	ng_hci_neighbor_p			 n = NULL;
-	u_int16_t				 h;
+	uint16_t				 h;
 	int					 error = 0;
 
 	NG_HCI_M_PULLUP(event, sizeof(*ep));
@@ -1033,7 +1033,7 @@ qos_setup_compl(ng_hci_unit_p unit, struct mbuf *event)
 {
 	ng_hci_qos_setup_compl_ep	*ep = NULL;
 	ng_hci_unit_con_p		 con = NULL;
-	u_int16_t			 h;
+	uint16_t			 h;
 	int				 error = 0;
 
 	NG_HCI_M_PULLUP(event, sizeof(*ep));
@@ -1075,7 +1075,7 @@ hardware_error(ng_hci_unit_p unit, struct mbuf *event)
 {
 	NG_HCI_ALERT(
 "%s: %s - hardware error %#x\n",
-		__func__, NG_NODE_NAME(unit->node), *mtod(event, u_int8_t *));
+		__func__, NG_NODE_NAME(unit->node), *mtod(event, uint8_t *));
 
 	NG_FREE_M(event);
 
@@ -1125,7 +1125,7 @@ num_compl_pkts(ng_hci_unit_p unit, struct mbuf *event)
 {
 	ng_hci_num_compl_pkts_ep	*ep = NULL;
 	ng_hci_unit_con_p		 con = NULL;
-	u_int16_t			 h, p;
+	uint16_t			 h, p;
 
 	NG_HCI_M_PULLUP(event, sizeof(*ep));
 	if (event == NULL)
@@ -1192,7 +1192,7 @@ mode_change(ng_hci_unit_p unit, struct mbuf *event)
 	ep = mtod(event, ng_hci_mode_change_ep *);
 
 	if (ep->status == 0) {
-		u_int16_t	h = NG_HCI_CON_HANDLE(le16toh(ep->con_handle));
+		uint16_t	h = NG_HCI_CON_HANDLE(le16toh(ep->con_handle));
 
 		con = ng_hci_con_by_handle(unit, h);
 		if (con == NULL) {
@@ -1225,7 +1225,7 @@ data_buffer_overflow(ng_hci_unit_p unit, struct mbuf *event)
 	NG_HCI_ALERT(
 "%s: %s - %s data buffer overflow\n",
 		__func__, NG_NODE_NAME(unit->node),
-		(*mtod(event, u_int8_t *) == NG_HCI_LINK_ACL)? "ACL" : "SCO");
+		(*mtod(event, uint8_t *) == NG_HCI_LINK_ACL)? "ACL" : "SCO");
 
 	NG_FREE_M(event);
 
@@ -1248,7 +1248,7 @@ read_clock_offset_compl(ng_hci_unit_p unit, struct mbuf *event)
 	ep = mtod(event, ng_hci_read_clock_offset_compl_ep *);
 
 	if (ep->status == 0) {
-		u_int16_t	h = NG_HCI_CON_HANDLE(le16toh(ep->con_handle));
+		uint16_t	h = NG_HCI_CON_HANDLE(le16toh(ep->con_handle));
 
 		con = ng_hci_con_by_handle(unit, h);
 		if (con == NULL) {
@@ -1290,7 +1290,7 @@ qos_violation(ng_hci_unit_p unit, struct mbuf *event)
 {
 	ng_hci_qos_violation_ep	*ep = NULL;
 	ng_hci_unit_con_p	 con = NULL;
-	u_int16_t		 h;
+	uint16_t		 h;
 	int			 error = 0;
 
 	NG_HCI_M_PULLUP(event, sizeof(*ep));

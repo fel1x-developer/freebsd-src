@@ -878,7 +878,7 @@ mfi_tbolt_build_io(struct mfi_softc *sc, struct mfi_command *mfi_cmd,
 	uint32_t sge_count;
 	uint8_t cdb_len;
 	int readop;
-	u_int64_t lba;
+	uint64_t lba;
 
 	io_request = cmd->io_request;
 	if (!(mfi_cmd->cm_frame->header.cmd == MFI_CMD_LD_READ

@@ -76,8 +76,8 @@ static int b0_ver;	/* boot block version set by boot0bs */
 #define cv2(p)  ((p)[0] | (p)[1] << 010)
 
 #define mk2(p, x)                               \
-    (p)[0] = (u_int8_t)(x),                     \
-    (p)[1] = (u_int8_t)((x) >> 010)
+    (p)[0] = (uint8_t)(x),                     \
+    (p)[1] = (uint8_t)((x) >> 010)
 
 static const struct {
     const char *tok;
@@ -96,14 +96,14 @@ static const char fmt1[] = "%d   0x%02x   %4u:%3u:%2u   0x%02x"
     "   %4u:%3u:%2u   %10u   %10u\n";
 
 static int geom_class_available(const char *);
-static int read_mbr(const char *, u_int8_t **, int);
-static void write_mbr(const char *, int, u_int8_t *, int, int);
-static void display_mbr(u_int8_t *);
-static int boot0version(const u_int8_t *);
-static int boot0bs(const u_int8_t *);
+static int read_mbr(const char *, uint8_t **, int);
+static void write_mbr(const char *, int, uint8_t *, int, int);
+static void display_mbr(uint8_t *);
+static int boot0version(const uint8_t *);
+static int boot0bs(const uint8_t *);
 static void stropt(const char *, int *, int *);
 static int argtoi(const char *, int, int, int);
-static int set_bell(u_int8_t *, int, int);
+static int set_bell(uint8_t *, int, int);
 static void usage(void) __dead2;
 
 static unsigned vol_id[5];	/* 4 plus 1 for flag */
@@ -115,7 +115,7 @@ static int v_flag;
 int
 main(int argc, char *argv[])
 {
-    u_int8_t *mbr, *boot0;
+    uint8_t *mbr, *boot0;
     int boot0_size, mbr_size;
     const char *bpath, *fpath;
     char *disk;
@@ -272,7 +272,7 @@ main(int argc, char *argv[])
  * Lookup for a certain code sequence, return -1 if not found.
  */
 static int
-set_bell(u_int8_t *mbr, int new_bell, int report)
+set_bell(uint8_t *mbr, int new_bell, int report)
 {
     /* lookup sequence: 0x100 means skip, 0x200 means done */
     static unsigned seq[] =
@@ -304,9 +304,9 @@ set_bell(u_int8_t *mbr, int new_bell, int report)
  * buffer containing the MBR and then return its size.
  */
 static int
-read_mbr(const char *disk, u_int8_t **mbr, int check_version)
+read_mbr(const char *disk, uint8_t **mbr, int check_version)
 {
-    u_int8_t buf[MBRSIZE];
+    uint8_t buf[MBRSIZE];
     int mbr_size, fd;
     int ver;
     ssize_t n;
@@ -369,7 +369,7 @@ geom_class_available(const char *name)
  * Write out the mbr to the specified file.
  */
 static void
-write_mbr(const char *fname, int flags, u_int8_t *mbr, int mbr_size,
+write_mbr(const char *fname, int flags, uint8_t *mbr, int mbr_size,
     int disable_dsn)
 {
 	struct gctl_req *grq;
@@ -432,7 +432,7 @@ write_mbr(const char *fname, int flags, u_int8_t *mbr, int mbr_size,
  * Outputs an informative dump of the data in the MBR to stdout.
  */
 static void
-display_mbr(u_int8_t *mbr)
+display_mbr(uint8_t *mbr)
 {
     struct dos_partition *part;
     int i, version;
@@ -481,7 +481,7 @@ display_mbr(u_int8_t *mbr)
  * the major revision in the next higher byte.
  */
 static int
-boot0version(const u_int8_t *bs)
+boot0version(const uint8_t *bs)
 {
     /* Check for old version, and return 0x100 if found. */
     int v = boot0bs(bs);
@@ -501,7 +501,7 @@ boot0version(const u_int8_t *bs)
 struct byte_pattern {
     unsigned off;
     unsigned len;
-    u_int8_t *key;
+    uint8_t *key;
 };
 
 /*
@@ -509,13 +509,13 @@ struct byte_pattern {
  * characteristic byte sequences at fixed offsets.
  */
 static int
-boot0bs(const u_int8_t *bs)
+boot0bs(const uint8_t *bs)
 {
     /* the initial code sequence */
-    static u_int8_t id0[] = {0xfc, 0x31, 0xc0, 0x8e, 0xc0, 0x8e, 0xd8,
+    static uint8_t id0[] = {0xfc, 0x31, 0xc0, 0x8e, 0xc0, 0x8e, 0xd8,
 			     0x8e, 0xd0, 0xbc, 0x00, 0x7c };
     /* the drive id */
-    static u_int8_t id1[] = {'D', 'r', 'i', 'v', 'e', ' '};
+    static uint8_t id1[] = {'D', 'r', 'i', 'v', 'e', ' '};
     static struct byte_pattern patterns[] = {
         {0x0,   sizeof(id0), id0},
         {0x1b2, sizeof(id1), id1},

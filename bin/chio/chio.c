@@ -52,8 +52,8 @@
 
 static	void usage(void) __dead2;
 static	void cleanup(void);
-static	u_int16_t parse_element_type(char *);
-static	u_int16_t parse_element_unit(char *);
+static	uint16_t parse_element_type(char *);
+static	uint16_t parse_element_unit(char *);
 static	const char * element_type_name(int et);
 static	int parse_special(char *);
 static	int is_special(char *);
@@ -73,7 +73,7 @@ static	int do_status(const char *, int, char **);
 static	int do_ielem(const char *, int, char **);
 static	int do_return(const char *, int, char **);
 static	int do_voltag(const char *, int, char **);
-static	void print_designator(const char *, u_int8_t, u_int8_t);
+static	void print_designator(const char *, uint8_t, uint8_t);
 
 #ifndef CHET_VT
 #define	CHET_VT		10			/* Completely Arbitrary */
@@ -520,7 +520,7 @@ do_status(const char *cname, int argc, char **argv)
 	struct changer_params cp;
 	struct changer_element_status_request cesr;
 	int i;
-	u_int16_t base, count, chet, schet, echet;
+	uint16_t base, count, chet, schet, echet;
 	const char *description;
 	int pvoltag = 0;
 	int avoltag = 0;
@@ -597,11 +597,11 @@ do_status(const char *cname, int argc, char **argv)
 		echet = CHET_DT;
 	}
 	if (argc > 1) {
-		base = (u_int16_t)atol(argv[1]);
+		base = (uint16_t)atol(argv[1]);
 		count = 1;
 	}
 	if (argc > 2)
-		count = (u_int16_t)atol(argv[2]) - base + 1;
+		count = (uint16_t)atol(argv[2]) - base + 1;
 
 	for (chet = schet; chet <= echet; ++chet) {
 		switch (chet) {
@@ -796,7 +796,7 @@ do_voltag(const char *cname, int argc, char **argv)
 	}
 
 	csvr.csvr_type = parse_element_type(argv[0]);
-	csvr.csvr_addr = (u_int16_t)atol(argv[1]);
+	csvr.csvr_addr = (uint16_t)atol(argv[1]);
 
 	if (!clear) {
 		if (argc < 3 || argc > 4) {
@@ -818,7 +818,7 @@ do_voltag(const char *cname, int argc, char **argv)
 		       sizeof(csvr.csvr_voltag.cv_volid));
 
 		if (argc == 4) {
-			csvr.csvr_voltag.cv_serial = (u_int16_t)atol(argv[3]);
+			csvr.csvr_voltag.cv_serial = (uint16_t)atol(argv[3]);
 		}
 	} else {
 		if (argc != 2) {
@@ -843,14 +843,14 @@ do_voltag(const char *cname, int argc, char **argv)
 	return 1;
 }
 
-static u_int16_t
+static uint16_t
 parse_element_type(char *cp)
 {
 	int i;
 
 	for (i = 0; elements[i].et_name != NULL; ++i)
 		if (strcmp(elements[i].et_name, cp) == 0)
-			return ((u_int16_t)elements[i].et_type);
+			return ((uint16_t)elements[i].et_type);
 
 	errx(1, "invalid element type `%s'", cp);
 	/* NOTREACHED */
@@ -868,7 +868,7 @@ element_type_name(int et)
 	return "unknown";
 }
 
-static u_int16_t
+static uint16_t
 parse_element_unit(char *cp)
 {
 	int i;
@@ -878,7 +878,7 @@ parse_element_unit(char *cp)
 	if ((i < 0) || (*p != '\0'))
 		errx(1, "invalid unit number `%s'", cp);
 
-	return ((u_int16_t)i);
+	return ((uint16_t)i);
 }
 
 static int
@@ -1178,8 +1178,8 @@ usage(void)
 #define	UTF8CODESET	"UTF-8"
 
 static void
-print_designator(const char *designator, u_int8_t code_set,
-    u_int8_t designator_length)
+print_designator(const char *designator, uint8_t code_set,
+    uint8_t designator_length)
 {
 	printf(" serial number: <");
 	switch (code_set) {

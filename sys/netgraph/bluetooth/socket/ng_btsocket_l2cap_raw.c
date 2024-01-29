@@ -81,7 +81,7 @@ static ng_disconnect_t	ng_btsocket_l2cap_raw_node_disconnect;
 
 static void		ng_btsocket_l2cap_raw_input     (void *, int);
 static void		ng_btsocket_l2cap_raw_rtclean   (void *, int);
-static void		ng_btsocket_l2cap_raw_get_token (u_int32_t *);
+static void		ng_btsocket_l2cap_raw_get_token (uint32_t *);
 
 static int		ng_btsocket_l2cap_raw_send_ngmsg
 				(hook_p, int, void *, int);
@@ -109,15 +109,15 @@ static struct ng_type	typestruct = {
 
 /* Globals */
 extern int					ifqmaxlen;
-static u_int32_t				ng_btsocket_l2cap_raw_debug_level;
-static u_int32_t				ng_btsocket_l2cap_raw_ioctl_timeout;
+static uint32_t				ng_btsocket_l2cap_raw_debug_level;
+static uint32_t				ng_btsocket_l2cap_raw_ioctl_timeout;
 static node_p					ng_btsocket_l2cap_raw_node;
 static struct ng_bt_itemq			ng_btsocket_l2cap_raw_queue;
 static struct mtx				ng_btsocket_l2cap_raw_queue_mtx;
 static struct task				ng_btsocket_l2cap_raw_queue_task;
 static LIST_HEAD(, ng_btsocket_l2cap_raw_pcb)	ng_btsocket_l2cap_raw_sockets;
 static struct mtx				ng_btsocket_l2cap_raw_sockets_mtx;
-static u_int32_t				ng_btsocket_l2cap_raw_token;
+static uint32_t				ng_btsocket_l2cap_raw_token;
 static struct mtx				ng_btsocket_l2cap_raw_token_mtx;
 static LIST_HEAD(, ng_btsocket_l2cap_rtentry)	ng_btsocket_l2cap_raw_rt;
 static struct mtx				ng_btsocket_l2cap_raw_rt_mtx;
@@ -1274,7 +1274,7 @@ ng_btsocket_l2cap_raw_sockaddr(struct socket *so, struct sockaddr *sa)
  */
 
 static void
-ng_btsocket_l2cap_raw_get_token(u_int32_t *token)
+ng_btsocket_l2cap_raw_get_token(uint32_t *token)
 {
 	mtx_lock(&ng_btsocket_l2cap_raw_token_mtx);
   

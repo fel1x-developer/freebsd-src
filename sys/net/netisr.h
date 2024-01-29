@@ -203,7 +203,7 @@ struct netisr_handler {
  */
 void	netisr_clearqdrops(const struct netisr_handler *nhp);
 void	netisr_getqdrops(const struct netisr_handler *nhp,
-	    u_int64_t *qdropsp);
+	    uint64_t *qdropsp);
 void	netisr_getqlimit(const struct netisr_handler *nhp, u_int *qlimitp);
 void	netisr_register(const struct netisr_handler *nhp);
 int	netisr_setqlimit(const struct netisr_handler *nhp, u_int qlimit);

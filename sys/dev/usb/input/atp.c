@@ -2011,9 +2011,9 @@ static void
 atp_reap_sibling_zombies(void *arg)
 {
 	struct atp_softc *sc = (struct atp_softc *)arg;
-	u_int8_t n_touches_reaped = 0;
-	u_int8_t n_slides_reaped = 0;
-	u_int8_t n_horizontal_scrolls = 0;
+	uint8_t n_touches_reaped = 0;
+	uint8_t n_slides_reaped = 0;
+	uint8_t n_horizontal_scrolls = 0;
 	int horizontal_scroll = 0;
 	atp_stroke_t *strokep;
 	atp_stroke_t *strokep_next;
@@ -2360,7 +2360,7 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 		if (sc->sc_status.flags & (MOUSE_POSCHANGED |
 		    MOUSE_STDBUTTONSCHANGED)) {
 			atp_stroke_t *strokep;
-			u_int8_t n_movements = 0;
+			uint8_t n_movements = 0;
 			int dx = 0;
 			int dy = 0;
 			int dz = 0;

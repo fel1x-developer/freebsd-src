@@ -409,7 +409,7 @@ struct tmpfs_mount {
 	uint64_t		tm_refcount;
 
 	/* maximum representable file size */
-	u_int64_t		tm_maxfilesize;
+	uint64_t		tm_maxfilesize;
 
 	/*
 	 * The used list contains all nodes that are currently used by

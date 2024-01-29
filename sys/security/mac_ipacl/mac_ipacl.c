@@ -99,9 +99,9 @@ struct ipacl_addr {
 #ifdef INET6
 		struct in6_addr	ipv6;
 #endif
-		u_int8_t	addr8[16];
-		u_int16_t	addr16[8];
-		u_int32_t	addr32[4];
+		uint8_t	addr8[16];
+		uint16_t	addr16[8];
+		uint32_t	addr32[4];
 	} ipa; /* 128 bit address*/
 #ifdef INET
 #define v4	ipa.ipv4
@@ -228,7 +228,7 @@ parse_rule_element(char *element, struct ip_rule *rule)
 
 			for (i = 0; prefix > 0; prefix -= 8, i++)
 				rule->mask.addr8[i] = prefix >= 8 ? 0xFF :
-				    (u_int8_t)((0xFFU << (8 - prefix)) & 0xFFU);
+				    (uint8_t)((0xFFU << (8 - prefix)) & 0xFFU);
 			for (i = 0; i < 16; i++)
 				rule->addr.addr8[i] &= rule->mask.addr8[i];
 			break;

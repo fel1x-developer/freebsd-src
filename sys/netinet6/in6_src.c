@@ -183,7 +183,7 @@ in6_selectsrc(uint32_t fibnum, struct sockaddr_in6 *dstsock,
 	struct in6_pktinfo *pi = NULL;
 	int dst_scope = -1, best_scope = -1, best_matchlen = -1;
 	struct in6_addrpolicy *dst_policy = NULL, *best_policy = NULL;
-	u_int32_t odstzone;
+	uint32_t odstzone;
 	int prefer_tempaddr;
 	int error;
 	struct ip6_moptions *mopts;
@@ -302,7 +302,7 @@ in6_selectsrc(uint32_t fibnum, struct sockaddr_in6 *dstsock,
 	CK_STAILQ_FOREACH(ia, &V_in6_ifaddrhead, ia_link) {
 		int new_scope = -1, new_matchlen = -1;
 		struct in6_addrpolicy *new_policy = NULL;
-		u_int32_t srczone, osrczone, dstzone;
+		uint32_t srczone, osrczone, dstzone;
 		struct in6_addr src;
 		struct ifnet *ifp1 = ia->ia_ifp;
 

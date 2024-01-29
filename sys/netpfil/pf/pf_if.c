@@ -982,7 +982,7 @@ pfi_unmask(void *addr)
 {
 	struct pf_addr *m = addr;
 	int i = 31, j = 0, b = 0;
-	u_int32_t tmp;
+	uint32_t tmp;
 
 	while (j < 4 && m->addr32[j] == 0xffffffff) {
 		b += 32;

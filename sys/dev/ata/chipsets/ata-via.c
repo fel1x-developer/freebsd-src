@@ -63,9 +63,9 @@ static int ata_via_sata_getrev(device_t dev, int target);
 static int ata_via_sata_setmode(device_t dev, int target, int mode);
 static void ata_via_sata_reset(device_t dev);
 static int ata_via_sata_scr_read(device_t dev, int port, int reg,
-    u_int32_t *result);
+    uint32_t *result);
 static int ata_via_sata_scr_write(device_t dev, int port, int reg,
-    u_int32_t value);
+    uint32_t value);
 static int ata_via_sata_status(device_t dev);
 
 /* misc defines */
@@ -384,7 +384,7 @@ ata_via_southbridge_fixup(device_t dev)
 	    pci_get_devid(children[i]) == ATA_VIA8371 ||
 	    pci_get_devid(children[i]) == ATA_VIA8662 ||
 	    pci_get_devid(children[i]) == ATA_VIA8361) {
-	    u_int8_t reg76 = pci_read_config(children[i], 0x76, 1);
+	    uint8_t reg76 = pci_read_config(children[i], 0x76, 1);
 
 	    if ((reg76 & 0xf0) != 0xd0) {
 		device_printf(dev,
@@ -478,7 +478,7 @@ ata_via_sata_reset(device_t dev)
 }
 
 static int
-ata_via_sata_scr_read(device_t dev, int port, int reg, u_int32_t *result)
+ata_via_sata_scr_read(device_t dev, int port, int reg, uint32_t *result)
 {
 	device_t parent;
 	uint32_t val;
@@ -524,7 +524,7 @@ ata_via_sata_scr_read(device_t dev, int port, int reg, u_int32_t *result)
 }
 
 static int
-ata_via_sata_scr_write(device_t dev, int port, int reg, u_int32_t value)
+ata_via_sata_scr_write(device_t dev, int port, int reg, uint32_t value)
 {
 	device_t parent;
 	uint32_t val;

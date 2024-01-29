@@ -241,7 +241,7 @@ aac_disk_dump(void *arg, void *virtual, off_t offset, size_t length)
 	static int first = 0;
 	struct disk *dp;
 	bus_dmamap_callback_t *callback;
-	u_int32_t command;
+	uint32_t command;
 
 	dp = arg;
 	ad = dp->d_drv1;
@@ -378,7 +378,7 @@ aac_disk_attach(device_t dev)
 	 */
 	sc->ad_size = sc->ad_container->co_mntobj.Capacity;
 	if (sc->ad_controller->flags & AAC_FLAGS_LBA_64BIT)
-		sc->ad_size += (u_int64_t)
+		sc->ad_size += (uint64_t)
 			sc->ad_container->co_mntobj.CapacityHigh << 32;
 	if (sc->ad_size >= (2 * 1024 * 1024)) {		/* 2GB */
 		sc->ad_heads = 255;

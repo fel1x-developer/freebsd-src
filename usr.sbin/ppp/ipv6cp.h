@@ -49,8 +49,8 @@ struct ipv6cp {
   struct ncpaddr myaddr;		/* Local address */
   struct ncpaddr hisaddr;		/* Peer address */
 
-  u_int32_t his_reject;			/* Request codes rejected by peer */
-  u_int32_t my_reject;			/* Request codes I have rejected */
+  uint32_t his_reject;			/* Request codes rejected by peer */
+  uint32_t my_reject;			/* Request codes I have rejected */
 
   struct pppThroughput throughput;	/* throughput statistics */
   struct mqueue Queue[2];		/* Output packet queues */

@@ -155,47 +155,47 @@ MODULE_DEPEND(alias_skinny, libalias, 1, 1, 1);
 #define START_MEDIATX	0x0000008a
 
 struct skinny_header {
-	u_int32_t	len;
-	u_int32_t	reserved;
-	u_int32_t	msgId;
+	uint32_t	len;
+	uint32_t	reserved;
+	uint32_t	msgId;
 };
 
 struct RegisterMessage {
-	u_int32_t	msgId;
+	uint32_t	msgId;
 	char		devName   [16];
-	u_int32_t	uid;
-	u_int32_t	instance;
-	u_int32_t	ipAddr;
+	uint32_t	uid;
+	uint32_t	instance;
+	uint32_t	ipAddr;
 	u_char		devType;
-	u_int32_t	maxStreams;
+	uint32_t	maxStreams;
 };
 
 struct IpPortMessage {
-	u_int32_t	msgId;
-	u_int32_t	stationIpPort;	/* Note: Skinny uses 32-bit port
+	uint32_t	msgId;
+	uint32_t	stationIpPort;	/* Note: Skinny uses 32-bit port
 					 * numbers */
 };
 
 struct OpenReceiveChannelAck {
-	u_int32_t	msgId;
-	u_int32_t	status;
-	u_int32_t	ipAddr;
-	u_int32_t	port;
-	u_int32_t	passThruPartyID;
+	uint32_t	msgId;
+	uint32_t	status;
+	uint32_t	ipAddr;
+	uint32_t	port;
+	uint32_t	passThruPartyID;
 };
 
 struct StartMediaTransmission {
-	u_int32_t	msgId;
-	u_int32_t	conferenceID;
-	u_int32_t	passThruPartyID;
-	u_int32_t	remoteIpAddr;
-	u_int32_t	remotePort;
-	u_int32_t	MSPacket;
-	u_int32_t	payloadCap;
-	u_int32_t	precedence;
-	u_int32_t	silenceSuppression;
+	uint32_t	msgId;
+	uint32_t	conferenceID;
+	uint32_t	passThruPartyID;
+	uint32_t	remoteIpAddr;
+	uint32_t	remotePort;
+	uint32_t	MSPacket;
+	uint32_t	payloadCap;
+	uint32_t	precedence;
+	uint32_t	silenceSuppression;
 	u_short		maxFramesPerPacket;
-	u_int32_t	G723BitRate;
+	uint32_t	G723BitRate;
 };
 
 typedef enum {
@@ -210,7 +210,7 @@ alias_skinny_reg_msg(struct RegisterMessage *reg_msg, struct ip *pip,
 {
 	(void)direction;
 
-	reg_msg->ipAddr = (u_int32_t)GetAliasAddress(lnk).s_addr;
+	reg_msg->ipAddr = (uint32_t)GetAliasAddress(lnk).s_addr;
 
 	tc->th_sum = 0;
 #ifdef _KERNEL
@@ -225,7 +225,7 @@ alias_skinny_reg_msg(struct RegisterMessage *reg_msg, struct ip *pip,
 static int
 alias_skinny_startmedia(struct StartMediaTransmission *start_media,
     struct ip *pip, struct tcphdr *tc,
-    struct alias_link *lnk, u_int32_t localIpAddr,
+    struct alias_link *lnk, uint32_t localIpAddr,
     ConvDirection direction)
 {
 	struct in_addr dst __unused, src __unused;
@@ -253,7 +253,7 @@ alias_skinny_port_msg(struct IpPortMessage *port_msg, struct ip *pip,
 {
 	(void)direction;
 
-	port_msg->stationIpPort = (u_int32_t)ntohs(GetAliasPort(lnk));
+	port_msg->stationIpPort = (uint32_t)ntohs(GetAliasPort(lnk));
 
 	tc->th_sum = 0;
 #ifdef _KERNEL
@@ -267,7 +267,7 @@ alias_skinny_port_msg(struct IpPortMessage *port_msg, struct ip *pip,
 static int
 alias_skinny_opnrcvch_ack(struct libalias *la, struct OpenReceiveChannelAck *opnrcvch_ack,
     struct ip *pip, struct tcphdr *tc,
-    struct alias_link *lnk, u_int32_t * localIpAddr,
+    struct alias_link *lnk, uint32_t * localIpAddr,
     ConvDirection direction)
 {
 	struct in_addr null_addr;
@@ -276,14 +276,14 @@ alias_skinny_opnrcvch_ack(struct libalias *la, struct OpenReceiveChannelAck *opn
 	(void)lnk;
 	(void)direction;
 
-	*localIpAddr = (u_int32_t)opnrcvch_ack->ipAddr;
+	*localIpAddr = (uint32_t)opnrcvch_ack->ipAddr;
 
 	null_addr.s_addr = INADDR_ANY;
 	opnrcv_lnk = FindUdpTcpOut(la, pip->ip_src, null_addr,
 	    htons((u_short) opnrcvch_ack->port), 0,
 	    IPPROTO_UDP, 1);
-	opnrcvch_ack->ipAddr = (u_int32_t)GetAliasAddress(opnrcv_lnk).s_addr;
-	opnrcvch_ack->port = (u_int32_t)ntohs(GetAliasPort(opnrcv_lnk));
+	opnrcvch_ack->ipAddr = (uint32_t)GetAliasAddress(opnrcv_lnk).s_addr;
+	opnrcvch_ack->port = (uint32_t)ntohs(GetAliasPort(opnrcv_lnk));
 
 	tc->th_sum = 0;
 #ifdef _KERNEL
@@ -299,7 +299,7 @@ AliasHandleSkinny(struct libalias *la, struct ip *pip, struct alias_link *lnk)
 {
 	size_t hlen, tlen, dlen;
 	struct tcphdr *tc;
-	u_int32_t msgId, t, len, lip;
+	uint32_t msgId, t, len, lip;
 	struct skinny_header *sd;
 	size_t orig_len, skinny_hdr_len = sizeof(struct skinny_header);
 	ConvDirection direction;

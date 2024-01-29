@@ -106,7 +106,7 @@ int
 main(int argc, char *argv[])
 {
 	struct sockaddr_in sin;
-	u_int64_t counter;
+	uint64_t counter;
 
 	if (argc != 2)
 		errx(-1, "usage: tcpconnect [ip]");

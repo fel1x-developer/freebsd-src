@@ -70,7 +70,7 @@ SYSCTL_U64(_vfs_nfs, OID_AUTO, maxcopyrange, CTLFLAG_RW,
 extern struct nfsstatsv1 nfsstatsv1;
 extern int nfs_numnfscbd;
 extern struct timeval nfsboottime;
-extern u_int32_t newnfs_false, newnfs_true;
+extern uint32_t newnfs_false, newnfs_true;
 extern nfstype nfsv34_type[9];
 extern int nfsrv_useacl;
 extern char nfsv4_callbackaddr[INET6_ADDRSTRLEN];
@@ -143,8 +143,8 @@ static int nfsrpc_createv4(vnode_t , char *, int, struct vattr *,
     NFSPROC_T *, struct nfsvattr *, struct nfsvattr *, struct nfsfh **, int *,
     int *, int *);
 static int nfsrpc_locku(struct nfsrv_descript *, struct nfsmount *,
-    struct nfscllockowner *, u_int64_t, u_int64_t,
-    u_int32_t, struct ucred *, NFSPROC_T *, int);
+    struct nfscllockowner *, uint64_t, uint64_t,
+    uint32_t, struct ucred *, NFSPROC_T *, int);
 static int nfsrpc_setaclrpc(vnode_t, struct ucred *, NFSPROC_T *,
     struct acl *, nfsv4stateid_t *);
 static int nfsrpc_layouterror(struct nfsmount *, uint8_t *, int, uint64_t,
@@ -199,14 +199,14 @@ static int nfsrv_parseug(struct nfsrv_descript *, int, uid_t *, gid_t *,
     NFSPROC_T *);
 static int nfsrv_parselayoutget(struct nfsmount *, struct nfsrv_descript *,
     nfsv4stateid_t *, int *, struct nfsclflayouthead *);
-static int nfsrpc_getopenlayout(struct nfsmount *, vnode_t, u_int8_t *,
+static int nfsrpc_getopenlayout(struct nfsmount *, vnode_t, uint8_t *,
     int, uint8_t *, int, uint32_t, struct nfsclopen *, uint8_t *, int,
     struct nfscldeleg **, struct ucred *, NFSPROC_T *);
 static int nfsrpc_getcreatelayout(vnode_t, char *, int, struct vattr *,
     nfsquad_t, int, struct nfsclowner *, struct nfscldeleg **,
     struct ucred *, NFSPROC_T *, struct nfsvattr *, struct nfsvattr *,
     struct nfsfh **, int *, int *, int *);
-static int nfsrpc_openlayoutrpc(struct nfsmount *, vnode_t, u_int8_t *,
+static int nfsrpc_openlayoutrpc(struct nfsmount *, vnode_t, uint8_t *,
     int, uint8_t *, int, uint32_t, struct nfsclopen *, uint8_t *, int,
     struct nfscldeleg **, nfsv4stateid_t *, int, int, int, int *,
     struct nfsclflayouthead *, int *, struct ucred *, NFSPROC_T *);
@@ -258,7 +258,7 @@ nfsrpc_access(vnode_t vp, int acmode, struct ucred *cred,
     NFSPROC_T *p, struct nfsvattr *nap, int *attrflagp)
 {
 	int error;
-	u_int32_t mode, rmode;
+	uint32_t mode, rmode;
 
 	if (acmode & VREAD)
 		mode = NFSACCESS_READ;
@@ -296,11 +296,11 @@ nfsrpc_access(vnode_t vp, int acmode, struct ucred *cred,
  * The actual rpc, separated out for Darwin.
  */
 int
-nfsrpc_accessrpc(vnode_t vp, u_int32_t mode, struct ucred *cred,
-    NFSPROC_T *p, struct nfsvattr *nap, int *attrflagp, u_int32_t *rmodep)
+nfsrpc_accessrpc(vnode_t vp, uint32_t mode, struct ucred *cred,
+    NFSPROC_T *p, struct nfsvattr *nap, int *attrflagp, uint32_t *rmodep)
 {
-	u_int32_t *tl;
-	u_int32_t supported, rmode;
+	uint32_t *tl;
+	uint32_t supported, rmode;
 	int error;
 	struct nfsrv_descript nfsd, *nd = &nfsd;
 	nfsattrbit_t attrbits;
@@ -321,13 +321,13 @@ nfsrpc_accessrpc(vnode_t vp, u_int32_t mode, struct ucred *cred,
 			nfscl_statfs(vp, cred, p);
 	}
 	NFSCL_REQSTART(nd, NFSPROC_ACCESS, vp, cred);
-	NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+	NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 	*tl = txdr_unsigned(mode);
 	if (nd->nd_flag & ND_NFSV4) {
 		/*
 		 * And do a Getattr op.
 		 */
-		NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+		NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 		*tl = txdr_unsigned(NFSV4OP_GETATTR);
 		NFSGETATTR_ATTRBIT(&attrbits);
 		(void) nfsrv_putattrbit(nd, &attrbits);
@@ -342,12 +342,12 @@ nfsrpc_accessrpc(vnode_t vp, u_int32_t mode, struct ucred *cred,
 	}
 	if (!nd->nd_repstat) {
 		if (nd->nd_flag & ND_NFSV4) {
-			NFSM_DISSECT(tl, u_int32_t *, 2 * NFSX_UNSIGNED);
-			supported = fxdr_unsigned(u_int32_t, *tl++);
+			NFSM_DISSECT(tl, uint32_t *, 2 * NFSX_UNSIGNED);
+			supported = fxdr_unsigned(uint32_t, *tl++);
 		} else {
-			NFSM_DISSECT(tl, u_int32_t *, NFSX_UNSIGNED);
+			NFSM_DISSECT(tl, uint32_t *, NFSX_UNSIGNED);
 		}
-		rmode = fxdr_unsigned(u_int32_t, *tl);
+		rmode = fxdr_unsigned(uint32_t, *tl);
 		if (nd->nd_flag & ND_NFSV4)
 			error = nfscl_postop_attr(nd, nap, attrflagp);
 
@@ -376,7 +376,7 @@ nfsrpc_open(vnode_t vp, int amode, struct ucred *cred, NFSPROC_T *p)
 	struct nfsfh *nfhp;
 	struct nfsnode *np = VTONFS(vp);
 	struct nfsmount *nmp = VFSTONFS(vp->v_mount);
-	u_int32_t mode, clidrev;
+	uint32_t mode, clidrev;
 	int ret, newone, error, expireret = 0, retrycnt;
 
 	/*
@@ -526,17 +526,17 @@ nfsrpc_open(vnode_t vp, int amode, struct ucred *cred, NFSPROC_T *p)
  * the actual open rpc
  */
 int
-nfsrpc_openrpc(struct nfsmount *nmp, vnode_t vp, u_int8_t *nfhp, int fhlen,
-    u_int8_t *newfhp, int newfhlen, u_int32_t mode, struct nfsclopen *op,
-    u_int8_t *name, int namelen, struct nfscldeleg **dpp,
-    int reclaim, u_int32_t delegtype, struct ucred *cred, NFSPROC_T *p,
+nfsrpc_openrpc(struct nfsmount *nmp, vnode_t vp, uint8_t *nfhp, int fhlen,
+    uint8_t *newfhp, int newfhlen, uint32_t mode, struct nfsclopen *op,
+    uint8_t *name, int namelen, struct nfscldeleg **dpp,
+    int reclaim, uint32_t delegtype, struct ucred *cred, NFSPROC_T *p,
     int syscred, int recursed)
 {
-	u_int32_t *tl;
+	uint32_t *tl;
 	struct nfsrv_descript nfsd, *nd = &nfsd;
 	struct nfscldeleg *dp, *ndp = NULL;
 	struct nfsvattr nfsva;
-	u_int32_t rflags, deleg;
+	uint32_t rflags, deleg;
 	nfsattrbit_t attrbits;
 	int error, ret, acesize, limitby;
 	struct nfsclsession *tsep;
@@ -545,7 +545,7 @@ nfsrpc_openrpc(struct nfsmount *nmp, vnode_t vp, u_int8_t *nfhp, int fhlen,
 	*dpp = NULL;
 	nfscl_reqstart(nd, NFSPROC_OPEN, nmp, nfhp, fhlen, NULL, NULL, 0, 0,
 	    cred);
-	NFSM_BUILD(tl, u_int32_t *, 5 * NFSX_UNSIGNED);
+	NFSM_BUILD(tl, uint32_t *, 5 * NFSX_UNSIGNED);
 	*tl++ = txdr_unsigned(op->nfso_own->nfsow_seqid);
 	*tl++ = txdr_unsigned(mode & NFSV4OPEN_ACCESSBOTH);
 	*tl++ = txdr_unsigned((mode >> NFSLCK_SHIFT) & NFSV4OPEN_DENYBOTH);
@@ -553,11 +553,11 @@ nfsrpc_openrpc(struct nfsmount *nmp, vnode_t vp, u_int8_t *nfhp, int fhlen,
 	*tl++ = tsep->nfsess_clientid.lval[0];
 	*tl = tsep->nfsess_clientid.lval[1];
 	(void) nfsm_strtom(nd, op->nfso_own->nfsow_owner, NFSV4CL_LOCKNAMELEN);
-	NFSM_BUILD(tl, u_int32_t *, 2 * NFSX_UNSIGNED);
+	NFSM_BUILD(tl, uint32_t *, 2 * NFSX_UNSIGNED);
 	*tl++ = txdr_unsigned(NFSV4OPEN_NOCREATE);
 	if (reclaim) {
 		*tl = txdr_unsigned(NFSV4OPEN_CLAIMPREVIOUS);
-		NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+		NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 		*tl = txdr_unsigned(delegtype);
 	} else {
 		if (dp != NULL) {
@@ -582,7 +582,7 @@ nfsrpc_openrpc(struct nfsmount *nmp, vnode_t vp, u_int8_t *nfhp, int fhlen,
 					NFSUNLOCKMNT(nmp);
 			} else {
 				*tl = txdr_unsigned(NFSV4OPEN_CLAIMDELEGATECUR);
-				NFSM_BUILD(tl, u_int32_t *, NFSX_STATEID);
+				NFSM_BUILD(tl, uint32_t *, NFSX_STATEID);
 				*tl++ = dp->nfsdl_stateid.seqid;
 				*tl++ = dp->nfsdl_stateid.other[0];
 				*tl++ = dp->nfsdl_stateid.other[1];
@@ -596,7 +596,7 @@ nfsrpc_openrpc(struct nfsmount *nmp, vnode_t vp, u_int8_t *nfhp, int fhlen,
 			(void)nfsm_strtom(nd, name, namelen);
 		}
 	}
-	NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+	NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 	*tl = txdr_unsigned(NFSV4OP_GETATTR);
 	NFSZERO_ATTRBIT(&attrbits);
 	NFSSETBIT_ATTRBIT(&attrbits, NFSATTRBIT_CHANGE);
@@ -611,18 +611,18 @@ nfsrpc_openrpc(struct nfsmount *nmp, vnode_t vp, u_int8_t *nfhp, int fhlen,
 	NFSCL_INCRSEQID(op->nfso_own->nfsow_seqid, nd);
 	if (nd->nd_repstat == 0 || (nd->nd_repstat == NFSERR_DELAY &&
 	    reclaim != 0 && (nd->nd_flag & ND_NOMOREDATA) == 0)) {
-		NFSM_DISSECT(tl, u_int32_t *, NFSX_STATEID +
+		NFSM_DISSECT(tl, uint32_t *, NFSX_STATEID +
 		    6 * NFSX_UNSIGNED);
 		op->nfso_stateid.seqid = *tl++;
 		op->nfso_stateid.other[0] = *tl++;
 		op->nfso_stateid.other[1] = *tl++;
 		op->nfso_stateid.other[2] = *tl;
-		rflags = fxdr_unsigned(u_int32_t, *(tl + 6));
+		rflags = fxdr_unsigned(uint32_t, *(tl + 6));
 		error = nfsrv_getattrbits(nd, &attrbits, NULL, NULL);
 		if (error)
 			goto nfsmout;
-		NFSM_DISSECT(tl, u_int32_t *, NFSX_UNSIGNED);
-		deleg = fxdr_unsigned(u_int32_t, *tl);
+		NFSM_DISSECT(tl, uint32_t *, NFSX_UNSIGNED);
+		deleg = fxdr_unsigned(uint32_t, *tl);
 		if (deleg == NFSV4OPEN_DELEGATEREAD ||
 		    deleg == NFSV4OPEN_DELEGATEWRITE) {
 			if (!(op->nfso_own->nfsow_clp->nfsc_flags &
@@ -639,7 +639,7 @@ nfsrpc_openrpc(struct nfsmount *nmp, vnode_t vp, u_int8_t *nfhp, int fhlen,
 			NFSBCOPY(newfhp, ndp->nfsdl_fh, newfhlen);
 			newnfs_copyincred(cred, &ndp->nfsdl_cred);
 			nfscl_lockinit(&ndp->nfsdl_rwlock);
-			NFSM_DISSECT(tl, u_int32_t *, NFSX_STATEID +
+			NFSM_DISSECT(tl, uint32_t *, NFSX_STATEID +
 			    NFSX_UNSIGNED);
 			ndp->nfsdl_stateid.seqid = *tl++;
 			ndp->nfsdl_stateid.other[0] = *tl++;
@@ -651,7 +651,7 @@ nfsrpc_openrpc(struct nfsmount *nmp, vnode_t vp, u_int8_t *nfhp, int fhlen,
 				/*
 				 * Indicates how much the file can grow.
 				 */
-				NFSM_DISSECT(tl, u_int32_t *,
+				NFSM_DISSECT(tl, uint32_t *,
 				    3 * NFSX_UNSIGNED);
 				limitby = fxdr_unsigned(int, *tl++);
 				switch (limitby) {
@@ -660,9 +660,9 @@ nfsrpc_openrpc(struct nfsmount *nmp, vnode_t vp, u_int8_t *nfhp, int fhlen,
 					break;
 				case NFSV4OPEN_LIMITBLOCKS:
 					ndp->nfsdl_sizelimit =
-					    fxdr_unsigned(u_int64_t, *tl++);
+					    fxdr_unsigned(uint64_t, *tl++);
 					ndp->nfsdl_sizelimit *=
-					    fxdr_unsigned(u_int64_t, *tl);
+					    fxdr_unsigned(uint64_t, *tl);
 					break;
 				default:
 					error = NFSERR_BADXDR;
@@ -681,7 +681,7 @@ nfsrpc_openrpc(struct nfsmount *nmp, vnode_t vp, u_int8_t *nfhp, int fhlen,
 			error = NFSERR_BADXDR;
 			goto nfsmout;
 		}
-		NFSM_DISSECT(tl, u_int32_t *, 2 * NFSX_UNSIGNED);
+		NFSM_DISSECT(tl, uint32_t *, 2 * NFSX_UNSIGNED);
 		/* If the 2nd element == NFS_OK, the Getattr succeeded. */
 		if (*++tl == 0) {
 			KASSERT(nd->nd_repstat == 0,
@@ -765,15 +765,15 @@ nfsmout:
  * open downgrade rpc
  */
 int
-nfsrpc_opendowngrade(vnode_t vp, u_int32_t mode, struct nfsclopen *op,
+nfsrpc_opendowngrade(vnode_t vp, uint32_t mode, struct nfsclopen *op,
     struct ucred *cred, NFSPROC_T *p)
 {
-	u_int32_t *tl;
+	uint32_t *tl;
 	struct nfsrv_descript nfsd, *nd = &nfsd;
 	int error;
 
 	NFSCL_REQSTART(nd, NFSPROC_OPENDOWNGRADE, vp, cred);
-	NFSM_BUILD(tl, u_int32_t *, NFSX_STATEID + 3 * NFSX_UNSIGNED);
+	NFSM_BUILD(tl, uint32_t *, NFSX_STATEID + 3 * NFSX_UNSIGNED);
 	if (NFSHASNFSV4N(VFSTONFS(vp->v_mount)))
 		*tl++ = 0;
 	else
@@ -789,7 +789,7 @@ nfsrpc_opendowngrade(vnode_t vp, u_int32_t mode, struct nfsclopen *op,
 		return (error);
 	NFSCL_INCRSEQID(op->nfso_own->nfsow_seqid, nd);
 	if (!nd->nd_repstat) {
-		NFSM_DISSECT(tl, u_int32_t *, NFSX_STATEID);
+		NFSM_DISSECT(tl, uint32_t *, NFSX_STATEID);
 		op->nfso_stateid.seqid = *tl++;
 		op->nfso_stateid.other[0] = *tl++;
 		op->nfso_stateid.other[1] = *tl++;
@@ -836,8 +836,8 @@ nfsrpc_doclose(struct nfsmount *nmp, struct nfsclopen *op, NFSPROC_T *p,
 	struct nfscllockowner *lp, *nlp;
 	struct nfscllock *lop, *nlop;
 	struct ucred *tcred;
-	u_int64_t off = 0, len = 0;
-	u_int32_t type = NFSV4LOCKT_READ;
+	uint64_t off = 0, len = 0;
+	uint32_t type = NFSV4LOCKT_READ;
 	int error, do_unlock, trycnt;
 
 	tcred = newnfs_getcred();
@@ -933,12 +933,12 @@ nfsrpc_closerpc(struct nfsrv_descript *nd, struct nfsmount *nmp,
     struct nfsclopen *op, struct ucred *cred, NFSPROC_T *p,
     int syscred)
 {
-	u_int32_t *tl;
+	uint32_t *tl;
 	int error;
 
 	nfscl_reqstart(nd, NFSPROC_CLOSE, nmp, op->nfso_fh,
 	    op->nfso_fhlen, NULL, NULL, 0, 0, cred);
-	NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED + NFSX_STATEID);
+	NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED + NFSX_STATEID);
 	if (NFSHASNFSV4N(nmp)) {
 		*tl++ = 0;
 		*tl++ = 0;
@@ -958,7 +958,7 @@ nfsrpc_closerpc(struct nfsrv_descript *nd, struct nfsmount *nmp,
 	if (!NFSHASNFSV4N(nmp))
 		NFSCL_INCRSEQID(op->nfso_own->nfsow_seqid, nd);
 	if (nd->nd_repstat == 0)
-		NFSM_DISSECT(tl, u_int32_t *, NFSX_STATEID);
+		NFSM_DISSECT(tl, uint32_t *, NFSX_STATEID);
 	error = nd->nd_repstat;
 	if (!NFSHASNFSV4N(nmp) && error == NFSERR_STALESTATEID)
 		nfscl_initiate_recovery(op->nfso_own->nfsow_clp);
@@ -971,10 +971,10 @@ nfsmout:
  * V4 Open Confirm RPC.
  */
 int
-nfsrpc_openconfirm(vnode_t vp, u_int8_t *nfhp, int fhlen,
+nfsrpc_openconfirm(vnode_t vp, uint8_t *nfhp, int fhlen,
     struct nfsclopen *op, struct ucred *cred, NFSPROC_T *p)
 {
-	u_int32_t *tl;
+	uint32_t *tl;
 	struct nfsrv_descript nfsd, *nd = &nfsd;
 	struct nfsmount *nmp;
 	int error;
@@ -984,7 +984,7 @@ nfsrpc_openconfirm(vnode_t vp, u_int8_t *nfhp, int fhlen,
 		return (0);		/* No confirmation for NFSv4.1. */
 	nfscl_reqstart(nd, NFSPROC_OPENCONFIRM, nmp, nfhp, fhlen, NULL, NULL,
 	    0, 0, NULL);
-	NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED + NFSX_STATEID);
+	NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED + NFSX_STATEID);
 	*tl++ = op->nfso_stateid.seqid;
 	*tl++ = op->nfso_stateid.other[0];
 	*tl++ = op->nfso_stateid.other[1];
@@ -995,7 +995,7 @@ nfsrpc_openconfirm(vnode_t vp, u_int8_t *nfhp, int fhlen,
 		return (error);
 	NFSCL_INCRSEQID(op->nfso_own->nfsow_seqid, nd);
 	if (!nd->nd_repstat) {
-		NFSM_DISSECT(tl, u_int32_t *, NFSX_STATEID);
+		NFSM_DISSECT(tl, uint32_t *, NFSX_STATEID);
 		op->nfso_stateid.seqid = *tl++;
 		op->nfso_stateid.other[0] = *tl++;
 		op->nfso_stateid.other[1] = *tl++;
@@ -1017,14 +1017,14 @@ int
 nfsrpc_setclient(struct nfsmount *nmp, struct nfsclclient *clp, int reclaim,
     bool *retokp, struct ucred *cred, NFSPROC_T *p)
 {
-	u_int32_t *tl;
+	uint32_t *tl;
 	struct nfsrv_descript nfsd;
 	struct nfsrv_descript *nd = &nfsd;
-	u_int8_t *cp = NULL, *cp2, addr[INET6_ADDRSTRLEN + 9];
+	uint8_t *cp = NULL, *cp2, addr[INET6_ADDRSTRLEN + 9];
 	u_short port;
 	int error, isinet6 = 0, callblen;
 	nfsquad_t confirm;
-	static u_int32_t rev = 0;
+	static uint32_t rev = 0;
 	struct nfsclds *dsp, *odsp;
 	struct in6_addr a6;
 	struct nfsclsession *tsep;
@@ -1178,7 +1178,7 @@ nfsrpc_setclient(struct nfsmount *nmp, struct nfsclclient *clp, int reclaim,
 
 	nfscl_reqstart(nd, NFSPROC_SETCLIENTID, nmp, NULL, 0, NULL, NULL, 0, 0,
 	    NULL);
-	NFSM_BUILD(tl, u_int32_t *, 2 * NFSX_UNSIGNED);
+	NFSM_BUILD(tl, uint32_t *, 2 * NFSX_UNSIGNED);
 	*tl++ = txdr_unsigned(nfsboottime.tv_sec);
 	*tl = txdr_unsigned(clp->nfsc_rev);
 	(void) nfsm_strtom(nd, clp->nfsc_id, clp->nfsc_idlen);
@@ -1186,7 +1186,7 @@ nfsrpc_setclient(struct nfsmount *nmp, struct nfsclclient *clp, int reclaim,
 	/*
 	 * set up the callback address
 	 */
-	NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+	NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 	*tl = txdr_unsigned(NFS_CALLBCKPROG);
 	callblen = strlen(nfsv4_callbackaddr);
 	if (callblen == 0)
@@ -1194,7 +1194,7 @@ nfsrpc_setclient(struct nfsmount *nmp, struct nfsclclient *clp, int reclaim,
 	if (nfscl_enablecallb && nfs_numnfscbd > 0 &&
 	    (callblen > 0 || cp != NULL)) {
 		port = htons(nfsv4_cbport);
-		cp2 = (u_int8_t *)&port;
+		cp2 = (uint8_t *)&port;
 #ifdef INET6
 		if ((callblen > 0 &&
 		     strchr(nfsv4_callbackaddr, ':')) || isinet6) {
@@ -1227,7 +1227,7 @@ nfsrpc_setclient(struct nfsmount *nmp, struct nfsclclient *clp, int reclaim,
 		(void) nfsm_strtom(nd, "tcp", 3);
 		(void) nfsm_strtom(nd, "0.0.0.0.0.0", 11);
 	}
-	NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+	NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 	*tl = txdr_unsigned(clp->nfsc_cbident);
 	nd->nd_flag |= ND_USEGSSNAME;
 	error = newnfs_request(nd, nmp, NULL, &nmp->nm_sockreq, NULL, p, cred,
@@ -1235,7 +1235,7 @@ nfsrpc_setclient(struct nfsmount *nmp, struct nfsclclient *clp, int reclaim,
 	if (error)
 		return (error);
 	if (nd->nd_repstat == 0) {
-	    NFSM_DISSECT(tl, u_int32_t *, 4 * NFSX_UNSIGNED);
+	    NFSM_DISSECT(tl, uint32_t *, 4 * NFSX_UNSIGNED);
 	    tsep->nfsess_clientid.lval[0] = *tl++;
 	    tsep->nfsess_clientid.lval[1] = *tl++;
 	    confirm.lval[0] = *tl++;
@@ -1248,7 +1248,7 @@ nfsrpc_setclient(struct nfsmount *nmp, struct nfsclclient *clp, int reclaim,
 	     */
 	    nfscl_reqstart(nd, NFSPROC_SETCLIENTIDCFRM, nmp, NULL, 0, NULL,
 		NULL, 0, 0, NULL);
-	    NFSM_BUILD(tl, u_int32_t *, 4 * NFSX_UNSIGNED);
+	    NFSM_BUILD(tl, uint32_t *, 4 * NFSX_UNSIGNED);
 	    *tl++ = tsep->nfsess_clientid.lval[0];
 	    *tl++ = tsep->nfsess_clientid.lval[1];
 	    *tl++ = confirm.lval[0];
@@ -1311,8 +1311,8 @@ nfsrpc_getattr(vnode_t vp, struct ucred *cred, NFSPROC_T *p,
  * nfs getattr call with non-vnode arguments.
  */
 int
-nfsrpc_getattrnovp(struct nfsmount *nmp, u_int8_t *fhp, int fhlen, int syscred,
-    struct ucred *cred, NFSPROC_T *p, struct nfsvattr *nap, u_int64_t *xidp,
+nfsrpc_getattrnovp(struct nfsmount *nmp, uint8_t *fhp, int fhlen, int syscred,
+    struct ucred *cred, NFSPROC_T *p, struct nfsvattr *nap, uint64_t *xidp,
     uint32_t *leasep)
 {
 	struct nfsrv_descript nfsd, *nd = &nfsd;
@@ -1356,7 +1356,7 @@ nfsrpc_setattr(vnode_t vp, struct vattr *vap, NFSACL_T *aclp,
     struct ucred *cred, NFSPROC_T *p, struct nfsvattr *rnap, int *attrflagp)
 {
 	int error, expireret = 0, openerr, retrycnt;
-	u_int32_t clidrev = 0, mode;
+	uint32_t clidrev = 0, mode;
 	struct nfsmount *nmp = VFSTONFS(vp->v_mount);
 	struct nfsfh *nfhp;
 	nfsv4stateid_t stateid;
@@ -1442,7 +1442,7 @@ nfsrpc_setattrrpc(vnode_t vp, struct vattr *vap,
     nfsv4stateid_t *stateidp, struct ucred *cred, NFSPROC_T *p,
     struct nfsvattr *rnap, int *attrflagp)
 {
-	u_int32_t *tl;
+	uint32_t *tl;
 	struct nfsrv_descript nfsd, *nd = &nfsd;
 	int error;
 	nfsattrbit_t attrbits;
@@ -1454,10 +1454,10 @@ nfsrpc_setattrrpc(vnode_t vp, struct vattr *vap,
 	vap->va_type = vp->v_type;
 	nfscl_fillsattr(nd, vap, vp, NFSSATTR_FULL, 0);
 	if (nd->nd_flag & ND_NFSV3) {
-		NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+		NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 		*tl = newnfs_false;
 	} else if (nd->nd_flag & ND_NFSV4) {
-		NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+		NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 		*tl = txdr_unsigned(NFSV4OP_GETATTR);
 		NFSGETATTR_ATTRBIT(&attrbits);
 		(void) nfsrv_putattrbit(nd, &attrbits);
@@ -1531,7 +1531,7 @@ nfsrpc_lookup(vnode_t dvp, char *name, int len, struct ucred *cred,
 	}
 	if (nd->nd_flag & ND_NFSV4) {
 		NFSGETATTR_ATTRBIT(&attrbits);
-		NFSM_BUILD(tl, u_int32_t *, 2 * NFSX_UNSIGNED);
+		NFSM_BUILD(tl, uint32_t *, 2 * NFSX_UNSIGNED);
 		*tl++ = txdr_unsigned(NFSV4OP_GETFH);
 		*tl = txdr_unsigned(NFSV4OP_GETATTR);
 		(void) nfsrv_putattrbit(nd, &attrbits);
@@ -1629,7 +1629,7 @@ nfsrpc_lookup(vnode_t dvp, char *name, int len, struct ucred *cred,
 			goto nfsmout;
 		*dattrflagp = 1;
 		/* Skip over the Lookup and GetFH operation status values. */
-		NFSM_DISSECT(tl, u_int32_t *, 4 * NFSX_UNSIGNED);
+		NFSM_DISSECT(tl, uint32_t *, 4 * NFSX_UNSIGNED);
 	}
 	error = nfsm_getfh(nd, nfhpp);
 	if (error)
@@ -1724,7 +1724,7 @@ int
 nfsrpc_readlink(vnode_t vp, struct uio *uiop, struct ucred *cred,
     NFSPROC_T *p, struct nfsvattr *nap, int *attrflagp)
 {
-	u_int32_t *tl;
+	uint32_t *tl;
 	struct nfsrv_descript nfsd, *nd = &nfsd;
 	struct nfsnode *np = VTONFS(vp);
 	nfsattrbit_t attrbits;
@@ -1736,7 +1736,7 @@ nfsrpc_readlink(vnode_t vp, struct uio *uiop, struct ucred *cred,
 		/*
 		 * And do a Getattr op.
 		 */
-		NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+		NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 		*tl = txdr_unsigned(NFSV4OP_GETATTR);
 		NFSGETATTR_ATTRBIT(&attrbits);
 		(void) nfsrv_putattrbit(nd, &attrbits);
@@ -1781,7 +1781,7 @@ nfsrpc_read(vnode_t vp, struct uio *uiop, struct ucred *cred,
     NFSPROC_T *p, struct nfsvattr *nap, int *attrflagp)
 {
 	int error, expireret = 0, retrycnt;
-	u_int32_t clidrev = 0;
+	uint32_t clidrev = 0;
 	struct nfsmount *nmp = VFSTONFS(vp->v_mount);
 	struct nfsnode *np = VTONFS(vp);
 	struct ucred *newcred;
@@ -1849,7 +1849,7 @@ nfsrpc_readrpc(vnode_t vp, struct uio *uiop, struct ucred *cred,
     nfsv4stateid_t *stateidp, NFSPROC_T *p, struct nfsvattr *nap,
     int *attrflagp)
 {
-	u_int32_t *tl;
+	uint32_t *tl;
 	int error = 0, len, retlen, tsiz, eof = 0;
 	struct nfsrv_descript nfsd;
 	struct nfsmount *nmp = VFSTONFS(vp->v_mount);
@@ -1874,7 +1874,7 @@ nfsrpc_readrpc(vnode_t vp, struct uio *uiop, struct ucred *cred,
 		NFSCL_REQSTART(nd, NFSPROC_READ, vp, cred);
 		if (nd->nd_flag & ND_NFSV4)
 			nfsm_stateidtom(nd, stateidp, NFSSTATEID_PUTSTATEID);
-		NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED * 3);
+		NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED * 3);
 		if (nd->nd_flag & ND_NFSV2) {
 			*tl++ = txdr_unsigned(uiop->uio_offset);
 			*tl++ = txdr_unsigned(len);
@@ -1904,10 +1904,10 @@ nfsrpc_readrpc(vnode_t vp, struct uio *uiop, struct ucred *cred,
 			goto nfsmout;
 		}
 		if (nd->nd_flag & ND_NFSV3) {
-			NFSM_DISSECT(tl, u_int32_t *, 2 * NFSX_UNSIGNED);
+			NFSM_DISSECT(tl, uint32_t *, 2 * NFSX_UNSIGNED);
 			eof = fxdr_unsigned(int, *(tl + 1));
 		} else if (nd->nd_flag & ND_NFSV4) {
-			NFSM_DISSECT(tl, u_int32_t *, NFSX_UNSIGNED);
+			NFSM_DISSECT(tl, uint32_t *, NFSX_UNSIGNED);
 			eof = fxdr_unsigned(int, *tl);
 		}
 		NFSM_STRSIZ(retlen, len);
@@ -1944,7 +1944,7 @@ nfsrpc_write(vnode_t vp, struct uio *uiop, int *iomode, int *must_commit,
     int called_from_strategy, int ioflag)
 {
 	int error, expireret = 0, retrycnt, nostateid;
-	u_int32_t clidrev = 0;
+	uint32_t clidrev = 0;
 	struct nfsmount *nmp = VFSTONFS(vp->v_mount);
 	struct nfsnode *np = VTONFS(vp);
 	struct ucred *newcred;
@@ -2026,7 +2026,7 @@ nfsrpc_writerpc(vnode_t vp, struct uio *uiop, int *iomode,
     int *must_commit, struct ucred *cred, nfsv4stateid_t *stateidp,
     NFSPROC_T *p, struct nfsvattr *nap, int *attrflagp, int ioflag)
 {
-	u_int32_t *tl;
+	uint32_t *tl;
 	struct nfsmount *nmp = VFSTONFS(vp->v_mount);
 	struct nfsnode *np = VTONFS(vp);
 	int error = 0, len, rlen, commit, committed = NFSWRITE_FILESYNC;
@@ -2074,22 +2074,22 @@ nfsrpc_writerpc(vnode_t vp, struct uio *uiop, int *iomode,
 				*tl = txdr_unsigned(NFSV4OP_WRITE);
 			}
 			nfsm_stateidtom(nd, stateidp, NFSSTATEID_PUTSTATEID);
-			NFSM_BUILD(tl, u_int32_t *, NFSX_HYPER+2*NFSX_UNSIGNED);
+			NFSM_BUILD(tl, uint32_t *, NFSX_HYPER+2*NFSX_UNSIGNED);
 			txdr_hyper(uiop->uio_offset, tl);
 			tl += 2;
 			*tl++ = txdr_unsigned(*iomode);
 			*tl = txdr_unsigned(len);
 		} else if (nd->nd_flag & ND_NFSV3) {
-			NFSM_BUILD(tl, u_int32_t *, NFSX_HYPER+3*NFSX_UNSIGNED);
+			NFSM_BUILD(tl, uint32_t *, NFSX_HYPER+3*NFSX_UNSIGNED);
 			txdr_hyper(uiop->uio_offset, tl);
 			tl += 2;
 			*tl++ = txdr_unsigned(len);
 			*tl++ = txdr_unsigned(*iomode);
 			*tl = txdr_unsigned(len);
 		} else {
-			u_int32_t x;
+			uint32_t x;
 
-			NFSM_BUILD(tl, u_int32_t *, 4 * NFSX_UNSIGNED);
+			NFSM_BUILD(tl, uint32_t *, 4 * NFSX_UNSIGNED);
 			/*
 			 * Not sure why someone changed this, since the
 			 * RFC clearly states that "beginoffset" and
@@ -2097,7 +2097,7 @@ nfsrpc_writerpc(vnode_t vp, struct uio *uiop, int *iomode,
 			 * surprise me if there's a busted server out there.
 			 */
 			/* Set both "begin" and "current" to non-garbage. */
-			x = txdr_unsigned((u_int32_t)uiop->uio_offset);
+			x = txdr_unsigned((uint32_t)uiop->uio_offset);
 			*tl++ = x;      /* "begin offset" */
 			*tl++ = x;      /* "current offset" */
 			x = txdr_unsigned(len);
@@ -2132,7 +2132,7 @@ nfsrpc_writerpc(vnode_t vp, struct uio *uiop, int *iomode,
 		 */
 		if (nd->nd_flag & ND_NFSV4) {
 			NFSWRITEGETATTR_ATTRBIT(&attrbits);
-			NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+			NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 			*tl = txdr_unsigned(NFSV4OP_GETATTR);
 			(void) nfsrv_putattrbit(nd, &attrbits);
 		}
@@ -2183,7 +2183,7 @@ nfsrpc_writerpc(vnode_t vp, struct uio *uiop, int *iomode,
 				NFSM_DISSECT(tl, uint32_t *, 2 * NFSX_UNSIGNED);
 			}
 			if (nd->nd_flag & (ND_NFSV3 | ND_NFSV4)) {
-				NFSM_DISSECT(tl, u_int32_t *, 2 * NFSX_UNSIGNED
+				NFSM_DISSECT(tl, uint32_t *, 2 * NFSX_UNSIGNED
 					+ NFSX_VERF);
 				rlen = fxdr_unsigned(int, *tl++);
 				if (rlen == 0) {
@@ -2224,7 +2224,7 @@ nfsrpc_writerpc(vnode_t vp, struct uio *uiop, int *iomode,
 				NFSUNLOCKMNT(nmp);
 			}
 			if (nd->nd_flag & ND_NFSV4)
-				NFSM_DISSECT(tl, u_int32_t *, 2 * NFSX_UNSIGNED);
+				NFSM_DISSECT(tl, uint32_t *, 2 * NFSX_UNSIGNED);
 			if (nd->nd_flag & (ND_NFSV2 | ND_NFSV4)) {
 				error = nfsm_loadattr(nd, nap);
 				if (!error)
@@ -2369,11 +2369,11 @@ nfsmout:
  */
 int
 nfsrpc_mknod(vnode_t dvp, char *name, int namelen, struct vattr *vap,
-    u_int32_t rdev, __enum_uint8(vtype) vtyp, struct ucred *cred, NFSPROC_T *p,
+    uint32_t rdev, __enum_uint8(vtype) vtyp, struct ucred *cred, NFSPROC_T *p,
     struct nfsvattr *dnap, struct nfsvattr *nnap, struct nfsfh **nfhpp,
     int *attrflagp, int *dattrflagp)
 {
-	u_int32_t *tl;
+	uint32_t *tl;
 	int error = 0;
 	struct nfsrv_descript nfsd, *nd = &nfsd;
 	nfsattrbit_t attrbits;
@@ -2386,31 +2386,31 @@ nfsrpc_mknod(vnode_t dvp, char *name, int namelen, struct vattr *vap,
 	NFSCL_REQSTART(nd, NFSPROC_MKNOD, dvp, cred);
 	if (nd->nd_flag & ND_NFSV4) {
 		if (vtyp == VBLK || vtyp == VCHR) {
-			NFSM_BUILD(tl, u_int32_t *, 3 * NFSX_UNSIGNED);
+			NFSM_BUILD(tl, uint32_t *, 3 * NFSX_UNSIGNED);
 			*tl++ = vtonfsv34_type(vtyp);
 			*tl++ = txdr_unsigned(NFSMAJOR(rdev));
 			*tl = txdr_unsigned(NFSMINOR(rdev));
 		} else {
-			NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+			NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 			*tl = vtonfsv34_type(vtyp);
 		}
 	}
 	(void) nfsm_strtom(nd, name, namelen);
 	if (nd->nd_flag & ND_NFSV3) {
-		NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+		NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 		*tl = vtonfsv34_type(vtyp);
 	}
 	if (nd->nd_flag & (ND_NFSV3 | ND_NFSV4))
 		nfscl_fillsattr(nd, vap, dvp, 0, 0);
 	if ((nd->nd_flag & ND_NFSV3) &&
 	    (vtyp == VCHR || vtyp == VBLK)) {
-		NFSM_BUILD(tl, u_int32_t *, 2 * NFSX_UNSIGNED);
+		NFSM_BUILD(tl, uint32_t *, 2 * NFSX_UNSIGNED);
 		*tl++ = txdr_unsigned(NFSMAJOR(rdev));
 		*tl = txdr_unsigned(NFSMINOR(rdev));
 	}
 	if (nd->nd_flag & ND_NFSV4) {
 		NFSGETATTR_ATTRBIT(&attrbits);
-		NFSM_BUILD(tl, u_int32_t *, 2 * NFSX_UNSIGNED);
+		NFSM_BUILD(tl, uint32_t *, 2 * NFSX_UNSIGNED);
 		*tl++ = txdr_unsigned(NFSV4OP_GETFH);
 		*tl = txdr_unsigned(NFSV4OP_GETATTR);
 		(void) nfsrv_putattrbit(nd, &attrbits);
@@ -2424,7 +2424,7 @@ nfsrpc_mknod(vnode_t dvp, char *name, int namelen, struct vattr *vap,
 		error = nfscl_wcc_data(nd, dvp, dnap, dattrflagp, NULL, NULL);
 	if (!nd->nd_repstat) {
 		if (nd->nd_flag & ND_NFSV4) {
-			NFSM_DISSECT(tl, u_int32_t *, 5 * NFSX_UNSIGNED);
+			NFSM_DISSECT(tl, uint32_t *, 5 * NFSX_UNSIGNED);
 			error = nfsrv_getattrbits(nd, &attrbits, NULL, NULL);
 			if (error)
 				goto nfsmout;
@@ -2457,7 +2457,7 @@ nfsrpc_create(vnode_t dvp, char *name, int namelen, struct vattr *vap,
 	struct nfsclowner *owp;
 	struct nfscldeleg *dp;
 	struct nfsmount *nmp = VFSTONFS(dvp->v_mount);
-	u_int32_t clidrev;
+	uint32_t clidrev;
 
 	if (NFSHASNFSV4(nmp)) {
 	    retrycnt = 0;
@@ -2523,7 +2523,7 @@ nfsrpc_createv23(vnode_t dvp, char *name, int namelen, struct vattr *vap,
     struct nfsvattr *dnap, struct nfsvattr *nnap, struct nfsfh **nfhpp,
     int *attrflagp, int *dattrflagp)
 {
-	u_int32_t *tl;
+	uint32_t *tl;
 	int error = 0;
 	struct nfsrv_descript nfsd, *nd = &nfsd;
 
@@ -2535,10 +2535,10 @@ nfsrpc_createv23(vnode_t dvp, char *name, int namelen, struct vattr *vap,
 	NFSCL_REQSTART(nd, NFSPROC_CREATE, dvp, cred);
 	(void) nfsm_strtom(nd, name, namelen);
 	if (nd->nd_flag & ND_NFSV3) {
-		NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+		NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 		if (fmode & O_EXCL) {
 			*tl = txdr_unsigned(NFSCREATE_EXCLUSIVE);
-			NFSM_BUILD(tl, u_int32_t *, NFSX_VERF);
+			NFSM_BUILD(tl, uint32_t *, NFSX_VERF);
 			*tl++ = cverf.lval[0];
 			*tl = cverf.lval[1];
 		} else {
@@ -2572,7 +2572,7 @@ nfsrpc_createv4(vnode_t dvp, char *name, int namelen, struct vattr *vap,
     struct nfsvattr *nnap, struct nfsfh **nfhpp, int *attrflagp,
     int *dattrflagp, int *unlockedp)
 {
-	u_int32_t *tl;
+	uint32_t *tl;
 	int error = 0, deleg, newone, ret, acesize, limitby;
 	struct nfsrv_descript nfsd, *nd = &nfsd;
 	struct nfsclopen *op;
@@ -2581,7 +2581,7 @@ nfsrpc_createv4(vnode_t dvp, char *name, int namelen, struct vattr *vap,
 	struct nfsfh *nfhp;
 	nfsattrbit_t attrbits;
 	nfsv4stateid_t stateid;
-	u_int32_t rflags;
+	uint32_t rflags;
 	struct nfsmount *nmp;
 	struct nfsclsession *tsep;
 
@@ -2598,7 +2598,7 @@ nfsrpc_createv4(vnode_t dvp, char *name, int namelen, struct vattr *vap,
 	/*
 	 * For V4, this is actually an Open op.
 	 */
-	NFSM_BUILD(tl, u_int32_t *, 5 * NFSX_UNSIGNED);
+	NFSM_BUILD(tl, uint32_t *, 5 * NFSX_UNSIGNED);
 	*tl++ = txdr_unsigned(owp->nfsow_seqid);
 	*tl++ = txdr_unsigned(NFSV4OPEN_ACCESSWRITE |
 	    NFSV4OPEN_ACCESSREAD);
@@ -2607,7 +2607,7 @@ nfsrpc_createv4(vnode_t dvp, char *name, int namelen, struct vattr *vap,
 	*tl++ = tsep->nfsess_clientid.lval[0];
 	*tl = tsep->nfsess_clientid.lval[1];
 	(void) nfsm_strtom(nd, owp->nfsow_owner, NFSV4CL_LOCKNAMELEN);
-	NFSM_BUILD(tl, u_int32_t *, 2 * NFSX_UNSIGNED);
+	NFSM_BUILD(tl, uint32_t *, 2 * NFSX_UNSIGNED);
 	*tl++ = txdr_unsigned(NFSV4OPEN_CREATE);
 	if (fmode & O_EXCL) {
 		if (NFSHASNFSV4N(nmp)) {
@@ -2618,7 +2618,7 @@ nfsrpc_createv4(vnode_t dvp, char *name, int namelen, struct vattr *vap,
 			} else {
 				/* Otherwise, use EXCLUSIVE4_1. */
 				*tl = txdr_unsigned(NFSCREATE_EXCLUSIVE41);
-				NFSM_BUILD(tl, u_int32_t *, NFSX_VERF);
+				NFSM_BUILD(tl, uint32_t *, NFSX_VERF);
 				*tl++ = cverf.lval[0];
 				*tl = cverf.lval[1];
 				nfscl_fillsattr(nd, vap, dvp, 0, 0);
@@ -2626,7 +2626,7 @@ nfsrpc_createv4(vnode_t dvp, char *name, int namelen, struct vattr *vap,
 		} else {
 			/* NFSv4.0 */
 			*tl = txdr_unsigned(NFSCREATE_EXCLUSIVE);
-			NFSM_BUILD(tl, u_int32_t *, NFSX_VERF);
+			NFSM_BUILD(tl, uint32_t *, NFSX_VERF);
 			*tl++ = cverf.lval[0];
 			*tl = cverf.lval[1];
 		}
@@ -2634,20 +2634,20 @@ nfsrpc_createv4(vnode_t dvp, char *name, int namelen, struct vattr *vap,
 		*tl = txdr_unsigned(NFSCREATE_UNCHECKED);
 		nfscl_fillsattr(nd, vap, dvp, 0, 0);
 	}
-	NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+	NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 	*tl = txdr_unsigned(NFSV4OPEN_CLAIMNULL);
 	(void) nfsm_strtom(nd, name, namelen);
 	/* Get the new file's handle and attributes. */
-	NFSM_BUILD(tl, u_int32_t *, 2 * NFSX_UNSIGNED);
+	NFSM_BUILD(tl, uint32_t *, 2 * NFSX_UNSIGNED);
 	*tl++ = txdr_unsigned(NFSV4OP_GETFH);
 	*tl = txdr_unsigned(NFSV4OP_GETATTR);
 	NFSGETATTR_ATTRBIT(&attrbits);
 	(void) nfsrv_putattrbit(nd, &attrbits);
 	/* Get the directory's post-op attributes. */
-	NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+	NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 	*tl = txdr_unsigned(NFSV4OP_PUTFH);
 	(void)nfsm_fhtom(nmp, nd, np->n_fhp->nfh_fh, np->n_fhp->nfh_len, 0);
-	NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+	NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 	*tl = txdr_unsigned(NFSV4OP_GETATTR);
 	(void) nfsrv_putattrbit(nd, &attrbits);
 	error = nfscl_request(nd, dvp, p, cred);
@@ -2655,17 +2655,17 @@ nfsrpc_createv4(vnode_t dvp, char *name, int namelen, struct vattr *vap,
 		return (error);
 	NFSCL_INCRSEQID(owp->nfsow_seqid, nd);
 	if (nd->nd_repstat == 0) {
-		NFSM_DISSECT(tl, u_int32_t *, NFSX_STATEID +
+		NFSM_DISSECT(tl, uint32_t *, NFSX_STATEID +
 		    6 * NFSX_UNSIGNED);
 		stateid.seqid = *tl++;
 		stateid.other[0] = *tl++;
 		stateid.other[1] = *tl++;
 		stateid.other[2] = *tl;
-		rflags = fxdr_unsigned(u_int32_t, *(tl + 6));
+		rflags = fxdr_unsigned(uint32_t, *(tl + 6));
 		error = nfsrv_getattrbits(nd, &attrbits, NULL, NULL);
 		if (error)
 			goto nfsmout;
-		NFSM_DISSECT(tl, u_int32_t *, NFSX_UNSIGNED);
+		NFSM_DISSECT(tl, uint32_t *, NFSX_UNSIGNED);
 		deleg = fxdr_unsigned(int, *tl);
 		if (deleg == NFSV4OPEN_DELEGATEREAD ||
 		    deleg == NFSV4OPEN_DELEGATEWRITE) {
@@ -2681,7 +2681,7 @@ nfsrpc_createv4(vnode_t dvp, char *name, int namelen, struct vattr *vap,
 			dp->nfsdl_clp = owp->nfsow_clp;
 			newnfs_copyincred(cred, &dp->nfsdl_cred);
 			nfscl_lockinit(&dp->nfsdl_rwlock);
-			NFSM_DISSECT(tl, u_int32_t *, NFSX_STATEID +
+			NFSM_DISSECT(tl, uint32_t *, NFSX_STATEID +
 			    NFSX_UNSIGNED);
 			dp->nfsdl_stateid.seqid = *tl++;
 			dp->nfsdl_stateid.other[0] = *tl++;
@@ -2693,7 +2693,7 @@ nfsrpc_createv4(vnode_t dvp, char *name, int namelen, struct vattr *vap,
 				/*
 				 * Indicates how much the file can grow.
 				 */
-				NFSM_DISSECT(tl, u_int32_t *,
+				NFSM_DISSECT(tl, uint32_t *,
 				    3 * NFSX_UNSIGNED);
 				limitby = fxdr_unsigned(int, *tl++);
 				switch (limitby) {
@@ -2702,9 +2702,9 @@ nfsrpc_createv4(vnode_t dvp, char *name, int namelen, struct vattr *vap,
 					break;
 				case NFSV4OPEN_LIMITBLOCKS:
 					dp->nfsdl_sizelimit =
-					    fxdr_unsigned(u_int64_t, *tl++);
+					    fxdr_unsigned(uint64_t, *tl++);
 					dp->nfsdl_sizelimit *=
-					    fxdr_unsigned(u_int64_t, *tl);
+					    fxdr_unsigned(uint64_t, *tl);
 					break;
 				default:
 					error = NFSERR_BADXDR;
@@ -2727,7 +2727,7 @@ nfsrpc_createv4(vnode_t dvp, char *name, int namelen, struct vattr *vap,
 		if (error)
 			goto nfsmout;
 		/* Get rid of the PutFH and Getattr status values. */
-		NFSM_DISSECT(tl, u_int32_t *, 4 * NFSX_UNSIGNED);
+		NFSM_DISSECT(tl, uint32_t *, 4 * NFSX_UNSIGNED);
 		/* Load the directory attributes. */
 		error = nfsm_loadattr(nd, dnap);
 		if (error)
@@ -2821,7 +2821,7 @@ int
 nfsrpc_remove(vnode_t dvp, char *name, int namelen, vnode_t vp,
     struct ucred *cred, NFSPROC_T *p, struct nfsvattr *dnap, int *dattrflagp)
 {
-	u_int32_t *tl;
+	uint32_t *tl;
 	struct nfsrv_descript nfsd, *nd = &nfsd;
 	struct nfsnode *np;
 	struct nfsmount *nmp;
@@ -2837,7 +2837,7 @@ tryagain:
 		ret = nfscl_removedeleg(vp, p, &dstateid);
 		if (ret == 1) {
 			NFSCL_REQSTART(nd, NFSPROC_RETDELEGREMOVE, vp, cred);
-			NFSM_BUILD(tl, u_int32_t *, NFSX_STATEID +
+			NFSM_BUILD(tl, uint32_t *, NFSX_STATEID +
 			    NFSX_UNSIGNED);
 			if (NFSHASNFSV4N(nmp))
 				*tl++ = 0;
@@ -2850,7 +2850,7 @@ tryagain:
 			np = VTONFS(dvp);
 			(void)nfsm_fhtom(nmp, nd, np->n_fhp->nfh_fh,
 			    np->n_fhp->nfh_len, 0);
-			NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+			NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 			*tl = txdr_unsigned(NFSV4OP_REMOVE);
 		}
 	} else {
@@ -2876,7 +2876,7 @@ tryagain:
 		for (i = 0; i < (ret * 2); i++) {
 			if ((nd->nd_flag & (ND_NFSV4 | ND_NOMOREDATA)) ==
 			    ND_NFSV4) {
-			    NFSM_DISSECT(tl, u_int32_t *, 2 * NFSX_UNSIGNED);
+			    NFSM_DISSECT(tl, uint32_t *, 2 * NFSX_UNSIGNED);
 			    if (*(tl + 1))
 				nd->nd_flag |= ND_NOMOREDATA;
 			}
@@ -2899,7 +2899,7 @@ nfsrpc_rename(vnode_t fdvp, vnode_t fvp, char *fnameptr, int fnamelen,
     NFSPROC_T *p, struct nfsvattr *fnap, struct nfsvattr *tnap,
     int *fattrflagp, int *tattrflagp)
 {
-	u_int32_t *tl;
+	uint32_t *tl;
 	struct nfsrv_descript nfsd, *nd = &nfsd;
 	struct nfsmount *nmp;
 	struct nfsnode *np;
@@ -2924,7 +2924,7 @@ tryagain:
 			NFSCL_REQSTART(nd, NFSPROC_RETDELEGRENAME1, tvp, cred);
 		}
 		if (gotfd) {
-			NFSM_BUILD(tl, u_int32_t *, NFSX_STATEID);
+			NFSM_BUILD(tl, uint32_t *, NFSX_STATEID);
 			if (NFSHASNFSV4N(nmp))
 				*tl++ = 0;
 			else
@@ -2933,17 +2933,17 @@ tryagain:
 			*tl++ = fdstateid.other[1];
 			*tl = fdstateid.other[2];
 			if (gottd) {
-				NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+				NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 				*tl = txdr_unsigned(NFSV4OP_PUTFH);
 				np = VTONFS(tvp);
 				(void)nfsm_fhtom(nmp, nd, np->n_fhp->nfh_fh,
 				    np->n_fhp->nfh_len, 0);
-				NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+				NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 				*tl = txdr_unsigned(NFSV4OP_DELEGRETURN);
 			}
 		}
 		if (gottd) {
-			NFSM_BUILD(tl, u_int32_t *, NFSX_STATEID);
+			NFSM_BUILD(tl, uint32_t *, NFSX_STATEID);
 			if (NFSHASNFSV4N(nmp))
 				*tl++ = 0;
 			else
@@ -2953,12 +2953,12 @@ tryagain:
 			*tl = tdstateid.other[2];
 		}
 		if (ret > 0) {
-			NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+			NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 			*tl = txdr_unsigned(NFSV4OP_PUTFH);
 			np = VTONFS(fdvp);
 			(void)nfsm_fhtom(nmp, nd, np->n_fhp->nfh_fh,
 			    np->n_fhp->nfh_len, 0);
-			NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+			NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 			*tl = txdr_unsigned(NFSV4OP_SAVEFH);
 		}
 	} else {
@@ -2967,19 +2967,19 @@ tryagain:
 	if (ret == 0)
 		NFSCL_REQSTART(nd, NFSPROC_RENAME, fdvp, cred);
 	if (nd->nd_flag & ND_NFSV4) {
-		NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+		NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 		*tl = txdr_unsigned(NFSV4OP_GETATTR);
 		NFSWCCATTR_ATTRBIT(&attrbits);
 		(void) nfsrv_putattrbit(nd, &attrbits);
-		NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+		NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 		*tl = txdr_unsigned(NFSV4OP_PUTFH);
 		(void)nfsm_fhtom(nmp, nd, VTONFS(tdvp)->n_fhp->nfh_fh,
 		    VTONFS(tdvp)->n_fhp->nfh_len, 0);
-		NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+		NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 		*tl = txdr_unsigned(NFSV4OP_GETATTR);
 		(void) nfsrv_putattrbit(nd, &attrbits);
 		nd->nd_flag |= ND_V4WCCATTR;
-		NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+		NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 		*tl = txdr_unsigned(NFSV4OP_RENAME);
 	}
 	(void) nfsm_strtom(nd, fnameptr, fnamelen);
@@ -3004,7 +3004,7 @@ tryagain:
 		for (i = 0; i < (ret * 2); i++) {
 			if ((nd->nd_flag & (ND_NFSV4 | ND_NOMOREDATA)) ==
 			    ND_NFSV4) {
-			    NFSM_DISSECT(tl, u_int32_t *, 2 * NFSX_UNSIGNED);
+			    NFSM_DISSECT(tl, uint32_t *, 2 * NFSX_UNSIGNED);
 			    if (*(tl + 1)) {
 				if (i == 1 && ret > 1) {
 				    /*
@@ -3024,7 +3024,7 @@ tryagain:
 		}
 		/* Now, the first wcc attribute reply. */
 		if ((nd->nd_flag & (ND_NFSV4 | ND_NOMOREDATA)) == ND_NFSV4) {
-			NFSM_DISSECT(tl, u_int32_t *, 2 * NFSX_UNSIGNED);
+			NFSM_DISSECT(tl, uint32_t *, 2 * NFSX_UNSIGNED);
 			if (*(tl + 1))
 				nd->nd_flag |= ND_NOMOREDATA;
 		}
@@ -3032,7 +3032,7 @@ tryagain:
 		/* and the second wcc attribute reply. */
 		if ((nd->nd_flag & (ND_NFSV4 | ND_NOMOREDATA)) == ND_NFSV4 &&
 		    !error) {
-			NFSM_DISSECT(tl, u_int32_t *, 2 * NFSX_UNSIGNED);
+			NFSM_DISSECT(tl, uint32_t *, 2 * NFSX_UNSIGNED);
 			if (*(tl + 1))
 				nd->nd_flag |= ND_NOMOREDATA;
 		}
@@ -3055,7 +3055,7 @@ nfsrpc_link(vnode_t dvp, vnode_t vp, char *name, int namelen,
     struct ucred *cred, NFSPROC_T *p, struct nfsvattr *dnap,
     struct nfsvattr *nap, int *attrflagp, int *dattrflagp)
 {
-	u_int32_t *tl;
+	uint32_t *tl;
 	struct nfsrv_descript nfsd, *nd = &nfsd;
 	nfsattrbit_t attrbits;
 	int error = 0;
@@ -3066,18 +3066,18 @@ nfsrpc_link(vnode_t dvp, vnode_t vp, char *name, int namelen,
 		return (ENAMETOOLONG);
 	NFSCL_REQSTART(nd, NFSPROC_LINK, vp, cred);
 	if (nd->nd_flag & ND_NFSV4) {
-		NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+		NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 		*tl = txdr_unsigned(NFSV4OP_PUTFH);
 	}
 	(void)nfsm_fhtom(VFSTONFS(dvp->v_mount), nd, VTONFS(dvp)->n_fhp->nfh_fh,
 		VTONFS(dvp)->n_fhp->nfh_len, 0);
 	if (nd->nd_flag & ND_NFSV4) {
-		NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+		NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 		*tl = txdr_unsigned(NFSV4OP_GETATTR);
 		NFSWCCATTR_ATTRBIT(&attrbits);
 		(void) nfsrv_putattrbit(nd, &attrbits);
 		nd->nd_flag |= ND_V4WCCATTR;
-		NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+		NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 		*tl = txdr_unsigned(NFSV4OP_LINK);
 	}
 	(void) nfsm_strtom(nd, name, namelen);
@@ -3093,9 +3093,9 @@ nfsrpc_link(vnode_t dvp, vnode_t vp, char *name, int namelen,
 		/*
 		 * First, parse out the PutFH and Getattr result.
 		 */
-		NFSM_DISSECT(tl, u_int32_t *, 2 * NFSX_UNSIGNED);
+		NFSM_DISSECT(tl, uint32_t *, 2 * NFSX_UNSIGNED);
 		if (!(*(tl + 1)))
-			NFSM_DISSECT(tl, u_int32_t *, 2 * NFSX_UNSIGNED);
+			NFSM_DISSECT(tl, uint32_t *, 2 * NFSX_UNSIGNED);
 		if (*(tl + 1))
 			nd->nd_flag |= ND_NOMOREDATA;
 		/*
@@ -3119,7 +3119,7 @@ nfsrpc_symlink(vnode_t dvp, char *name, int namelen, const char *target,
     struct nfsvattr *nnap, struct nfsfh **nfhpp, int *attrflagp,
     int *dattrflagp)
 {
-	u_int32_t *tl;
+	uint32_t *tl;
 	struct nfsrv_descript nfsd, *nd = &nfsd;
 	struct nfsmount *nmp;
 	int slen, error = 0;
@@ -3133,7 +3133,7 @@ nfsrpc_symlink(vnode_t dvp, char *name, int namelen, const char *target,
 		return (ENAMETOOLONG);
 	NFSCL_REQSTART(nd, NFSPROC_SYMLINK, dvp, cred);
 	if (nd->nd_flag & ND_NFSV4) {
-		NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+		NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 		*tl = txdr_unsigned(NFLNK);
 		(void) nfsm_strtom(nd, target, slen);
 	}
@@ -3180,7 +3180,7 @@ nfsrpc_mkdir(vnode_t dvp, char *name, int namelen, struct vattr *vap,
     struct nfsvattr *nnap, struct nfsfh **nfhpp, int *attrflagp,
     int *dattrflagp)
 {
-	u_int32_t *tl;
+	uint32_t *tl;
 	struct nfsrv_descript nfsd, *nd = &nfsd;
 	nfsattrbit_t attrbits;
 	int error = 0;
@@ -3196,21 +3196,21 @@ nfsrpc_mkdir(vnode_t dvp, char *name, int namelen, struct vattr *vap,
 		return (ENAMETOOLONG);
 	NFSCL_REQSTART(nd, NFSPROC_MKDIR, dvp, cred);
 	if (nd->nd_flag & ND_NFSV4) {
-		NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+		NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 		*tl = txdr_unsigned(NFDIR);
 	}
 	(void) nfsm_strtom(nd, name, namelen);
 	nfscl_fillsattr(nd, vap, dvp, NFSSATTR_SIZENEG1, 0);
 	if (nd->nd_flag & ND_NFSV4) {
 		NFSGETATTR_ATTRBIT(&attrbits);
-		NFSM_BUILD(tl, u_int32_t *, 2 * NFSX_UNSIGNED);
+		NFSM_BUILD(tl, uint32_t *, 2 * NFSX_UNSIGNED);
 		*tl++ = txdr_unsigned(NFSV4OP_GETFH);
 		*tl = txdr_unsigned(NFSV4OP_GETATTR);
 		(void) nfsrv_putattrbit(nd, &attrbits);
-		NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+		NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 		*tl = txdr_unsigned(NFSV4OP_PUTFH);
 		(void)nfsm_fhtom(nmp, nd, fhp->nfh_fh, fhp->nfh_len, 0);
-		NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+		NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 		*tl = txdr_unsigned(NFSV4OP_GETATTR);
 		(void) nfsrv_putattrbit(nd, &attrbits);
 	}
@@ -3221,14 +3221,14 @@ nfsrpc_mkdir(vnode_t dvp, char *name, int namelen, struct vattr *vap,
 		error = nfscl_wcc_data(nd, dvp, dnap, dattrflagp, NULL, NULL);
 	if (!nd->nd_repstat && !error) {
 		if (nd->nd_flag & ND_NFSV4) {
-			NFSM_DISSECT(tl, u_int32_t *, 5 * NFSX_UNSIGNED);
+			NFSM_DISSECT(tl, uint32_t *, 5 * NFSX_UNSIGNED);
 			error = nfsrv_getattrbits(nd, &attrbits, NULL, NULL);
 		}
 		if (!error)
 			error = nfscl_mtofh(nd, nfhpp, nnap, attrflagp);
 		if (error == 0 && (nd->nd_flag & ND_NFSV4) != 0) {
 			/* Get rid of the PutFH and Getattr status values. */
-			NFSM_DISSECT(tl, u_int32_t *, 4 * NFSX_UNSIGNED);
+			NFSM_DISSECT(tl, uint32_t *, 4 * NFSX_UNSIGNED);
 			/* Load the directory attributes. */
 			error = nfsm_loadattr(nd, dnap);
 			if (error == 0)
@@ -3319,7 +3319,7 @@ nfsrpc_readdir(vnode_t vp, struct uio *uiop, nfsuint64 *cookiep,
 {
 	int len, left;
 	struct dirent *dp = NULL;
-	u_int32_t *tl;
+	uint32_t *tl;
 	nfsquad_t cookie, ncookie;
 	struct nfsmount *nmp = VFSTONFS(vp->v_mount);
 	struct nfsnode *dnp = VTONFS(vp);
@@ -3327,10 +3327,10 @@ nfsrpc_readdir(vnode_t vp, struct uio *uiop, nfsuint64 *cookiep,
 	struct nfsrv_descript nfsd, *nd = &nfsd;
 	int error = 0, tlen, more_dirs = 1, blksiz = 0, bigenough = 1;
 	int reqsize, tryformoredirs = 1, readsize, eof = 0, gotmnton = 0;
-	u_int64_t dotfileid, dotdotfileid = 0, fakefileno = UINT64_MAX;
+	uint64_t dotfileid, dotdotfileid = 0, fakefileno = UINT64_MAX;
 	char *cp;
 	nfsattrbit_t attrbits, dattrbits;
-	u_int32_t rderr, *tl2 = NULL;
+	uint32_t rderr, *tl2 = NULL;
 	size_t tresid;
 
 	KASSERT(uiop->uio_iovcnt == 1 &&
@@ -3384,7 +3384,7 @@ nfsrpc_readdir(vnode_t vp, struct uio *uiop, nfsuint64 *cookiep,
 		 */
 		if (uiop->uio_offset == 0) {
 			NFSCL_REQSTART(nd, NFSPROC_LOOKUPP, vp, cred);
-			NFSM_BUILD(tl, u_int32_t *, 2 * NFSX_UNSIGNED);
+			NFSM_BUILD(tl, uint32_t *, 2 * NFSX_UNSIGNED);
 			*tl++ = txdr_unsigned(NFSV4OP_GETFH);
 			*tl = txdr_unsigned(NFSV4OP_GETATTR);
 			(void) nfsrv_putattrbit(nd, &attrbits);
@@ -3399,14 +3399,14 @@ nfsrpc_readdir(vnode_t vp, struct uio *uiop, nfsuint64 *cookiep,
 			    dotfileid = nfsva.na_fileid;
 			}
 			if (nd->nd_repstat == 0) {
-			    NFSM_DISSECT(tl, u_int32_t *, 5 * NFSX_UNSIGNED);
+			    NFSM_DISSECT(tl, uint32_t *, 5 * NFSX_UNSIGNED);
 			    len = fxdr_unsigned(int, *(tl + 4));
 			    if (len > 0 && len <= NFSX_V4FHMAX)
 				error = nfsm_advance(nd, NFSM_RNDUP(len), -1);
 			    else
 				error = EPERM;
 			    if (!error) {
-				NFSM_DISSECT(tl, u_int32_t *, 2*NFSX_UNSIGNED);
+				NFSM_DISSECT(tl, uint32_t *, 2*NFSX_UNSIGNED);
 				nfsva.na_mntonfileno = UINT64_MAX;
 				error = nfsv4_loadattr(nd, NULL, &nfsva, NULL,
 				    NULL, 0, NULL, NULL, NULL, NULL, NULL, 0,
@@ -3457,7 +3457,7 @@ nfsrpc_readdir(vnode_t vp, struct uio *uiop, nfsuint64 *cookiep,
 			/*
 			 * Just make these offset cookie 0.
 			 */
-			tl = (u_int32_t *)&dp->d_name[8];
+			tl = (uint32_t *)&dp->d_name[8];
 			*tl++ = 0;
 			*tl = 0;
 			blksiz += dp->d_reclen;
@@ -3479,7 +3479,7 @@ nfsrpc_readdir(vnode_t vp, struct uio *uiop, nfsuint64 *cookiep,
 			/*
 			 * Just make these offset cookie 0.
 			 */
-			tl = (u_int32_t *)&dp->d_name[8];
+			tl = (uint32_t *)&dp->d_name[8];
 			*tl++ = 0;
 			*tl = 0;
 			blksiz += dp->d_reclen;
@@ -3502,11 +3502,11 @@ nfsrpc_readdir(vnode_t vp, struct uio *uiop, nfsuint64 *cookiep,
 		*attrflagp = 0;
 		NFSCL_REQSTART(nd, NFSPROC_READDIR, vp, cred);
 		if (nd->nd_flag & ND_NFSV2) {
-			NFSM_BUILD(tl, u_int32_t *, 2 * NFSX_UNSIGNED);
+			NFSM_BUILD(tl, uint32_t *, 2 * NFSX_UNSIGNED);
 			*tl++ = cookie.lval[1];
 			*tl = txdr_unsigned(readsize);
 		} else {
-			NFSM_BUILD(tl, u_int32_t *, reqsize);
+			NFSM_BUILD(tl, uint32_t *, reqsize);
 			*tl++ = cookie.lval[0];
 			*tl++ = cookie.lval[1];
 			if (cookie.qval == 0) {
@@ -3522,7 +3522,7 @@ nfsrpc_readdir(vnode_t vp, struct uio *uiop, nfsuint64 *cookiep,
 				*tl++ = txdr_unsigned(readsize);
 				*tl = txdr_unsigned(readsize);
 				(void) nfsrv_putattrbit(nd, &attrbits);
-				NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+				NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 				*tl = txdr_unsigned(NFSV4OP_GETATTR);
 				(void) nfsrv_putattrbit(nd, &dattrbits);
 			} else {
@@ -3536,7 +3536,7 @@ nfsrpc_readdir(vnode_t vp, struct uio *uiop, nfsuint64 *cookiep,
 			if (nd->nd_flag & ND_NFSV3)
 				error = nfscl_postop_attr(nd, nap, attrflagp);
 			if (!nd->nd_repstat && !error) {
-				NFSM_DISSECT(tl, u_int32_t *, NFSX_HYPER);
+				NFSM_DISSECT(tl, uint32_t *, NFSX_HYPER);
 				NFSLOCKNODE(dnp);
 				dnp->n_cookieverf.nfsuquad[0] = *tl++;
 				dnp->n_cookieverf.nfsuquad[1] = *tl;
@@ -3548,7 +3548,7 @@ nfsrpc_readdir(vnode_t vp, struct uio *uiop, nfsuint64 *cookiep,
 				error = nd->nd_repstat;
 			goto nfsmout;
 		}
-		NFSM_DISSECT(tl, u_int32_t *, NFSX_UNSIGNED);
+		NFSM_DISSECT(tl, uint32_t *, NFSX_UNSIGNED);
 		more_dirs = fxdr_unsigned(int, *tl);
 		if (!more_dirs)
 			tryformoredirs = 0;
@@ -3556,17 +3556,17 @@ nfsrpc_readdir(vnode_t vp, struct uio *uiop, nfsuint64 *cookiep,
 		/* loop through the dir entries, doctoring them to 4bsd form */
 		while (more_dirs && bigenough) {
 			if (nd->nd_flag & ND_NFSV4) {
-				NFSM_DISSECT(tl, u_int32_t *, 3*NFSX_UNSIGNED);
+				NFSM_DISSECT(tl, uint32_t *, 3*NFSX_UNSIGNED);
 				ncookie.lval[0] = *tl++;
 				ncookie.lval[1] = *tl++;
 				len = fxdr_unsigned(int, *tl);
 			} else if (nd->nd_flag & ND_NFSV3) {
-				NFSM_DISSECT(tl, u_int32_t *, 3*NFSX_UNSIGNED);
+				NFSM_DISSECT(tl, uint32_t *, 3*NFSX_UNSIGNED);
 				nfsva.na_fileid = fxdr_hyper(tl);
 				tl += 2;
 				len = fxdr_unsigned(int, *tl);
 			} else {
-				NFSM_DISSECT(tl, u_int32_t *, 2*NFSX_UNSIGNED);
+				NFSM_DISSECT(tl, uint32_t *, 2*NFSX_UNSIGNED);
 				nfsva.na_fileid = fxdr_unsigned(uint64_t,
 				    *tl++);
 				len = fxdr_unsigned(int, *tl);
@@ -3615,7 +3615,7 @@ nfsrpc_readdir(vnode_t vp, struct uio *uiop, nfsuint64 *cookiep,
 				tlen -= len;
 				NFSBZERO(cp, tlen);
 				cp += tlen;	/* points to cookie storage */
-				tl2 = (u_int32_t *)cp;
+				tl2 = (uint32_t *)cp;
 				uiop->uio_iov->iov_base =
 				    (char *)uiop->uio_iov->iov_base + tlen +
 				    NFSX_HYPER;
@@ -3635,13 +3635,13 @@ nfsrpc_readdir(vnode_t vp, struct uio *uiop, nfsuint64 *cookiep,
 				    NULL, NULL, &rderr, p, cred);
 				if (error)
 					goto nfsmout;
-				NFSM_DISSECT(tl, u_int32_t *, NFSX_UNSIGNED);
+				NFSM_DISSECT(tl, uint32_t *, NFSX_UNSIGNED);
 			} else if (nd->nd_flag & ND_NFSV3) {
-				NFSM_DISSECT(tl, u_int32_t *, 3*NFSX_UNSIGNED);
+				NFSM_DISSECT(tl, uint32_t *, 3*NFSX_UNSIGNED);
 				ncookie.lval[0] = *tl++;
 				ncookie.lval[1] = *tl++;
 			} else {
-				NFSM_DISSECT(tl, u_int32_t *, 2*NFSX_UNSIGNED);
+				NFSM_DISSECT(tl, uint32_t *, 2*NFSX_UNSIGNED);
 				ncookie.lval[0] = 0;
 				ncookie.lval[1] = *tl++;
 			}
@@ -3683,7 +3683,7 @@ nfsrpc_readdir(vnode_t vp, struct uio *uiop, nfsuint64 *cookiep,
 		 * If at end of rpc data, get the eof boolean
 		 */
 		if (!more_dirs) {
-			NFSM_DISSECT(tl, u_int32_t *, NFSX_UNSIGNED);
+			NFSM_DISSECT(tl, uint32_t *, NFSX_UNSIGNED);
 			eof = fxdr_unsigned(int, *tl);
 			if (tryformoredirs)
 				more_dirs = !eof;
@@ -3733,7 +3733,7 @@ nfsrpc_readdir(vnode_t vp, struct uio *uiop, nfsuint64 *cookiep,
 		dp = (struct dirent *)uiop->uio_iov->iov_base;
 		NFSBZERO(dp, DIRBLKSIZ);
 		dp->d_type = DT_UNKNOWN;
-		tl = (u_int32_t *)&dp->d_name[4];
+		tl = (uint32_t *)&dp->d_name[4];
 		*tl++ = cookie.lval[0];
 		*tl = cookie.lval[1];
 		dp->d_reclen = DIRBLKSIZ;
@@ -3762,7 +3762,7 @@ nfsrpc_readdirplus(vnode_t vp, struct uio *uiop, nfsuint64 *cookiep,
 {
 	int len, left;
 	struct dirent *dp = NULL;
-	u_int32_t *tl;
+	uint32_t *tl;
 	vnode_t newvp = NULLVP;
 	struct nfsrv_descript nfsd, *nd = &nfsd;
 	struct nameidata nami, *ndp = &nami;
@@ -3775,12 +3775,12 @@ nfsrpc_readdirplus(vnode_t vp, struct uio *uiop, nfsuint64 *cookiep,
 	int error = 0, tlen, more_dirs = 1, blksiz = 0, bigenough = 1;
 	int attrflag, tryformoredirs = 1, eof = 0, gotmnton = 0;
 	int isdotdot = 0, unlocknewvp = 0;
-	u_int64_t dotfileid, dotdotfileid = 0, fakefileno = UINT64_MAX;
-	u_int64_t fileno = 0;
+	uint64_t dotfileid, dotdotfileid = 0, fakefileno = UINT64_MAX;
+	uint64_t fileno = 0;
 	char *cp;
 	nfsattrbit_t attrbits, dattrbits;
 	size_t tresid;
-	u_int32_t *tl2 = NULL, rderr;
+	uint32_t *tl2 = NULL, rderr;
 	struct timespec dctime, ts;
 	bool attr_ok;
 
@@ -3825,7 +3825,7 @@ nfsrpc_readdirplus(vnode_t vp, struct uio *uiop, nfsuint64 *cookiep,
 		 */
 		if (uiop->uio_offset == 0) {
 			NFSCL_REQSTART(nd, NFSPROC_LOOKUPP, vp, cred);
-			NFSM_BUILD(tl, u_int32_t *, 2 * NFSX_UNSIGNED);
+			NFSM_BUILD(tl, uint32_t *, 2 * NFSX_UNSIGNED);
 			*tl++ = txdr_unsigned(NFSV4OP_GETFH);
 			*tl = txdr_unsigned(NFSV4OP_GETATTR);
 			(void) nfsrv_putattrbit(nd, &attrbits);
@@ -3841,14 +3841,14 @@ nfsrpc_readdirplus(vnode_t vp, struct uio *uiop, nfsuint64 *cookiep,
 			    dotfileid = nfsva.na_fileid;
 			}
 			if (nd->nd_repstat == 0) {
-			    NFSM_DISSECT(tl, u_int32_t *, 5 * NFSX_UNSIGNED);
+			    NFSM_DISSECT(tl, uint32_t *, 5 * NFSX_UNSIGNED);
 			    len = fxdr_unsigned(int, *(tl + 4));
 			    if (len > 0 && len <= NFSX_V4FHMAX)
 				error = nfsm_advance(nd, NFSM_RNDUP(len), -1);
 			    else
 				error = EPERM;
 			    if (!error) {
-				NFSM_DISSECT(tl, u_int32_t *, 2*NFSX_UNSIGNED);
+				NFSM_DISSECT(tl, uint32_t *, 2*NFSX_UNSIGNED);
 				nfsva.na_mntonfileno = UINT64_MAX;
 				error = nfsv4_loadattr(nd, NULL, &nfsva, NULL,
 				    NULL, 0, NULL, NULL, NULL, NULL, NULL, 0,
@@ -3899,7 +3899,7 @@ nfsrpc_readdirplus(vnode_t vp, struct uio *uiop, nfsuint64 *cookiep,
 			/*
 			 * Just make these offset cookie 0.
 			 */
-			tl = (u_int32_t *)&dp->d_name[8];
+			tl = (uint32_t *)&dp->d_name[8];
 			*tl++ = 0;
 			*tl = 0;
 			blksiz += dp->d_reclen;
@@ -3921,7 +3921,7 @@ nfsrpc_readdirplus(vnode_t vp, struct uio *uiop, nfsuint64 *cookiep,
 			/*
 			 * Just make these offset cookie 0.
 			 */
-			tl = (u_int32_t *)&dp->d_name[8];
+			tl = (uint32_t *)&dp->d_name[8];
 			*tl++ = 0;
 			*tl = 0;
 			blksiz += dp->d_reclen;
@@ -3947,7 +3947,7 @@ nfsrpc_readdirplus(vnode_t vp, struct uio *uiop, nfsuint64 *cookiep,
 	while (more_dirs && bigenough) {
 		*attrflagp = 0;
 		NFSCL_REQSTART(nd, NFSPROC_READDIRPLUS, vp, cred);
- 		NFSM_BUILD(tl, u_int32_t *, 6 * NFSX_UNSIGNED);
+ 		NFSM_BUILD(tl, uint32_t *, 6 * NFSX_UNSIGNED);
 		*tl++ = cookie.lval[0];
 		*tl++ = cookie.lval[1];
 		if (cookie.qval == 0) {
@@ -3963,7 +3963,7 @@ nfsrpc_readdirplus(vnode_t vp, struct uio *uiop, nfsuint64 *cookiep,
 		*tl = txdr_unsigned(nmp->nm_readdirsize);
 		if (nd->nd_flag & ND_NFSV4) {
 			(void) nfsrv_putattrbit(nd, &attrbits);
-			NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+			NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 			*tl = txdr_unsigned(NFSV4OP_GETATTR);
 			(void) nfsrv_putattrbit(nd, &dattrbits);
 		}
@@ -3980,7 +3980,7 @@ nfsrpc_readdirplus(vnode_t vp, struct uio *uiop, nfsuint64 *cookiep,
 		}
 		if ((nd->nd_flag & ND_NFSV3) != 0 && *attrflagp != 0)
 			dctime = nap->na_ctime;
-		NFSM_DISSECT(tl, u_int32_t *, 3 * NFSX_UNSIGNED);
+		NFSM_DISSECT(tl, uint32_t *, 3 * NFSX_UNSIGNED);
 		NFSLOCKNODE(dnp);
 		dnp->n_cookieverf.nfsuquad[0] = *tl++;
 		dnp->n_cookieverf.nfsuquad[1] = *tl++;
@@ -3991,7 +3991,7 @@ nfsrpc_readdirplus(vnode_t vp, struct uio *uiop, nfsuint64 *cookiep,
 
 		/* loop through the dir entries, doctoring them to 4bsd form */
 		while (more_dirs && bigenough) {
-			NFSM_DISSECT(tl, u_int32_t *, 3 * NFSX_UNSIGNED);
+			NFSM_DISSECT(tl, uint32_t *, 3 * NFSX_UNSIGNED);
 			if (nd->nd_flag & ND_NFSV4) {
 				ncookie.lval[0] = *tl++;
 				ncookie.lval[1] = *tl++;
@@ -4047,7 +4047,7 @@ nfsrpc_readdirplus(vnode_t vp, struct uio *uiop, nfsuint64 *cookiep,
 				tlen -= len;
 				NFSBZERO(cp, tlen);
 				cp += tlen;	/* points to cookie storage */
-				tl2 = (u_int32_t *)cp;
+				tl2 = (uint32_t *)cp;
 				if (len == 2 && cnp->cn_nameptr[0] == '.' &&
 				    cnp->cn_nameptr[1] == '.')
 					isdotdot = 1;
@@ -4066,7 +4066,7 @@ nfsrpc_readdirplus(vnode_t vp, struct uio *uiop, nfsuint64 *cookiep,
 			}
 			nfhp = NULL;
 			if (nd->nd_flag & ND_NFSV3) {
-				NFSM_DISSECT(tl, u_int32_t *, 3*NFSX_UNSIGNED);
+				NFSM_DISSECT(tl, uint32_t *, 3*NFSX_UNSIGNED);
 				ncookie.lval[0] = *tl++;
 				ncookie.lval[1] = *tl++;
 				attrflag = fxdr_unsigned(int, *tl);
@@ -4075,7 +4075,7 @@ nfsrpc_readdirplus(vnode_t vp, struct uio *uiop, nfsuint64 *cookiep,
 				  if (error)
 					goto nfsmout;
 				}
-				NFSM_DISSECT(tl,u_int32_t *,NFSX_UNSIGNED);
+				NFSM_DISSECT(tl,uint32_t *,NFSX_UNSIGNED);
 				if (*tl) {
 					error = nfsm_getfh(nd, &nfhp);
 					if (error)
@@ -4212,14 +4212,14 @@ nfsrpc_readdirplus(vnode_t vp, struct uio *uiop, nfsuint64 *cookiep,
 			} else if (nfhp != NULL) {
 			    free(nfhp, M_NFSFH);
 			}
-			NFSM_DISSECT(tl, u_int32_t *, NFSX_UNSIGNED);
+			NFSM_DISSECT(tl, uint32_t *, NFSX_UNSIGNED);
 			more_dirs = fxdr_unsigned(int, *tl);
 		}
 		/*
 		 * If at end of rpc data, get the eof boolean
 		 */
 		if (!more_dirs) {
-			NFSM_DISSECT(tl, u_int32_t *, NFSX_UNSIGNED);
+			NFSM_DISSECT(tl, uint32_t *, NFSX_UNSIGNED);
 			eof = fxdr_unsigned(int, *tl);
 			if (tryformoredirs)
 				more_dirs = !eof;
@@ -4269,7 +4269,7 @@ nfsrpc_readdirplus(vnode_t vp, struct uio *uiop, nfsuint64 *cookiep,
 		dp = (struct dirent *)uiop->uio_iov->iov_base;
 		NFSBZERO(dp, DIRBLKSIZ);
 		dp->d_type = DT_UNKNOWN;
-		tl = (u_int32_t *)&dp->d_name[4];
+		tl = (uint32_t *)&dp->d_name[4];
 		*tl++ = cookie.lval[0];
 		*tl = cookie.lval[1];
 		dp->d_reclen = DIRBLKSIZ;
@@ -4293,7 +4293,7 @@ int
 nfsrpc_commit(vnode_t vp, u_quad_t offset, int cnt, struct ucred *cred,
     NFSPROC_T *p, struct nfsvattr *nap, int *attrflagp)
 {
-	u_int32_t *tl;
+	uint32_t *tl;
 	struct nfsrv_descript nfsd, *nd = &nfsd;
 	nfsattrbit_t attrbits;
 	int error;
@@ -4301,7 +4301,7 @@ nfsrpc_commit(vnode_t vp, u_quad_t offset, int cnt, struct ucred *cred,
 
 	*attrflagp = 0;
 	NFSCL_REQSTART(nd, NFSPROC_COMMIT, vp, cred);
-	NFSM_BUILD(tl, u_int32_t *, 3 * NFSX_UNSIGNED);
+	NFSM_BUILD(tl, uint32_t *, 3 * NFSX_UNSIGNED);
 	txdr_hyper(offset, tl);
 	tl += 2;
 	*tl = txdr_unsigned(cnt);
@@ -4309,7 +4309,7 @@ nfsrpc_commit(vnode_t vp, u_quad_t offset, int cnt, struct ucred *cred,
 		/*
 		 * And do a Getattr op.
 		 */
-		NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+		NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 		*tl = txdr_unsigned(NFSV4OP_GETATTR);
 		NFSGETATTR_ATTRBIT(&attrbits);
 		(void) nfsrv_putattrbit(nd, &attrbits);
@@ -4319,7 +4319,7 @@ nfsrpc_commit(vnode_t vp, u_quad_t offset, int cnt, struct ucred *cred,
 		return (error);
 	error = nfscl_wcc_data(nd, vp, nap, attrflagp, NULL, NULL);
 	if (!error && !nd->nd_repstat) {
-		NFSM_DISSECT(tl, u_int32_t *, NFSX_VERF);
+		NFSM_DISSECT(tl, uint32_t *, NFSX_VERF);
 		NFSLOCKMNT(nmp);
 		if (NFSBCMP(nmp->nm_verf, tl, NFSX_VERF)) {
 			NFSBCOPY(tl, nmp->nm_verf, NFSX_VERF);
@@ -4349,9 +4349,9 @@ nfsrpc_advlock(vnode_t vp, off_t size, int op, struct flock *fl,
 	struct nfsfh *nfhp;
 	struct nfsrv_descript nfsd, *nd = &nfsd;
 	struct nfsmount *nmp = VFSTONFS(vp->v_mount);
-	u_int64_t off, len;
+	uint64_t off, len;
 	off_t start, end;
-	u_int32_t clidrev = 0;
+	uint32_t clidrev = 0;
 	int error = 0, newone = 0, expireret = 0, retrycnt, donelocally;
 	int callcnt, dorpc;
 
@@ -4509,10 +4509,10 @@ nfsrpc_advlock(vnode_t vp, off_t size, int op, struct flock *fl,
  */
 int
 nfsrpc_lockt(struct nfsrv_descript *nd, vnode_t vp,
-    struct nfsclclient *clp, u_int64_t off, u_int64_t len, struct flock *fl,
+    struct nfsclclient *clp, uint64_t off, uint64_t len, struct flock *fl,
     struct ucred *cred, NFSPROC_T *p, void *id, int flags)
 {
-	u_int32_t *tl;
+	uint32_t *tl;
 	int error, type, size;
 	uint8_t own[NFSV4CL_LOCKNAMELEN + NFSX_V4FHMAX];
 	struct nfsnode *np;
@@ -4521,7 +4521,7 @@ nfsrpc_lockt(struct nfsrv_descript *nd, vnode_t vp,
 
 	nmp = VFSTONFS(vp->v_mount);
 	NFSCL_REQSTART(nd, NFSPROC_LOCKT, vp, cred);
-	NFSM_BUILD(tl, u_int32_t *, 7 * NFSX_UNSIGNED);
+	NFSM_BUILD(tl, uint32_t *, 7 * NFSX_UNSIGNED);
 	if (fl->l_type == F_RDLCK)
 		*tl++ = txdr_unsigned(NFSV4LOCKT_READ);
 	else
@@ -4546,7 +4546,7 @@ nfsrpc_lockt(struct nfsrv_descript *nd, vnode_t vp,
 	} else if (nd->nd_repstat == NFSERR_DENIED) {
 		nd->nd_repstat = 0;
 		fl->l_whence = SEEK_SET;
-		NFSM_DISSECT(tl, u_int32_t *, 8 * NFSX_UNSIGNED);
+		NFSM_DISSECT(tl, uint32_t *, 8 * NFSX_UNSIGNED);
 		fl->l_start = fxdr_hyper(tl);
 		tl += 2;
 		len = fxdr_hyper(tl);
@@ -4584,15 +4584,15 @@ nfsmout:
  */
 static int
 nfsrpc_locku(struct nfsrv_descript *nd, struct nfsmount *nmp,
-    struct nfscllockowner *lp, u_int64_t off, u_int64_t len,
-    u_int32_t type, struct ucred *cred, NFSPROC_T *p, int syscred)
+    struct nfscllockowner *lp, uint64_t off, uint64_t len,
+    uint32_t type, struct ucred *cred, NFSPROC_T *p, int syscred)
 {
-	u_int32_t *tl;
+	uint32_t *tl;
 	int error;
 
 	nfscl_reqstart(nd, NFSPROC_LOCKU, nmp, lp->nfsl_open->nfso_fh,
 	    lp->nfsl_open->nfso_fhlen, NULL, NULL, 0, 0, cred);
-	NFSM_BUILD(tl, u_int32_t *, NFSX_STATEID + 6 * NFSX_UNSIGNED);
+	NFSM_BUILD(tl, uint32_t *, NFSX_STATEID + 6 * NFSX_UNSIGNED);
 	*tl++ = txdr_unsigned(type);
 	*tl = txdr_unsigned(lp->nfsl_seqid);
 	if (nfstest_outofseq &&
@@ -4617,7 +4617,7 @@ nfsrpc_locku(struct nfsrv_descript *nd, struct nfsmount *nmp,
 	if (error)
 		return (error);
 	if (nd->nd_repstat == 0) {
-		NFSM_DISSECT(tl, u_int32_t *, NFSX_STATEID);
+		NFSM_DISSECT(tl, uint32_t *, NFSX_STATEID);
 		lp->nfsl_stateid.seqid = *tl++;
 		lp->nfsl_stateid.other[0] = *tl++;
 		lp->nfsl_stateid.other[1] = *tl++;
@@ -4634,18 +4634,18 @@ nfsmout:
  */
 int
 nfsrpc_lock(struct nfsrv_descript *nd, struct nfsmount *nmp, vnode_t vp,
-    u_int8_t *nfhp, int fhlen, struct nfscllockowner *lp, int newone,
-    int reclaim, u_int64_t off, u_int64_t len, short type, struct ucred *cred,
+    uint8_t *nfhp, int fhlen, struct nfscllockowner *lp, int newone,
+    int reclaim, uint64_t off, uint64_t len, short type, struct ucred *cred,
     NFSPROC_T *p, int syscred)
 {
-	u_int32_t *tl;
+	uint32_t *tl;
 	int error, size;
 	uint8_t own[NFSV4CL_LOCKNAMELEN + NFSX_V4FHMAX];
 	struct nfsclsession *tsep;
 
 	nfscl_reqstart(nd, NFSPROC_LOCK, nmp, nfhp, fhlen, NULL, NULL, 0, 0,
 	    cred);
-	NFSM_BUILD(tl, u_int32_t *, 7 * NFSX_UNSIGNED);
+	NFSM_BUILD(tl, uint32_t *, 7 * NFSX_UNSIGNED);
 	if (type == F_RDLCK)
 		*tl++ = txdr_unsigned(NFSV4LOCKT_READ);
 	else
@@ -4657,7 +4657,7 @@ nfsrpc_lock(struct nfsrv_descript *nd, struct nfsmount *nmp, vnode_t vp,
 	tl += 2;
 	if (newone) {
 	    *tl = newnfs_true;
-	    NFSM_BUILD(tl, u_int32_t *, NFSX_STATEID +
+	    NFSM_BUILD(tl, uint32_t *, NFSX_STATEID +
 		2 * NFSX_UNSIGNED + NFSX_HYPER);
 	    *tl++ = txdr_unsigned(lp->nfsl_open->nfso_own->nfsow_seqid);
 	    if (NFSHASNFSV4N(nmp))
@@ -4676,7 +4676,7 @@ nfsrpc_lock(struct nfsrv_descript *nd, struct nfsmount *nmp, vnode_t vp,
 	    (void)nfsm_strtom(nd, own, NFSV4CL_LOCKNAMELEN + fhlen);
 	} else {
 	    *tl = newnfs_false;
-	    NFSM_BUILD(tl, u_int32_t *, NFSX_STATEID + NFSX_UNSIGNED);
+	    NFSM_BUILD(tl, uint32_t *, NFSX_STATEID + NFSX_UNSIGNED);
 	    if (NFSHASNFSV4N(nmp))
 		*tl++ = 0;
 	    else
@@ -4699,13 +4699,13 @@ nfsrpc_lock(struct nfsrv_descript *nd, struct nfsmount *nmp, vnode_t vp,
 	    NFSCL_INCRSEQID(lp->nfsl_open->nfso_own->nfsow_seqid, nd);
 	NFSCL_INCRSEQID(lp->nfsl_seqid, nd);
 	if (nd->nd_repstat == 0) {
-		NFSM_DISSECT(tl, u_int32_t *, NFSX_STATEID);
+		NFSM_DISSECT(tl, uint32_t *, NFSX_STATEID);
 		lp->nfsl_stateid.seqid = *tl++;
 		lp->nfsl_stateid.other[0] = *tl++;
 		lp->nfsl_stateid.other[1] = *tl++;
 		lp->nfsl_stateid.other[2] = *tl;
 	} else if (nd->nd_repstat == NFSERR_DENIED) {
-		NFSM_DISSECT(tl, u_int32_t *, 8 * NFSX_UNSIGNED);
+		NFSM_DISSECT(tl, uint32_t *, 8 * NFSX_UNSIGNED);
 		size = fxdr_unsigned(int, *(tl + 7));
 		if (size < 0 || size > NFSV4_OPAQUELIMIT)
 			error = EBADRPC;
@@ -4727,7 +4727,7 @@ nfsrpc_statfs(vnode_t vp, struct nfsstatfs *sbp, struct nfsfsinfo *fsp,
     uint32_t *leasep, struct ucred *cred, NFSPROC_T *p, struct nfsvattr *nap,
     int *attrflagp)
 {
-	u_int32_t *tl = NULL;
+	uint32_t *tl = NULL;
 	struct nfsrv_descript nfsd, *nd = &nfsd;
 	struct nfsmount *nmp;
 	nfsattrbit_t attrbits;
@@ -4778,7 +4778,7 @@ nfsrpc_statfs(vnode_t vp, struct nfsstatfs *sbp, struct nfsfsinfo *fsp,
 			error = nd->nd_repstat;
 			goto nfsmout;
 		}
-		NFSM_DISSECT(tl, u_int32_t *,
+		NFSM_DISSECT(tl, uint32_t *,
 		    NFSX_STATFS(nd->nd_flag & ND_NFSV3));
 	}
 	if (NFSHASNFSV3(nmp)) {
@@ -4788,13 +4788,13 @@ nfsrpc_statfs(vnode_t vp, struct nfsstatfs *sbp, struct nfsfsinfo *fsp,
 		sbp->sf_tfiles = fxdr_hyper(tl); tl += 2;
 		sbp->sf_ffiles = fxdr_hyper(tl); tl += 2;
 		sbp->sf_afiles = fxdr_hyper(tl); tl += 2;
-		sbp->sf_invarsec = fxdr_unsigned(u_int32_t, *tl);
+		sbp->sf_invarsec = fxdr_unsigned(uint32_t, *tl);
 	} else if (NFSHASNFSV4(nmp) == 0) {
-		sbp->sf_tsize = fxdr_unsigned(u_int32_t, *tl++);
-		sbp->sf_bsize = fxdr_unsigned(u_int32_t, *tl++);
-		sbp->sf_blocks = fxdr_unsigned(u_int32_t, *tl++);
-		sbp->sf_bfree = fxdr_unsigned(u_int32_t, *tl++);
-		sbp->sf_bavail = fxdr_unsigned(u_int32_t, *tl);
+		sbp->sf_tsize = fxdr_unsigned(uint32_t, *tl++);
+		sbp->sf_bsize = fxdr_unsigned(uint32_t, *tl++);
+		sbp->sf_blocks = fxdr_unsigned(uint32_t, *tl++);
+		sbp->sf_bfree = fxdr_unsigned(uint32_t, *tl++);
+		sbp->sf_bavail = fxdr_unsigned(uint32_t, *tl);
 	}
 nfsmout:
 	m_freem(nd->nd_mrep);
@@ -4810,7 +4810,7 @@ nfsrpc_pathconf(vnode_t vp, struct nfsv3_pathconf *pc,
 {
 	struct nfsrv_descript nfsd, *nd = &nfsd;
 	struct nfsmount *nmp;
-	u_int32_t *tl;
+	uint32_t *tl;
 	nfsattrbit_t attrbits;
 	int error;
 	struct nfsnode *np;
@@ -4857,15 +4857,15 @@ nfsrpc_pathconf(vnode_t vp, struct nfsv3_pathconf *pc,
 		if (nd->nd_repstat && !error)
 			error = nd->nd_repstat;
 		if (!error) {
-			NFSM_DISSECT(tl, u_int32_t *, NFSX_V3PATHCONF);
-			pc->pc_linkmax = fxdr_unsigned(u_int32_t, *tl++);
-			pc->pc_namemax = fxdr_unsigned(u_int32_t, *tl++);
-			pc->pc_notrunc = fxdr_unsigned(u_int32_t, *tl++);
+			NFSM_DISSECT(tl, uint32_t *, NFSX_V3PATHCONF);
+			pc->pc_linkmax = fxdr_unsigned(uint32_t, *tl++);
+			pc->pc_namemax = fxdr_unsigned(uint32_t, *tl++);
+			pc->pc_notrunc = fxdr_unsigned(uint32_t, *tl++);
 			pc->pc_chownrestricted =
-			    fxdr_unsigned(u_int32_t, *tl++);
+			    fxdr_unsigned(uint32_t, *tl++);
 			pc->pc_caseinsensitive =
-			    fxdr_unsigned(u_int32_t, *tl++);
-			pc->pc_casepreserving = fxdr_unsigned(u_int32_t, *tl);
+			    fxdr_unsigned(uint32_t, *tl++);
+			pc->pc_casepreserving = fxdr_unsigned(uint32_t, *tl);
 		}
 	}
 nfsmout:
@@ -4880,7 +4880,7 @@ int
 nfsrpc_fsinfo(vnode_t vp, struct nfsfsinfo *fsp, struct ucred *cred,
     NFSPROC_T *p, struct nfsvattr *nap, int *attrflagp)
 {
-	u_int32_t *tl;
+	uint32_t *tl;
 	struct nfsrv_descript nfsd, *nd = &nfsd;
 	int error;
 
@@ -4893,19 +4893,19 @@ nfsrpc_fsinfo(vnode_t vp, struct nfsfsinfo *fsp, struct ucred *cred,
 	if (nd->nd_repstat && !error)
 		error = nd->nd_repstat;
 	if (!error) {
-		NFSM_DISSECT(tl, u_int32_t *, NFSX_V3FSINFO);
-		fsp->fs_rtmax = fxdr_unsigned(u_int32_t, *tl++);
-		fsp->fs_rtpref = fxdr_unsigned(u_int32_t, *tl++);
-		fsp->fs_rtmult = fxdr_unsigned(u_int32_t, *tl++);
-		fsp->fs_wtmax = fxdr_unsigned(u_int32_t, *tl++);
-		fsp->fs_wtpref = fxdr_unsigned(u_int32_t, *tl++);
-		fsp->fs_wtmult = fxdr_unsigned(u_int32_t, *tl++);
-		fsp->fs_dtpref = fxdr_unsigned(u_int32_t, *tl++);
+		NFSM_DISSECT(tl, uint32_t *, NFSX_V3FSINFO);
+		fsp->fs_rtmax = fxdr_unsigned(uint32_t, *tl++);
+		fsp->fs_rtpref = fxdr_unsigned(uint32_t, *tl++);
+		fsp->fs_rtmult = fxdr_unsigned(uint32_t, *tl++);
+		fsp->fs_wtmax = fxdr_unsigned(uint32_t, *tl++);
+		fsp->fs_wtpref = fxdr_unsigned(uint32_t, *tl++);
+		fsp->fs_wtmult = fxdr_unsigned(uint32_t, *tl++);
+		fsp->fs_dtpref = fxdr_unsigned(uint32_t, *tl++);
 		fsp->fs_maxfilesize = fxdr_hyper(tl);
 		tl += 2;
 		fxdr_nfsv3time(tl, &fsp->fs_timedelta);
 		tl += 2;
-		fsp->fs_properties = fxdr_unsigned(u_int32_t, *tl);
+		fsp->fs_properties = fxdr_unsigned(uint32_t, *tl);
 	}
 nfsmout:
 	m_freem(nd->nd_mrep);
@@ -4919,7 +4919,7 @@ int
 nfsrpc_renew(struct nfsclclient *clp, struct nfsclds *dsp, struct ucred *cred,
     NFSPROC_T *p)
 {
-	u_int32_t *tl;
+	uint32_t *tl;
 	struct nfsrv_descript nfsd;
 	struct nfsrv_descript *nd = &nfsd;
 	struct nfsmount *nmp;
@@ -4938,7 +4938,7 @@ nfsrpc_renew(struct nfsclclient *clp, struct nfsclds *dsp, struct ucred *cred,
 		    &dsp->nfsclds_sess, 0, 0, NULL);
 	if (!NFSHASNFSV4N(nmp)) {
 		/* NFSv4.1 just uses a Sequence Op and not a Renew. */
-		NFSM_BUILD(tl, u_int32_t *, 2 * NFSX_UNSIGNED);
+		NFSM_BUILD(tl, uint32_t *, 2 * NFSX_UNSIGNED);
 		tsep = nfsmnt_mdssession(nmp);
 		*tl++ = tsep->nfsess_clientid.lval[0];
 		*tl = tsep->nfsess_clientid.lval[1];
@@ -4974,7 +4974,7 @@ nfsrpc_rellockown(struct nfsmount *nmp, struct nfscllockowner *lp,
     uint8_t *fh, int fhlen, struct ucred *cred, NFSPROC_T *p)
 {
 	struct nfsrv_descript nfsd, *nd = &nfsd;
-	u_int32_t *tl;
+	uint32_t *tl;
 	int error;
 	uint8_t own[NFSV4CL_LOCKNAMELEN + NFSX_V4FHMAX];
 	struct nfsclsession *tsep;
@@ -4987,7 +4987,7 @@ nfsrpc_rellockown(struct nfsmount *nmp, struct nfscllockowner *lp,
 	} else {
 		nfscl_reqstart(nd, NFSPROC_RELEASELCKOWN, nmp, NULL, 0, NULL,
 		    NULL, 0, 0, NULL);
-		NFSM_BUILD(tl, u_int32_t *, 2 * NFSX_UNSIGNED);
+		NFSM_BUILD(tl, uint32_t *, 2 * NFSX_UNSIGNED);
 		tsep = nfsmnt_mdssession(nmp);
 		*tl++ = tsep->nfsess_clientid.lval[0];
 		*tl = tsep->nfsess_clientid.lval[1];
@@ -5012,12 +5012,12 @@ int
 nfsrpc_getdirpath(struct nfsmount *nmp, u_char *dirpath, struct ucred *cred,
     NFSPROC_T *p)
 {
-	u_int32_t *tl;
+	uint32_t *tl;
 	struct nfsrv_descript nfsd;
 	struct nfsrv_descript *nd = &nfsd;
 	u_char *cp, *cp2, *fhp;
 	int error, cnt, len, setnil;
-	u_int32_t *opcntp;
+	uint32_t *opcntp;
 
 	nfscl_reqstart(nd, NFSPROC_PUTROOTFH, nmp, NULL, 0, &opcntp, NULL, 0,
 	    0, NULL);
@@ -5035,7 +5035,7 @@ nfsrpc_getdirpath(struct nfsmount *nmp, u_char *dirpath, struct ucred *cred,
 			*cp2 = '\0';
 		}
 		if (cp2 != cp) {
-			NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+			NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 			*tl = txdr_unsigned(NFSV4OP_LOOKUP);
 			nfsm_strtom(nd, cp, strlen(cp));
 			cnt++;
@@ -5049,7 +5049,7 @@ nfsrpc_getdirpath(struct nfsmount *nmp, u_char *dirpath, struct ucred *cred,
 		*opcntp = txdr_unsigned(3 + cnt);
 	else
 		*opcntp = txdr_unsigned(2 + cnt);
-	NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+	NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 	*tl = txdr_unsigned(NFSV4OP_GETFH);
 	nd->nd_flag |= ND_USEGSSNAME;
 	error = newnfs_request(nd, nmp, NULL, &nmp->nm_sockreq, NULL, p, cred,
@@ -5057,7 +5057,7 @@ nfsrpc_getdirpath(struct nfsmount *nmp, u_char *dirpath, struct ucred *cred,
 	if (error)
 		return (error);
 	if (nd->nd_repstat == 0) {
-		NFSM_DISSECT(tl, u_int32_t *, (3 + 2 * cnt) * NFSX_UNSIGNED);
+		NFSM_DISSECT(tl, uint32_t *, (3 + 2 * cnt) * NFSX_UNSIGNED);
 		tl += (2 + 2 * cnt);
 		if ((len = fxdr_unsigned(int, *tl)) <= 0 ||
 			len > NFSX_FHMAX) {
@@ -5089,14 +5089,14 @@ int
 nfsrpc_delegreturn(struct nfscldeleg *dp, struct ucred *cred,
     struct nfsmount *nmp, NFSPROC_T *p, int syscred)
 {
-	u_int32_t *tl;
+	uint32_t *tl;
 	struct nfsrv_descript nfsd;
 	struct nfsrv_descript *nd = &nfsd;
 	int error;
 
 	nfscl_reqstart(nd, NFSPROC_DELEGRETURN, nmp, dp->nfsdl_fh,
 	    dp->nfsdl_fhlen, NULL, NULL, 0, 0, cred);
-	NFSM_BUILD(tl, u_int32_t *, NFSX_STATEID);
+	NFSM_BUILD(tl, uint32_t *, NFSX_STATEID);
 	if (NFSHASNFSV4N(nmp))
 		*tl++ = 0;
 	else
@@ -7321,7 +7321,7 @@ nfsrpc_commitds(vnode_t vp, uint64_t offset, int cnt, struct nfsclds *dsp,
 			if (error != 0)
 				goto nfsmout;
 		}
-		NFSM_DISSECT(tl, u_int32_t *, NFSX_VERF);
+		NFSM_DISSECT(tl, uint32_t *, NFSX_VERF);
 		NFSLOCKDS(dsp);
 		if (NFSBCMP(tl, dsp->nfsclds_verf, NFSX_VERF)) {
 			NFSBCOPY(tl, dsp->nfsclds_verf, NFSX_VERF);
@@ -7396,7 +7396,7 @@ int
 nfsrpc_advise(vnode_t vp, off_t offset, uint64_t cnt, int advise,
     struct ucred *cred, NFSPROC_T *p)
 {
-	u_int32_t *tl;
+	uint32_t *tl;
 	struct nfsrv_descript nfsd, *nd = &nfsd;
 	nfsattrbit_t hints;
 	int error;
@@ -7635,7 +7635,7 @@ nfsrpc_allocaterpc(vnode_t vp, off_t off, off_t len, nfsv4stateid_t *stateidp,
 	if (error != 0)
 		return (error);
 	if (nd->nd_repstat == 0) {
-		NFSM_DISSECT(tl, u_int32_t *, 2 * NFSX_UNSIGNED);
+		NFSM_DISSECT(tl, uint32_t *, 2 * NFSX_UNSIGNED);
 		error = nfsm_loadattr(nd, nap);
 		if (error == 0)
 			*attrflagp = NFS_LATTR_NOSHRINK;
@@ -8019,7 +8019,7 @@ nfsmout:
  * so that it does both an Open and a Layoutget.
  */
 static int
-nfsrpc_getopenlayout(struct nfsmount *nmp, vnode_t vp, u_int8_t *nfhp,
+nfsrpc_getopenlayout(struct nfsmount *nmp, vnode_t vp, uint8_t *nfhp,
     int fhlen, uint8_t *newfhp, int newfhlen, uint32_t mode,
     struct nfsclopen *op, uint8_t *name, int namelen, struct nfscldeleg **dpp,
     struct ucred *cred, NFSPROC_T *p)
@@ -8092,7 +8092,7 @@ nfsrpc_getopenlayout(struct nfsmount *nmp, vnode_t vp, u_int8_t *nfhp,
  * can be NULL.
  */
 static int
-nfsrpc_openlayoutrpc(struct nfsmount *nmp, vnode_t vp, u_int8_t *nfhp,
+nfsrpc_openlayoutrpc(struct nfsmount *nmp, vnode_t vp, uint8_t *nfhp,
     int fhlen, uint8_t *newfhp, int newfhlen, uint32_t mode,
     struct nfsclopen *op, uint8_t *name, int namelen, struct nfscldeleg **dpp,
     nfsv4stateid_t *stateidp, int usecurstateid, int layouttype,
@@ -8151,18 +8151,18 @@ nfsrpc_openlayoutrpc(struct nfsmount *nmp, vnode_t vp, u_int8_t *nfhp,
 		*laystatp = nd->nd_repstat;
 	if ((nd->nd_flag & ND_NOMOREDATA) == 0) {
 		/* ND_NOMOREDATA will be set if the Open operation failed. */
-		NFSM_DISSECT(tl, u_int32_t *, NFSX_STATEID +
+		NFSM_DISSECT(tl, uint32_t *, NFSX_STATEID +
 		    6 * NFSX_UNSIGNED);
 		op->nfso_stateid.seqid = *tl++;
 		op->nfso_stateid.other[0] = *tl++;
 		op->nfso_stateid.other[1] = *tl++;
 		op->nfso_stateid.other[2] = *tl;
-		rflags = fxdr_unsigned(u_int32_t, *(tl + 6));
+		rflags = fxdr_unsigned(uint32_t, *(tl + 6));
 		error = nfsrv_getattrbits(nd, &attrbits, NULL, NULL);
 		if (error != 0)
 			goto nfsmout;
-		NFSM_DISSECT(tl, u_int32_t *, NFSX_UNSIGNED);
-		deleg = fxdr_unsigned(u_int32_t, *tl);
+		NFSM_DISSECT(tl, uint32_t *, NFSX_UNSIGNED);
+		deleg = fxdr_unsigned(uint32_t, *tl);
 		if (deleg == NFSV4OPEN_DELEGATEREAD ||
 		    deleg == NFSV4OPEN_DELEGATEWRITE) {
 			if (!(op->nfso_own->nfsow_clp->nfsc_flags &
@@ -8178,7 +8178,7 @@ nfsrpc_openlayoutrpc(struct nfsmount *nmp, vnode_t vp, u_int8_t *nfhp,
 			NFSBCOPY(newfhp, ndp->nfsdl_fh, newfhlen);
 			newnfs_copyincred(cred, &ndp->nfsdl_cred);
 			nfscl_lockinit(&ndp->nfsdl_rwlock);
-			NFSM_DISSECT(tl, u_int32_t *, NFSX_STATEID +
+			NFSM_DISSECT(tl, uint32_t *, NFSX_STATEID +
 			    NFSX_UNSIGNED);
 			ndp->nfsdl_stateid.seqid = *tl++;
 			ndp->nfsdl_stateid.other[0] = *tl++;
@@ -8190,7 +8190,7 @@ nfsrpc_openlayoutrpc(struct nfsmount *nmp, vnode_t vp, u_int8_t *nfhp,
 				/*
 				 * Indicates how much the file can grow.
 				 */
-				NFSM_DISSECT(tl, u_int32_t *,
+				NFSM_DISSECT(tl, uint32_t *,
 				    3 * NFSX_UNSIGNED);
 				limitby = fxdr_unsigned(int, *tl++);
 				switch (limitby) {
@@ -8199,9 +8199,9 @@ nfsrpc_openlayoutrpc(struct nfsmount *nmp, vnode_t vp, u_int8_t *nfhp,
 					break;
 				case NFSV4OPEN_LIMITBLOCKS:
 					ndp->nfsdl_sizelimit =
-					    fxdr_unsigned(u_int64_t, *tl++);
+					    fxdr_unsigned(uint64_t, *tl++);
 					ndp->nfsdl_sizelimit *=
-					    fxdr_unsigned(u_int64_t, *tl);
+					    fxdr_unsigned(uint64_t, *tl);
 					break;
 				default:
 					error = NFSERR_BADXDR;
@@ -8224,7 +8224,7 @@ nfsrpc_openlayoutrpc(struct nfsmount *nmp, vnode_t vp, u_int8_t *nfhp,
 			op->nfso_posixlock = 1;
 		else
 			op->nfso_posixlock = 0;
-		NFSM_DISSECT(tl, u_int32_t *, 2 * NFSX_UNSIGNED);
+		NFSM_DISSECT(tl, uint32_t *, 2 * NFSX_UNSIGNED);
 		/* If the 2nd element == NFS_OK, the Getattr succeeded. */
 		if (*++tl == 0) {
 			error = nfsv4_loadattr(nd, NULL, &nfsva, NULL,
@@ -8304,7 +8304,7 @@ nfsrpc_createlayout(vnode_t dvp, char *name, int namelen, struct vattr *vap,
 	/*
 	 * For V4, this is actually an Open op.
 	 */
-	NFSM_BUILD(tl, u_int32_t *, 5 * NFSX_UNSIGNED);
+	NFSM_BUILD(tl, uint32_t *, 5 * NFSX_UNSIGNED);
 	*tl++ = txdr_unsigned(owp->nfsow_seqid);
 	*tl++ = txdr_unsigned(NFSV4OPEN_ACCESSWRITE |
 	    NFSV4OPEN_ACCESSREAD);
@@ -8313,7 +8313,7 @@ nfsrpc_createlayout(vnode_t dvp, char *name, int namelen, struct vattr *vap,
 	*tl++ = tsep->nfsess_clientid.lval[0];
 	*tl = tsep->nfsess_clientid.lval[1];
 	nfsm_strtom(nd, owp->nfsow_owner, NFSV4CL_LOCKNAMELEN);
-	NFSM_BUILD(tl, u_int32_t *, 2 * NFSX_UNSIGNED);
+	NFSM_BUILD(tl, uint32_t *, 2 * NFSX_UNSIGNED);
 	*tl++ = txdr_unsigned(NFSV4OPEN_CREATE);
 	if ((fmode & O_EXCL) != 0) {
 		if (NFSHASSESSPERSIST(nmp)) {
@@ -8323,7 +8323,7 @@ nfsrpc_createlayout(vnode_t dvp, char *name, int namelen, struct vattr *vap,
 		} else {
 			/* Otherwise, use EXCLUSIVE4_1. */
 			*tl = txdr_unsigned(NFSCREATE_EXCLUSIVE41);
-			NFSM_BUILD(tl, u_int32_t *, NFSX_VERF);
+			NFSM_BUILD(tl, uint32_t *, NFSX_VERF);
 			*tl++ = cverf.lval[0];
 			*tl = cverf.lval[1];
 			nfscl_fillsattr(nd, vap, dvp, 0, 0);
@@ -8332,24 +8332,24 @@ nfsrpc_createlayout(vnode_t dvp, char *name, int namelen, struct vattr *vap,
 		*tl = txdr_unsigned(NFSCREATE_UNCHECKED);
 		nfscl_fillsattr(nd, vap, dvp, 0, 0);
 	}
-	NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+	NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 	*tl = txdr_unsigned(NFSV4OPEN_CLAIMNULL);
 	nfsm_strtom(nd, name, namelen);
 	/* Get the new file's handle and attributes, plus save the FH. */
-	NFSM_BUILD(tl, u_int32_t *, 3 * NFSX_UNSIGNED);
+	NFSM_BUILD(tl, uint32_t *, 3 * NFSX_UNSIGNED);
 	*tl++ = txdr_unsigned(NFSV4OP_SAVEFH);
 	*tl++ = txdr_unsigned(NFSV4OP_GETFH);
 	*tl = txdr_unsigned(NFSV4OP_GETATTR);
 	NFSGETATTR_ATTRBIT(&attrbits);
 	nfsrv_putattrbit(nd, &attrbits);
 	/* Get the directory's post-op attributes. */
-	NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+	NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 	*tl = txdr_unsigned(NFSV4OP_PUTFH);
 	(void)nfsm_fhtom(nmp, nd, np->n_fhp->nfh_fh, np->n_fhp->nfh_len, 0);
-	NFSM_BUILD(tl, u_int32_t *, NFSX_UNSIGNED);
+	NFSM_BUILD(tl, uint32_t *, NFSX_UNSIGNED);
 	*tl = txdr_unsigned(NFSV4OP_GETATTR);
 	nfsrv_putattrbit(nd, &attrbits);
-	NFSM_BUILD(tl, u_int32_t *, 2 * NFSX_UNSIGNED);
+	NFSM_BUILD(tl, uint32_t *, 2 * NFSX_UNSIGNED);
 	*tl++ = txdr_unsigned(NFSV4OP_RESTOREFH);
 	*tl = txdr_unsigned(NFSV4OP_LAYOUTGET);
 	nfsrv_setuplayoutget(nd, NFSLAYOUTIOMODE_RW, 0, UINT64_MAX, 0, stateidp,
@@ -8364,7 +8364,7 @@ nfsrpc_createlayout(vnode_t dvp, char *name, int namelen, struct vattr *vap,
 	NFSCL_INCRSEQID(owp->nfsow_seqid, nd);
 	if ((nd->nd_flag & ND_NOMOREDATA) == 0) {
 		NFSCL_DEBUG(4, "nfsrpc_createlayout open succeeded\n");
-		NFSM_DISSECT(tl, u_int32_t *, NFSX_STATEID +
+		NFSM_DISSECT(tl, uint32_t *, NFSX_STATEID +
 		    6 * NFSX_UNSIGNED);
 		stateid.seqid = *tl++;
 		stateid.other[0] = *tl++;
@@ -8373,7 +8373,7 @@ nfsrpc_createlayout(vnode_t dvp, char *name, int namelen, struct vattr *vap,
 		error = nfsrv_getattrbits(nd, &attrbits, NULL, NULL);
 		if (error != 0)
 			goto nfsmout;
-		NFSM_DISSECT(tl, u_int32_t *, NFSX_UNSIGNED);
+		NFSM_DISSECT(tl, uint32_t *, NFSX_UNSIGNED);
 		deleg = fxdr_unsigned(int, *tl);
 		if (deleg == NFSV4OPEN_DELEGATEREAD ||
 		    deleg == NFSV4OPEN_DELEGATEWRITE) {
@@ -8388,7 +8388,7 @@ nfsrpc_createlayout(vnode_t dvp, char *name, int namelen, struct vattr *vap,
 			dp->nfsdl_clp = owp->nfsow_clp;
 			newnfs_copyincred(cred, &dp->nfsdl_cred);
 			nfscl_lockinit(&dp->nfsdl_rwlock);
-			NFSM_DISSECT(tl, u_int32_t *, NFSX_STATEID +
+			NFSM_DISSECT(tl, uint32_t *, NFSX_STATEID +
 			    NFSX_UNSIGNED);
 			dp->nfsdl_stateid.seqid = *tl++;
 			dp->nfsdl_stateid.other[0] = *tl++;
@@ -8400,7 +8400,7 @@ nfsrpc_createlayout(vnode_t dvp, char *name, int namelen, struct vattr *vap,
 				/*
 				 * Indicates how much the file can grow.
 				 */
-				NFSM_DISSECT(tl, u_int32_t *,
+				NFSM_DISSECT(tl, uint32_t *,
 				    3 * NFSX_UNSIGNED);
 				limitby = fxdr_unsigned(int, *tl++);
 				switch (limitby) {
@@ -8409,9 +8409,9 @@ nfsrpc_createlayout(vnode_t dvp, char *name, int namelen, struct vattr *vap,
 					break;
 				case NFSV4OPEN_LIMITBLOCKS:
 					dp->nfsdl_sizelimit =
-					    fxdr_unsigned(u_int64_t, *tl++);
+					    fxdr_unsigned(uint64_t, *tl++);
 					dp->nfsdl_sizelimit *=
-					    fxdr_unsigned(u_int64_t, *tl);
+					    fxdr_unsigned(uint64_t, *tl);
 					break;
 				default:
 					error = NFSERR_BADXDR;
@@ -8657,7 +8657,7 @@ nfsrpc_copy_file_range(vnode_t invp, off_t *inoffp, vnode_t outvp,
     struct ucred *cred, bool consecutive, bool *must_commitp)
 {
 	int commit, error, expireret = 0, retrycnt;
-	u_int32_t clidrev = 0;
+	uint32_t clidrev = 0;
 	struct nfsmount *nmp = VFSTONFS(invp->v_mount);
 	struct nfsfh *innfhp = NULL, *outnfhp = NULL;
 	nfsv4stateid_t instateid, outstateid;
@@ -8892,7 +8892,7 @@ nfsrpc_seek(vnode_t vp, off_t *offp, bool *eofp, int content,
     struct ucred *cred, struct nfsvattr *nap, int *attrflagp)
 {
 	int error, expireret = 0, retrycnt;
-	u_int32_t clidrev = 0;
+	uint32_t clidrev = 0;
 	struct nfsmount *nmp = VFSTONFS(vp->v_mount);
 	struct nfsnode *np = VTONFS(vp);
 	struct nfsfh *nfhp = NULL;

@@ -66,9 +66,9 @@ struct mbuf;
 struct ng_bt_mbufq {
 	struct mbuf	*head;   /* first item in the queue */
 	struct mbuf	*tail;   /* last item in the queue */
-	u_int32_t	 len;    /* number of items in the queue */
-	u_int32_t	 maxlen; /* maximal number of items in the queue */
-	u_int32_t	 drops;	 /* number if dropped items */
+	uint32_t	 len;    /* number of items in the queue */
+	uint32_t	 maxlen; /* maximal number of items in the queue */
+	uint32_t	 drops;	 /* number if dropped items */
 };
 typedef struct ng_bt_mbufq	ng_bt_mbufq_t;
 typedef struct ng_bt_mbufq *	ng_bt_mbufq_p;
@@ -152,9 +152,9 @@ struct ng_item;
 
 struct ng_bt_itemq {
 	STAILQ_HEAD(, ng_item)	queue;	/* actually items queue */
-	u_int32_t	 len;    /* number of items in the queue */
-	u_int32_t	 maxlen; /* maximal number of items in the queue */
-	u_int32_t	 drops;  /* number if dropped items */
+	uint32_t	 len;    /* number of items in the queue */
+	uint32_t	 maxlen; /* maximal number of items in the queue */
+	uint32_t	 drops;  /* number if dropped items */
 };
 typedef struct ng_bt_itemq	ng_bt_itemq_t;
 typedef struct ng_bt_itemq *	ng_bt_itemq_p;
@@ -218,12 +218,12 @@ typedef struct ng_bt_itemq *	ng_bt_itemq_p;
  * Get Bluetooth stack sysctl globals
  */
 
-u_int32_t	bluetooth_hci_command_timeout	(void);
-u_int32_t	bluetooth_hci_connect_timeout	(void);
-u_int32_t	bluetooth_hci_max_neighbor_age	(void);
-u_int32_t	bluetooth_l2cap_rtx_timeout	(void);
-u_int32_t	bluetooth_l2cap_ertx_timeout	(void);
-u_int32_t      bluetooth_sco_rtx_timeout       (void);
+uint32_t	bluetooth_hci_command_timeout	(void);
+uint32_t	bluetooth_hci_connect_timeout	(void);
+uint32_t	bluetooth_hci_max_neighbor_age	(void);
+uint32_t	bluetooth_l2cap_rtx_timeout	(void);
+uint32_t	bluetooth_l2cap_ertx_timeout	(void);
+uint32_t      bluetooth_sco_rtx_timeout       (void);
 
 #define BDADDR_BREDR 0
 #define BDADDR_LE_PUBLIC 1

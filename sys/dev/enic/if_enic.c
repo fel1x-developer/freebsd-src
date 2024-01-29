@@ -288,7 +288,7 @@ enic_attach_pre(if_ctx_t ctx)
 	vnic_dev_cmd(vdev, CMD_INIT_v1, &a0, &a1, wait);
 	vnic_dev_cmd(vdev, CMD_GET_MAC_ADDR, &a0, &a1, wait);
 
-	bcopy((u_int8_t *) & a0, softc->mac_addr, ETHER_ADDR_LEN);
+	bcopy((uint8_t *) & a0, softc->mac_addr, ETHER_ADDR_LEN);
 	iflib_set_mac(ctx, softc->mac_addr);
 
 	vnic_register_cbacks(enic->vdev, enic_alloc_consistent,

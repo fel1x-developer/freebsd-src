@@ -190,7 +190,7 @@ vhba_rwparm(uint8_t *cdb, uint64_t *offset, uint32_t *tl, uint64_t nblks, uint32
 	case READ_12:
 		cnt =	(((uint32_t)cdb[6]) <<  16) |
 			(((uint32_t)cdb[7]) <<   8) |
-			((u_int32_t)cdb[8]);
+			((uint32_t)cdb[8]);
 
 		lba =	(((uint32_t)cdb[2]) << 24) |
 			(((uint32_t)cdb[3]) << 16) |
@@ -200,7 +200,7 @@ vhba_rwparm(uint8_t *cdb, uint64_t *offset, uint32_t *tl, uint64_t nblks, uint32
 	case WRITE_10:
 	case READ_10:
 		cnt =	(((uint32_t)cdb[7]) <<  8) |
-			((u_int32_t)cdb[8]);
+			((uint32_t)cdb[8]);
 
 		lba =	(((uint32_t)cdb[2]) << 24) |
 			(((uint32_t)cdb[3]) << 16) |

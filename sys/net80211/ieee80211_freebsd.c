@@ -837,7 +837,7 @@ ieee80211_notify_scan_done(struct ieee80211vap *vap)
 void
 ieee80211_notify_replay_failure(struct ieee80211vap *vap,
 	const struct ieee80211_frame *wh, const struct ieee80211_key *k,
-	u_int64_t rsc, int tid)
+	uint64_t rsc, int tid)
 {
 	struct ifnet *ifp = vap->iv_ifp;
 

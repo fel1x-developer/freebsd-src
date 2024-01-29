@@ -100,16 +100,16 @@ atkbdc_write_ivar(device_t bus, device_t dev, int index, uintptr_t val)
 	ivar = (atkbdc_device_t *)device_get_ivars(dev);
 	switch (index) {
 	case KBDC_IVAR_VENDORID:
-		ivar->vendorid = (u_int32_t)val;
+		ivar->vendorid = (uint32_t)val;
 		break;
 	case KBDC_IVAR_SERIAL:
-		ivar->serial = (u_int32_t)val;
+		ivar->serial = (uint32_t)val;
 		break;
 	case KBDC_IVAR_LOGICALID:
-		ivar->logicalid = (u_int32_t)val;
+		ivar->logicalid = (uint32_t)val;
 		break;
 	case KBDC_IVAR_COMPATID:
-		ivar->compatid = (u_int32_t)val;
+		ivar->compatid = (uint32_t)val;
 		break;
 	default:
 		return ENOENT;

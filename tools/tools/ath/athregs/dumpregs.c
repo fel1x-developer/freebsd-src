@@ -45,7 +45,7 @@
 
 typedef struct {
 	HAL_REVS revs;
-	u_int32_t regdata[0xffff / sizeof(u_int32_t)];
+	uint32_t regdata[0xffff / sizeof(uint32_t)];
 #define	MAXREGS	5*1024
 	struct dumpreg *regs[MAXREGS];
 	u_int nregs;
@@ -91,8 +91,8 @@ main(int argc, char *argv[])
 {
 	struct ath_diag atd;
 	const char *ifname;
-	u_int32_t *data;
-	u_int32_t *dp, *ep;
+	uint32_t *data;
+	uint32_t *dp, *ep;
 	int what, c, i;
 	struct ath_driver_req req;
 
@@ -191,8 +191,8 @@ main(int argc, char *argv[])
 	 * Expand register data into global space that can be
 	 * indexed directly by register offset.
 	 */
-	dp = (u_int32_t *)atd.ad_out_data;
-	ep = (u_int32_t *)(atd.ad_out_data + atd.ad_out_size);
+	dp = (uint32_t *)atd.ad_out_data;
+	ep = (uint32_t *)(atd.ad_out_data + atd.ad_out_size);
 	while (dp < ep) {
 		u_int r = dp[0];	/* start of range */
 		u_int e = dp[1];	/* end of range */
@@ -398,7 +398,7 @@ ath_hal_setupregs(struct ath_diag *atd, int what)
 	const HAL_REVS *revs = &state.revs;
 	HAL_REGRANGE r;
 	size_t space = 0;
-	u_int8_t *cp;
+	uint8_t *cp;
 	int i, brun, erun;
 
 	brun = erun = -1;
@@ -421,7 +421,7 @@ ath_hal_setupregs(struct ath_diag *atd, int what)
 		exit(-1);
 	}
 	atd->ad_in_size = space;
-	cp = (u_int8_t *) atd->ad_in_data;
+	cp = (uint8_t *) atd->ad_in_data;
 	brun = erun = -1;
 	for (i = 0; i < state.nregs; i++) {
 		const struct dumpreg *dr = state.regs[i];
@@ -625,7 +625,7 @@ ath_hal_setupdiagregs(const HAL_REGRANGE regs[], u_int nr)
 
 	space = 0;
 	for (i = 0; i < nr; i++) {
-		u_int n = sizeof(HAL_REGRANGE) + sizeof(u_int32_t);	/* reg range + first */
+		u_int n = sizeof(HAL_REGRANGE) + sizeof(uint32_t);	/* reg range + first */
 		if (regs[i].end) {
 			if (regs[i].end < regs[i].start) {
 				fprintf(stderr, "%s: bad register range, "
@@ -644,7 +644,7 @@ ath_hal_setupdiagregs(const HAL_REGRANGE regs[], u_int nr)
  * Format an Ethernet MAC for printing.
  */
 static const char*
-ether_sprintf(const u_int8_t *mac)
+ether_sprintf(const uint8_t *mac)
 {
 	static char etherbuf[18];
 	snprintf(etherbuf, sizeof(etherbuf), "%02x:%02x:%02x:%02x:%02x:%02x",
@@ -674,15 +674,15 @@ ath_hal_dumpkeycache(FILE *fd, int nkeys)
 	};
 	int micEnabled = SREV(state.revs.ah_macVersion, state.revs.ah_macRev) < SREV(4,8) ? 0 :
 	       OS_REG_READ(ah, AR_STA_ID1) & AR_STA_ID1_CRPT_MIC_ENABLE;
-	u_int8_t mac[IEEE80211_ADDR_LEN];
-	u_int8_t ismic[128/NBBY];
+	uint8_t mac[IEEE80211_ADDR_LEN];
+	uint8_t ismic[128/NBBY];
 	int entry;
 	int first = 1;
 
 	memset(ismic, 0, sizeof(ismic));
 	for (entry = 0; entry < nkeys; entry++) {
-		u_int32_t macLo, macHi, type;
-		u_int32_t key0, key1, key2, key3, key4;
+		uint32_t macLo, macHi, type;
+		uint32_t key0, key1, key2, key3, key4;
 
 		macHi = OS_REG_READ(ah, AR_KEYTABLE_MAC1(entry));
 		if ((macHi & AR_KEYTABLE_VALID) == 0 && isclr(ismic, entry))

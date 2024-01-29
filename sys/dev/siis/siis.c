@@ -294,7 +294,7 @@ static void
 siis_intr(void *data)
 {
 	struct siis_controller *ctlr = (struct siis_controller *)data;
-	u_int32_t is;
+	uint32_t is;
 	void *arg;
 	int unit;
 
@@ -774,7 +774,7 @@ siis_notify_events(device_t dev)
 {
 	struct siis_channel *ch = device_get_softc(dev);
 	struct cam_path *dpath;
-	u_int32_t status;
+	uint32_t status;
 	int i;
 
 	if (ch->quirks & SIIS_Q_SNTF) {
@@ -808,7 +808,7 @@ siis_phy_check_events(device_t dev)
 
 	/* If we have a connection event, deal with it */
 	if (ch->pm_level == 0) {
-		u_int32_t status = ATA_INL(ch->r_mem, SIIS_P_SSTS);
+		uint32_t status = ATA_INL(ch->r_mem, SIIS_P_SSTS);
 		union ccb *ccb;
 
 		if (bootverbose) {
@@ -1058,7 +1058,7 @@ siis_execute_transaction(struct siis_slot *slot)
 	struct siis_channel *ch = device_get_softc(dev);
 	struct siis_cmd *ctp;
 	union ccb *ccb = slot->ccb;
-	u_int64_t prb_bus;
+	uint64_t prb_bus;
 
 	mtx_assert(&ch->mtx, MA_OWNED);
 	/* Get a piece of the workspace for this request */
@@ -1685,7 +1685,7 @@ static int
 siis_setup_fis(device_t dev, struct siis_cmd *ctp, union ccb *ccb, int tag)
 {
 	struct siis_channel *ch = device_get_softc(dev);
-	u_int8_t *fis = &ctp->fis[0];
+	uint8_t *fis = &ctp->fis[0];
 
 	bzero(fis, 24);
 	fis[0] = 0x27;  		/* host to device */
@@ -1742,7 +1742,7 @@ siis_setup_fis(device_t dev, struct siis_cmd *ctp, union ccb *ccb, int tag)
 static int
 siis_sata_connect(struct siis_channel *ch)
 {
-	u_int32_t status;
+	uint32_t status;
 	int timeout, found = 0;
 
 	/* Wait up to 100ms for "connect well" */

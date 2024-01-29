@@ -85,7 +85,7 @@ get_remote_info(char *indomain, char *inmap, char *server, int *outorder,
 		if (inet_aton(server, &rsrv_sin.sin_addr) == 0)
 			errx(1, "unknown host %s.", server);
 	} else
-		rsrv_sin.sin_addr.s_addr = *(u_int32_t *)h->h_addr;
+		rsrv_sin.sin_addr.s_addr = *(uint32_t *)h->h_addr;
 
 	tv.tv_sec = 10;
 	tv.tv_usec = 0;

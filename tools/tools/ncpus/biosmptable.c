@@ -183,7 +183,7 @@ static mpfps_t
 biosmptable_search_mpfps(off_t base, int length)
 {
     mpfps_t mpfps;
-    u_int8_t *cp, sum;
+    uint8_t *cp, sum;
     int ofs, idx;
 
     mpfps = malloc(sizeof(*mpfps));
@@ -198,7 +198,7 @@ biosmptable_search_mpfps(off_t base, int length)
 
 	/* compare signature, validate checksum */
 	if (!strncmp(mpfps->signature, MPFPS_SIG, strlen(MPFPS_SIG))) {
-	    cp = (u_int8_t *)mpfps;
+	    cp = (uint8_t *)mpfps;
 	    sum = 0;
 	    /* mpfps is 16 bytes, or one "paragraph" */
 	    if (mpfps->length != 1) {
@@ -222,11 +222,11 @@ static mpcth_t
 biosmptable_check_mpcth(off_t addr)
 {
     mpcth_t mpcth;
-    u_int8_t *cp, sum;
+    uint8_t *cp, sum;
     int idx, table_length;
 
     /* mpcth must be in the first 1MB */
-    if ((u_int32_t)addr >= 1024 * 1024) {
+    if ((uint32_t)addr >= 1024 * 1024) {
 	warnx("bad mpcth address (0x%jx)\n", (intmax_t)addr);
 	return (NULL);
     }
@@ -251,7 +251,7 @@ biosmptable_check_mpcth(off_t addr)
     }
     if (!memread(addr, mpcth, table_length))
 	goto bad;
-    cp = (u_int8_t *)mpcth;
+    cp = (uint8_t *)mpcth;
     sum = 0;
     for (idx = 0; idx < mpcth->base_table_length; idx++)
 	sum += *(cp + idx);

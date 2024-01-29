@@ -54,28 +54,28 @@ static int findsupportedmap(int);
 static int setsupportedmap(struct sadb_supported *);
 static struct sadb_alg *findsupportedalg(u_int, u_int);
 static int pfkey_send_x1(int, u_int, u_int, u_int, struct sockaddr *,
-	struct sockaddr *, u_int32_t, u_int32_t, u_int, caddr_t,
-	u_int, u_int, u_int, u_int, u_int, u_int32_t, u_int32_t,
-	u_int32_t, u_int32_t, u_int32_t);
+	struct sockaddr *, uint32_t, uint32_t, u_int, caddr_t,
+	u_int, u_int, u_int, u_int, u_int, uint32_t, uint32_t,
+	uint32_t, uint32_t, uint32_t);
 static int pfkey_send_x2(int, u_int, u_int, u_int,
-	struct sockaddr *, struct sockaddr *, u_int32_t);
+	struct sockaddr *, struct sockaddr *, uint32_t);
 static int pfkey_send_x3(int, u_int, u_int);
 static int pfkey_send_x4(int, u_int, struct sockaddr *, u_int,
-	struct sockaddr *, u_int, u_int, u_int64_t, u_int64_t,
-	char *, int, u_int32_t);
-static int pfkey_send_x5(int, u_int, u_int32_t);
+	struct sockaddr *, u_int, u_int, uint64_t, uint64_t,
+	char *, int, uint32_t);
+static int pfkey_send_x5(int, u_int, uint32_t);
 
 static caddr_t pfkey_setsadbmsg(caddr_t, caddr_t, u_int, u_int,
-	u_int, u_int32_t, pid_t);
-static caddr_t pfkey_setsadbsa(caddr_t, caddr_t, u_int32_t, u_int,
-	u_int, u_int, u_int32_t);
+	u_int, uint32_t, pid_t);
+static caddr_t pfkey_setsadbsa(caddr_t, caddr_t, uint32_t, u_int,
+	u_int, u_int, uint32_t);
 static caddr_t pfkey_setsadbxreplay(caddr_t, caddr_t, uint32_t);
 static caddr_t pfkey_setsadbaddr(caddr_t, caddr_t, u_int,
 	struct sockaddr *, u_int, u_int);
 static caddr_t pfkey_setsadbkey(caddr_t, caddr_t, u_int, caddr_t, u_int);
-static caddr_t pfkey_setsadblifetime(caddr_t, caddr_t, u_int, u_int32_t,
-	u_int32_t, u_int32_t, u_int32_t);
-static caddr_t pfkey_setsadbxsa2(caddr_t, caddr_t, u_int32_t, u_int32_t);
+static caddr_t pfkey_setsadblifetime(caddr_t, caddr_t, u_int, uint32_t,
+	uint32_t, uint32_t, uint32_t);
+static caddr_t pfkey_setsadbxsa2(caddr_t, caddr_t, uint32_t, uint32_t);
 
 /*
  * make and search supported algorithm structure.
@@ -330,7 +330,7 @@ pfkey_get_softrate(u_int type)
  */
 int
 pfkey_send_getspi(int so, u_int satype, u_int mode, struct sockaddr *src,
-    struct sockaddr *dst, u_int32_t min, uint32_t max, uint32_t reqid,
+    struct sockaddr *dst, uint32_t min, uint32_t max, uint32_t reqid,
     uint32_t seq)
 {
 	struct sadb_msg *newmsg;
@@ -457,10 +457,10 @@ pfkey_send_getspi(int so, u_int satype, u_int mode, struct sockaddr *src,
  */
 int
 pfkey_send_update(int so, u_int satype, u_int mode, struct sockaddr *src,
-    struct sockaddr *dst, u_int32_t spi, u_int32_t reqid, u_int wsize,
+    struct sockaddr *dst, uint32_t spi, uint32_t reqid, u_int wsize,
     caddr_t keymat, u_int e_type, u_int e_keylen, u_int a_type, u_int a_keylen,
-    u_int flags, u_int32_t l_alloc, u_int64_t l_bytes, u_int64_t l_addtime,
-    u_int64_t l_usetime, u_int32_t seq)
+    u_int flags, uint32_t l_alloc, uint64_t l_bytes, uint64_t l_addtime,
+    uint64_t l_usetime, uint32_t seq)
 {
 	int len;
 	if ((len = pfkey_send_x1(so, SADB_UPDATE, satype, mode, src, dst, spi,
@@ -481,10 +481,10 @@ pfkey_send_update(int so, u_int satype, u_int mode, struct sockaddr *src,
  */
 int
 pfkey_send_add(int so, u_int satype, u_int mode, struct sockaddr *src,
-    struct sockaddr *dst, u_int32_t spi, u_int32_t reqid, u_int wsize,
+    struct sockaddr *dst, uint32_t spi, uint32_t reqid, u_int wsize,
     caddr_t keymat, u_int e_type, u_int e_keylen, u_int a_type, u_int a_keylen,
-    u_int flags, u_int32_t l_alloc, u_int64_t l_bytes, u_int64_t l_addtime,
-    u_int64_t l_usetime, u_int32_t seq)
+    u_int flags, uint32_t l_alloc, uint64_t l_bytes, uint64_t l_addtime,
+    uint64_t l_usetime, uint32_t seq)
 {
 	int len;
 	if ((len = pfkey_send_x1(so, SADB_ADD, satype, mode, src, dst, spi,
@@ -504,7 +504,7 @@ pfkey_send_add(int so, u_int satype, u_int mode, struct sockaddr *src,
  */
 int
 pfkey_send_delete(int so, u_int satype, u_int mode, struct sockaddr *src,
-    struct sockaddr *dst, u_int32_t spi)
+    struct sockaddr *dst, uint32_t spi)
 {
 	int len;
 	if ((len = pfkey_send_x2(so, SADB_DELETE, satype, mode, src, dst, spi)) < 0)
@@ -604,7 +604,7 @@ pfkey_send_delete_all(int so, u_int satype, u_int mode, struct sockaddr *src,
  */
 int
 pfkey_send_get(int so, u_int satype, u_int mode, struct sockaddr *src,
-    struct sockaddr *dst, u_int32_t spi)
+    struct sockaddr *dst, uint32_t spi)
 {
 	int len;
 	if ((len = pfkey_send_x2(so, SADB_GET, satype, mode, src, dst, spi)) < 0)
@@ -820,7 +820,7 @@ pfkey_send_promisc_toggle(int so, int flag)
 int
 pfkey_send_spdadd(int so, struct sockaddr *src, u_int prefs,
     struct sockaddr *dst, u_int prefd, u_int proto, caddr_t policy,
-    int policylen, u_int32_t seq)
+    int policylen, uint32_t seq)
 {
 	int len;
 
@@ -841,8 +841,8 @@ pfkey_send_spdadd(int so, struct sockaddr *src, u_int prefs,
  */
 int
 pfkey_send_spdadd2(int so, struct sockaddr *src, u_int prefs,
-    struct sockaddr *dst, u_int prefd, u_int proto, u_int64_t ltime,
-    u_int64_t vtime, caddr_t policy, int policylen, u_int32_t seq)
+    struct sockaddr *dst, u_int prefd, u_int proto, uint64_t ltime,
+    uint64_t vtime, caddr_t policy, int policylen, uint32_t seq)
 {
 	int len;
 
@@ -864,7 +864,7 @@ pfkey_send_spdadd2(int so, struct sockaddr *src, u_int prefs,
 int
 pfkey_send_spdupdate(int so, struct sockaddr *src, u_int prefs,
     struct sockaddr *dst, u_int prefd, u_int proto, caddr_t policy,
-    int policylen, u_int32_t seq)
+    int policylen, uint32_t seq)
 {
 	int len;
 
@@ -885,8 +885,8 @@ pfkey_send_spdupdate(int so, struct sockaddr *src, u_int prefs,
  */
 int
 pfkey_send_spdupdate2(int so, struct sockaddr *src, u_int prefs,
-    struct sockaddr *dst, u_int prefd, u_int proto, u_int64_t ltime,
-    u_int64_t vtime, caddr_t policy, int policylen, u_int32_t seq)
+    struct sockaddr *dst, u_int prefd, u_int proto, uint64_t ltime,
+    uint64_t vtime, caddr_t policy, int policylen, uint32_t seq)
 {
 	int len;
 
@@ -908,7 +908,7 @@ pfkey_send_spdupdate2(int so, struct sockaddr *src, u_int prefs,
 int
 pfkey_send_spddelete(int so, struct sockaddr *src, u_int prefs,
     struct sockaddr *dst, u_int prefd, u_int proto, caddr_t policy,
-    int policylen, u_int32_t seq)
+    int policylen, uint32_t seq)
 {
 	int len;
 
@@ -933,7 +933,7 @@ pfkey_send_spddelete(int so, struct sockaddr *src, u_int prefs,
  *	-1	: error occurred, and set errno.
  */
 int
-pfkey_send_spddelete2(int so, u_int32_t spid)
+pfkey_send_spddelete2(int so, uint32_t spid)
 {
 	int len;
 
@@ -950,7 +950,7 @@ pfkey_send_spddelete2(int so, u_int32_t spid)
  *	-1	: error occurred, and set errno.
  */
 int
-pfkey_send_spdget(int so, u_int32_t spid)
+pfkey_send_spdget(int so, uint32_t spid)
 {
 	int len;
 
@@ -969,7 +969,7 @@ pfkey_send_spdget(int so, u_int32_t spid)
 int
 pfkey_send_spdsetidx(int so, struct sockaddr *src, u_int prefs,
     struct sockaddr *dst, u_int prefd, u_int proto, caddr_t policy,
-    int policylen, u_int32_t seq)
+    int policylen, uint32_t seq)
 {
 	int len;
 
@@ -1024,10 +1024,10 @@ pfkey_send_spddump(int so)
 /* sending SADB_ADD or SADB_UPDATE message to the kernel */
 static int
 pfkey_send_x1(int so, u_int type, u_int satype, u_int mode,
-    struct sockaddr *src, struct sockaddr *dst, u_int32_t spi, u_int32_t reqid,
+    struct sockaddr *src, struct sockaddr *dst, uint32_t spi, uint32_t reqid,
     u_int wsize, caddr_t keymat, u_int e_type, u_int e_keylen, u_int a_type,
-    u_int a_keylen, u_int flags, u_int32_t l_alloc, u_int32_t l_bytes,
-    u_int32_t l_addtime, u_int32_t l_usetime, u_int32_t seq)
+    u_int a_keylen, u_int flags, uint32_t l_alloc, uint32_t l_bytes,
+    uint32_t l_addtime, uint32_t l_usetime, uint32_t seq)
 {
 	struct sadb_msg *newmsg;
 	int len;
@@ -1208,7 +1208,7 @@ pfkey_send_x1(int so, u_int type, u_int satype, u_int mode,
 /* sending SADB_DELETE or SADB_GET message to the kernel */
 static int
 pfkey_send_x2(int so, u_int type, u_int satype, u_int mode,
-    struct sockaddr *src, struct sockaddr *dst, u_int32_t spi)
+    struct sockaddr *src, struct sockaddr *dst, uint32_t spi)
 {
 	struct sadb_msg *newmsg;
 	int len;
@@ -1350,8 +1350,8 @@ pfkey_send_x3(int so, u_int type, u_int satype)
 /* sending SADB_X_SPDADD message to the kernel */
 static int
 pfkey_send_x4(int so, u_int type, struct sockaddr *src, u_int prefs,
-    struct sockaddr *dst, u_int prefd, u_int proto, u_int64_t ltime,
-    u_int64_t vtime, char *policy, int policylen, u_int32_t seq)
+    struct sockaddr *dst, u_int prefd, u_int proto, uint64_t ltime,
+    uint64_t vtime, char *policy, int policylen, uint32_t seq)
 {
 	struct sadb_msg *newmsg;
 	int len;
@@ -1437,7 +1437,7 @@ pfkey_send_x4(int so, u_int type, struct sockaddr *src, u_int prefs,
 
 /* sending SADB_X_SPDGET or SADB_X_SPDDELETE message to the kernel */
 static int
-pfkey_send_x5(int so, u_int type, u_int32_t spid)
+pfkey_send_x5(int so, u_int type, uint32_t spid)
 {
 	struct sadb_msg *newmsg;
 	struct sadb_x_policy xpl;
@@ -1856,7 +1856,7 @@ pfkey_check(caddr_t *mhp)
  */
 static caddr_t
 pfkey_setsadbmsg(caddr_t buf, caddr_t lim, u_int type, u_int tlen,
-    u_int satype, u_int32_t seq, pid_t pid)
+    u_int satype, uint32_t seq, pid_t pid)
 {
 	struct sadb_msg *p;
 	u_int len;
@@ -1875,7 +1875,7 @@ pfkey_setsadbmsg(caddr_t buf, caddr_t lim, u_int type, u_int tlen,
 	p->sadb_msg_len = PFKEY_UNIT64(tlen);
 	p->sadb_msg_reserved = 0;
 	p->sadb_msg_seq = seq;
-	p->sadb_msg_pid = (u_int32_t)pid;
+	p->sadb_msg_pid = (uint32_t)pid;
 
 	return(buf + len);
 }
@@ -1885,8 +1885,8 @@ pfkey_setsadbmsg(caddr_t buf, caddr_t lim, u_int type, u_int tlen,
  * `buf' must has been allocated sufficiently.
  */
 static caddr_t
-pfkey_setsadbsa(caddr_t buf, caddr_t lim, u_int32_t spi, u_int wsize,
-    u_int auth, u_int enc, u_int32_t flags)
+pfkey_setsadbsa(caddr_t buf, caddr_t lim, uint32_t spi, u_int wsize,
+    u_int auth, u_int enc, uint32_t flags)
 {
 	struct sadb_sa *p;
 	u_int len;
@@ -1997,8 +1997,8 @@ pfkey_setsadbkey(caddr_t buf, caddr_t lim, u_int type, caddr_t key, u_int keylen
  * OUT: the pointer of buf + len.
  */
 static caddr_t
-pfkey_setsadblifetime(caddr_t buf, caddr_t lim, u_int type, u_int32_t l_alloc,
-    u_int32_t l_bytes, u_int32_t l_addtime, u_int32_t l_usetime)
+pfkey_setsadblifetime(caddr_t buf, caddr_t lim, u_int type, uint32_t l_alloc,
+    uint32_t l_bytes, uint32_t l_addtime, uint32_t l_usetime)
 {
 	struct sadb_lifetime *p;
 	u_int len;
@@ -2040,10 +2040,10 @@ pfkey_setsadblifetime(caddr_t buf, caddr_t lim, u_int type, u_int32_t l_alloc,
  * `buf' must has been allocated sufficiently.
  */
 static caddr_t
-pfkey_setsadbxsa2(caddr_t buf, caddr_t lim, u_int32_t mode0, u_int32_t reqid)
+pfkey_setsadbxsa2(caddr_t buf, caddr_t lim, uint32_t mode0, uint32_t reqid)
 {
 	struct sadb_x_sa2 *p;
-	u_int8_t mode = mode0 & 0xff;
+	uint8_t mode = mode0 & 0xff;
 	u_int len;
 
 	p = (struct sadb_x_sa2 *)buf;

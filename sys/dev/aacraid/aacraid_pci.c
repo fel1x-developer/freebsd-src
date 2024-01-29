@@ -83,10 +83,10 @@ static driver_t aacraid_pci_driver = {
 
 struct aac_ident
 {
-	u_int16_t		vendor;
-	u_int16_t		device;
-	u_int16_t		subvendor;
-	u_int16_t		subdevice;
+	uint16_t		vendor;
+	uint16_t		device;
+	uint16_t		subvendor;
+	uint16_t		subdevice;
 	int			hwif;
 	int			quirks;
 	char			*desc;
@@ -110,7 +110,7 @@ static struct aac_ident *
 aac_find_ident(device_t dev)
 {
 	struct aac_ident *m;
-	u_int16_t vendid, devid;
+	uint16_t vendid, devid;
 
 	vendid = pci_get_vendor(dev);
 	devid = pci_get_device(dev);
@@ -149,7 +149,7 @@ aacraid_pci_attach(device_t dev)
 	struct aac_softc *sc;
 	struct aac_ident *id;
 	int error;
-	u_int32_t command;
+	uint32_t command;
 
 	fwprintf(NULL, HBA_FLAGS_DBG_FUNCTION_ENTRY_B, "");
 

@@ -982,7 +982,7 @@ cctl_error_inject(int fd, uint32_t lun, int argc, char **argv,
         if (fd_sense == 1) {
 		ssize_t amt_read;
 		int amt_to_read = sense_len;
-		u_int8_t *buf_ptr = (uint8_t *)&err_desc.custom_sense;
+		uint8_t *buf_ptr = (uint8_t *)&err_desc.custom_sense;
 
 		for (amt_read = 0; amt_to_read > 0;
 		     amt_read = read(STDIN_FILENO, buf_ptr, amt_to_read)) {

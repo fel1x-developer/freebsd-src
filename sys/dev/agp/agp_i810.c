@@ -133,17 +133,17 @@ static void agp_i915_write_gtt(device_t dev, u_int index, uint32_t pte);
 static void agp_i965_write_gtt(device_t dev, u_int index, uint32_t pte);
 static void agp_g4x_write_gtt(device_t dev, u_int index, uint32_t pte);
 
-static u_int32_t agp_i810_read_gtt_pte(device_t dev, u_int index);
-static u_int32_t agp_i915_read_gtt_pte(device_t dev, u_int index);
-static u_int32_t agp_i965_read_gtt_pte(device_t dev, u_int index);
-static u_int32_t agp_g4x_read_gtt_pte(device_t dev, u_int index);
+static uint32_t agp_i810_read_gtt_pte(device_t dev, u_int index);
+static uint32_t agp_i915_read_gtt_pte(device_t dev, u_int index);
+static uint32_t agp_i965_read_gtt_pte(device_t dev, u_int index);
+static uint32_t agp_g4x_read_gtt_pte(device_t dev, u_int index);
 
 static vm_paddr_t agp_i810_read_gtt_pte_paddr(device_t dev, u_int index);
 static vm_paddr_t agp_i915_read_gtt_pte_paddr(device_t dev, u_int index);
 
-static int agp_i810_set_aperture(device_t dev, u_int32_t aperture);
-static int agp_i830_set_aperture(device_t dev, u_int32_t aperture);
-static int agp_i915_set_aperture(device_t dev, u_int32_t aperture);
+static int agp_i810_set_aperture(device_t dev, uint32_t aperture);
+static int agp_i830_set_aperture(device_t dev, uint32_t aperture);
+static int agp_i915_set_aperture(device_t dev, uint32_t aperture);
 
 static int agp_i810_chipset_flush_setup(device_t dev);
 static int agp_i915_chipset_flush_setup(device_t dev);
@@ -193,10 +193,10 @@ static struct resource_spec agp_i965_res_spec[] = {
 
 struct agp_i810_softc {
 	struct agp_softc agp;
-	u_int32_t initial_aperture;	/* aperture size at startup */
+	uint32_t initial_aperture;	/* aperture size at startup */
 	struct agp_gatt *gatt;
-	u_int32_t dcache_size;		/* i810 only */
-	u_int32_t stolen;		/* number of i830/845 gtt
+	uint32_t dcache_size;		/* i810 only */
+	uint32_t stolen;		/* number of i830/845 gtt
 					   entries for stolen memory */
 	u_int stolen_size;		/* BIOS-reserved graphics memory */
 	u_int gtt_total_entries;	/* Total number of gtt ptes */
@@ -228,9 +228,9 @@ struct agp_i810_driver {
 	void (*deinstall_gatt)(device_t);
 	void (*write_gtt)(device_t, u_int, uint32_t);
 	void (*install_gtt_pte)(device_t, u_int, vm_offset_t, int);
-	u_int32_t (*read_gtt_pte)(device_t, u_int);
+	uint32_t (*read_gtt_pte)(device_t, u_int);
 	vm_paddr_t (*read_gtt_pte_paddr)(device_t , u_int);
-	int (*set_aperture)(device_t, u_int32_t);
+	int (*set_aperture)(device_t, uint32_t);
 	int (*chipset_flush_setup)(device_t);
 	void (*chipset_flush_teardown)(device_t);
 	void (*chipset_flush)(device_t);
@@ -688,7 +688,7 @@ agp_i810_identify(driver_t *driver, device_t parent)
 static int
 agp_i810_check_active(device_t bridge_dev)
 {
-	u_int8_t smram;
+	uint8_t smram;
 
 	smram = pci_read_config(bridge_dev, AGP_I810_SMRAM, 1);
 	if ((smram & AGP_I810_SMRAM_GMS) == AGP_I810_SMRAM_GMS_DISABLED)
@@ -1390,10 +1390,10 @@ agp_i810_resume(device_t dev)
  * which doesn't happen currently.
  */
 static int
-agp_i810_set_aperture(device_t dev, u_int32_t aperture)
+agp_i810_set_aperture(device_t dev, uint32_t aperture)
 {
 	struct agp_i810_softc *sc;
-	u_int16_t miscc;
+	uint16_t miscc;
 
 	sc = device_get_softc(dev);
 	/*
@@ -1416,10 +1416,10 @@ agp_i810_set_aperture(device_t dev, u_int32_t aperture)
 }
 
 static int
-agp_i830_set_aperture(device_t dev, u_int32_t aperture)
+agp_i830_set_aperture(device_t dev, uint32_t aperture)
 {
 	struct agp_i810_softc *sc;
-	u_int16_t gcc1;
+	uint16_t gcc1;
 
 	sc = device_get_softc(dev);
 
@@ -1440,14 +1440,14 @@ agp_i830_set_aperture(device_t dev, u_int32_t aperture)
 }
 
 static int
-agp_i915_set_aperture(device_t dev, u_int32_t aperture)
+agp_i915_set_aperture(device_t dev, uint32_t aperture)
 {
 
 	return (agp_generic_set_aperture(dev, aperture));
 }
 
 static int
-agp_i810_method_set_aperture(device_t dev, u_int32_t aperture)
+agp_i810_method_set_aperture(device_t dev, uint32_t aperture)
 {
 	struct agp_i810_softc *sc;
 
@@ -1473,7 +1473,7 @@ agp_i810_install_gtt_pte(device_t dev, u_int index, vm_offset_t physical,
 {
 	uint32_t pte;
 
-	pte = (u_int32_t)physical | I810_PTE_VALID;
+	pte = (uint32_t)physical | I810_PTE_VALID;
 	if (flags == AGP_DCACHE_MEMORY)
 		pte |= I810_PTE_LOCAL;
 	else if (flags == AGP_USER_CACHED_MEMORY)
@@ -1497,7 +1497,7 @@ agp_i830_install_gtt_pte(device_t dev, u_int index, vm_offset_t physical,
 {
 	uint32_t pte;
 
-	pte = (u_int32_t)physical | I810_PTE_VALID;
+	pte = (uint32_t)physical | I810_PTE_VALID;
 	if (flags == AGP_USER_CACHED_MEMORY)
 		pte |= I830_PTE_SYSTEM_CACHED;
 	agp_i810_write_gtt(dev, index, pte);
@@ -1509,7 +1509,7 @@ agp_i915_install_gtt_pte(device_t dev, u_int index, vm_offset_t physical,
 {
 	uint32_t pte;
 
-	pte = (u_int32_t)physical | I810_PTE_VALID;
+	pte = (uint32_t)physical | I810_PTE_VALID;
 	if (flags == AGP_USER_CACHED_MEMORY)
 		pte |= I830_PTE_SYSTEM_CACHED;
 	pte |= (physical & 0x0000000f00000000ull) >> 28;
@@ -1532,7 +1532,7 @@ agp_i965_install_gtt_pte(device_t dev, u_int index, vm_offset_t physical,
 {
 	uint32_t pte;
 
-	pte = (u_int32_t)physical | I810_PTE_VALID;
+	pte = (uint32_t)physical | I810_PTE_VALID;
 	if (flags == AGP_USER_CACHED_MEMORY)
 		pte |= I830_PTE_SYSTEM_CACHED;
 	pte |= (physical & 0x0000000f00000000ull) >> 28;
@@ -1555,7 +1555,7 @@ agp_g4x_install_gtt_pte(device_t dev, u_int index, vm_offset_t physical,
 {
 	uint32_t pte;
 
-	pte = (u_int32_t)physical | I810_PTE_VALID;
+	pte = (uint32_t)physical | I810_PTE_VALID;
 	if (flags == AGP_USER_CACHED_MEMORY)
 		pte |= I830_PTE_SYSTEM_CACHED;
 	pte |= (physical & 0x0000000f00000000ull) >> 28;
@@ -1611,44 +1611,44 @@ agp_i810_unbind_page(device_t dev, vm_offset_t offset)
 	return (0);
 }
 
-static u_int32_t
+static uint32_t
 agp_i810_read_gtt_pte(device_t dev, u_int index)
 {
 	struct agp_i810_softc *sc;
-	u_int32_t pte;
+	uint32_t pte;
 
 	sc = device_get_softc(dev);
 	pte = bus_read_4(sc->sc_res[0], AGP_I810_GTT + index * 4);
 	return (pte);
 }
 
-static u_int32_t
+static uint32_t
 agp_i915_read_gtt_pte(device_t dev, u_int index)
 {
 	struct agp_i810_softc *sc;
-	u_int32_t pte;
+	uint32_t pte;
 
 	sc = device_get_softc(dev);
 	pte = bus_read_4(sc->sc_res[1], index * 4);
 	return (pte);
 }
 
-static u_int32_t
+static uint32_t
 agp_i965_read_gtt_pte(device_t dev, u_int index)
 {
 	struct agp_i810_softc *sc;
-	u_int32_t pte;
+	uint32_t pte;
 
 	sc = device_get_softc(dev);
 	pte = bus_read_4(sc->sc_res[0], index * 4 + (512 * 1024));
 	return (pte);
 }
 
-static u_int32_t
+static uint32_t
 agp_g4x_read_gtt_pte(device_t dev, u_int index)
 {
 	struct agp_i810_softc *sc;
-	u_int32_t pte;
+	uint32_t pte;
 
 	sc = device_get_softc(dev);
 	pte = bus_read_4(sc->sc_res[0], index * 4 + (2 * 1024 * 1024));
@@ -1659,7 +1659,7 @@ static vm_paddr_t
 agp_i810_read_gtt_pte_paddr(device_t dev, u_int index)
 {
 	struct agp_i810_softc *sc;
-	u_int32_t pte;
+	uint32_t pte;
 	vm_paddr_t res;
 
 	sc = device_get_softc(dev);
@@ -1672,7 +1672,7 @@ static vm_paddr_t
 agp_i915_read_gtt_pte_paddr(device_t dev, u_int index)
 {
 	struct agp_i810_softc *sc;
-	u_int32_t pte;
+	uint32_t pte;
 	vm_paddr_t res;
 
 	sc = device_get_softc(dev);
@@ -1690,7 +1690,7 @@ agp_i810_flush_tlb(device_t dev)
 }
 
 static int
-agp_i810_enable(device_t dev, u_int32_t mode)
+agp_i810_enable(device_t dev, uint32_t mode)
 {
 
 	return (0);
@@ -2353,7 +2353,7 @@ intel_gtt_read_pte_paddr(u_int entry)
 	return (sc->match->driver->read_gtt_pte_paddr(intel_agp, entry));
 }
 
-u_int32_t
+uint32_t
 intel_gtt_read_pte(u_int entry)
 {
 	struct agp_i810_softc *sc;

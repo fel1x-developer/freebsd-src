@@ -84,7 +84,7 @@
 struct lqrreq {
   struct fsm_opt_hdr hdr;
   u_short proto;		/* Quality protocol */
-  u_int32_t period;		/* Reporting interval */
+  uint32_t period;		/* Reporting interval */
 };
 
 static int LcpLayerUp(struct fsm *);
@@ -228,7 +228,7 @@ lcp_ReportStatus(struct cmdargs const *arg)
   return 0;
 }
 
-static u_int32_t
+static uint32_t
 GenerateMagic(void)
 {
   /* Generate random number which will be used as magic number */
@@ -384,7 +384,7 @@ LcpSendConfigReq(struct fsm *fp)
   u_char buff[200];
   struct fsm_opt *o;
   struct mp *mp;
-  u_int16_t proto;
+  uint16_t proto;
   u_short maxmru;
 
   if (!p) {
@@ -663,7 +663,7 @@ LcpDecodeConfig(struct fsm *fp, u_char *cp, u_char *end, int mode_type,
   struct lcp *lcp = fsm2lcp(fp);
   int pos, op, callback_req, chap_type;
   size_t sz;
-  u_int32_t magic, accmap;
+  uint32_t magic, accmap;
   u_short mru, phmtu, maxmtu, maxmru, wantmtu, wantmru, proto;
   struct lqrreq req;
   char request[20], desc[22];

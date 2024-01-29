@@ -330,9 +330,9 @@ ParseFtpPortCommand(struct libalias *la, char *sptr, int dlen)
 {
 	char ch;
 	int i, state;
-	u_int32_t addr;
+	uint32_t addr;
 	u_short port;
-	u_int8_t octet;
+	uint8_t octet;
 
 	/* Format: "PORT A,D,D,R,PO,RT". */
 
@@ -403,9 +403,9 @@ ParseFtpEprtCommand(struct libalias *la, char *sptr, int dlen)
 {
 	char ch, delim;
 	int i, state;
-	u_int32_t addr;
+	uint32_t addr;
 	u_short port;
-	u_int8_t octet;
+	uint8_t octet;
 
 	/* Format: "EPRT |1|A.D.D.R|PORT|". */
 
@@ -493,9 +493,9 @@ ParseFtp227Reply(struct libalias *la, char *sptr, int dlen)
 {
 	char ch;
 	int i, state;
-	u_int32_t addr;
+	uint32_t addr;
 	u_short port;
-	u_int8_t octet;
+	uint8_t octet;
 
 	/* Format: "227 Entering Passive Mode (A,D,D,R,PO,RT)" */
 

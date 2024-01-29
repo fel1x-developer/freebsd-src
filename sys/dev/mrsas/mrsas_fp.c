@@ -51,55 +51,55 @@
 /*
  * Function prototypes
  */
-u_int8_t MR_ValidateMapInfo(struct mrsas_softc *sc);
-u_int8_t 
+uint8_t MR_ValidateMapInfo(struct mrsas_softc *sc);
+uint8_t 
 mrsas_get_best_arm_pd(struct mrsas_softc *sc,
     PLD_LOAD_BALANCE_INFO lbInfo, struct IO_REQUEST_INFO *io_info);
-u_int8_t
+uint8_t
 MR_BuildRaidContext(struct mrsas_softc *sc,
     struct IO_REQUEST_INFO *io_info,
     RAID_CONTEXT * pRAID_Context, MR_DRV_RAID_MAP_ALL * map);
-u_int8_t
-MR_GetPhyParams(struct mrsas_softc *sc, u_int32_t ld,
-    u_int64_t stripRow, u_int16_t stripRef, struct IO_REQUEST_INFO *io_info,
+uint8_t
+MR_GetPhyParams(struct mrsas_softc *sc, uint32_t ld,
+    uint64_t stripRow, uint16_t stripRef, struct IO_REQUEST_INFO *io_info,
     RAID_CONTEXT * pRAID_Context,
     MR_DRV_RAID_MAP_ALL * map);
-u_int8_t MR_TargetIdToLdGet(u_int32_t ldTgtId, MR_DRV_RAID_MAP_ALL *map);
-u_int32_t MR_LdBlockSizeGet(u_int32_t ldTgtId, MR_DRV_RAID_MAP_ALL * map);
-u_int16_t MR_GetLDTgtId(u_int32_t ld, MR_DRV_RAID_MAP_ALL * map);
-u_int16_t 
+uint8_t MR_TargetIdToLdGet(uint32_t ldTgtId, MR_DRV_RAID_MAP_ALL *map);
+uint32_t MR_LdBlockSizeGet(uint32_t ldTgtId, MR_DRV_RAID_MAP_ALL * map);
+uint16_t MR_GetLDTgtId(uint32_t ld, MR_DRV_RAID_MAP_ALL * map);
+uint16_t 
 mrsas_get_updated_dev_handle(struct mrsas_softc *sc,
     PLD_LOAD_BALANCE_INFO lbInfo, struct IO_REQUEST_INFO *io_info);
-u_int32_t mega_mod64(u_int64_t dividend, u_int32_t divisor);
-u_int32_t
-MR_GetSpanBlock(u_int32_t ld, u_int64_t row, u_int64_t *span_blk,
+uint32_t mega_mod64(uint64_t dividend, uint32_t divisor);
+uint32_t
+MR_GetSpanBlock(uint32_t ld, uint64_t row, uint64_t *span_blk,
     MR_DRV_RAID_MAP_ALL * map, int *div_error);
-u_int64_t mega_div64_32(u_int64_t dividend, u_int32_t divisor);
+uint64_t mega_div64_32(uint64_t dividend, uint32_t divisor);
 void 
 mrsas_update_load_balance_params(struct mrsas_softc *sc,
     MR_DRV_RAID_MAP_ALL * map, PLD_LOAD_BALANCE_INFO lbInfo);
 void
 mrsas_set_pd_lba(MRSAS_RAID_SCSI_IO_REQUEST * io_request,
-    u_int8_t cdb_len, struct IO_REQUEST_INFO *io_info, union ccb *ccb,
-    MR_DRV_RAID_MAP_ALL * local_map_ptr, u_int32_t ref_tag,
-    u_int32_t ld_block_size);
-static u_int16_t
-MR_LdSpanArrayGet(u_int32_t ld, u_int32_t span,
+    uint8_t cdb_len, struct IO_REQUEST_INFO *io_info, union ccb *ccb,
+    MR_DRV_RAID_MAP_ALL * local_map_ptr, uint32_t ref_tag,
+    uint32_t ld_block_size);
+static uint16_t
+MR_LdSpanArrayGet(uint32_t ld, uint32_t span,
     MR_DRV_RAID_MAP_ALL * map);
-static u_int16_t MR_PdDevHandleGet(u_int32_t pd, MR_DRV_RAID_MAP_ALL * map);
-static u_int16_t
-MR_ArPdGet(u_int32_t ar, u_int32_t arm,
+static uint16_t MR_PdDevHandleGet(uint32_t pd, MR_DRV_RAID_MAP_ALL * map);
+static uint16_t
+MR_ArPdGet(uint32_t ar, uint32_t arm,
     MR_DRV_RAID_MAP_ALL * map);
 static MR_LD_SPAN *
-MR_LdSpanPtrGet(u_int32_t ld, u_int32_t span,
+MR_LdSpanPtrGet(uint32_t ld, uint32_t span,
     MR_DRV_RAID_MAP_ALL * map);
-static u_int8_t
-MR_LdDataArmGet(u_int32_t ld, u_int32_t armIdx,
+static uint8_t
+MR_LdDataArmGet(uint32_t ld, uint32_t armIdx,
     MR_DRV_RAID_MAP_ALL * map);
 static MR_SPAN_BLOCK_INFO *
-MR_LdSpanInfoGet(u_int32_t ld,
+MR_LdSpanInfoGet(uint32_t ld,
     MR_DRV_RAID_MAP_ALL * map);
-MR_LD_RAID *MR_LdRaidGet(u_int32_t ld, MR_DRV_RAID_MAP_ALL * map);
+MR_LD_RAID *MR_LdRaidGet(uint32_t ld, MR_DRV_RAID_MAP_ALL * map);
 static int MR_PopulateDrvRaidMap(struct mrsas_softc *sc);
 
 /*
@@ -107,20 +107,20 @@ static int MR_PopulateDrvRaidMap(struct mrsas_softc *sc);
  * span support)
  */
 void	mr_update_span_set(MR_DRV_RAID_MAP_ALL * map, PLD_SPAN_INFO ldSpanInfo);
-static u_int8_t
-mr_spanset_get_phy_params(struct mrsas_softc *sc, u_int32_t ld,
-    u_int64_t stripRow, u_int16_t stripRef, struct IO_REQUEST_INFO *io_info,
+static uint8_t
+mr_spanset_get_phy_params(struct mrsas_softc *sc, uint32_t ld,
+    uint64_t stripRow, uint16_t stripRef, struct IO_REQUEST_INFO *io_info,
     RAID_CONTEXT * pRAID_Context, MR_DRV_RAID_MAP_ALL * map);
-static u_int64_t
-get_row_from_strip(struct mrsas_softc *sc, u_int32_t ld,
-    u_int64_t strip, MR_DRV_RAID_MAP_ALL * map);
-static u_int32_t
+static uint64_t
+get_row_from_strip(struct mrsas_softc *sc, uint32_t ld,
+    uint64_t strip, MR_DRV_RAID_MAP_ALL * map);
+static uint32_t
 mr_spanset_get_span_block(struct mrsas_softc *sc,
-    u_int32_t ld, u_int64_t row, u_int64_t *span_blk,
+    uint32_t ld, uint64_t row, uint64_t *span_blk,
     MR_DRV_RAID_MAP_ALL * map, int *div_error);
-static u_int8_t
-get_arm(struct mrsas_softc *sc, u_int32_t ld, u_int8_t span,
-    u_int64_t stripe, MR_DRV_RAID_MAP_ALL * map);
+static uint8_t
+get_arm(struct mrsas_softc *sc, uint32_t ld, uint8_t span,
+    uint64_t stripe, MR_DRV_RAID_MAP_ALL * map);
 
 /*
  * Spanset related defines Added for PRL11 configuration(Uneven span support)
@@ -135,8 +135,8 @@ get_arm(struct mrsas_softc *sc, u_int32_t ld, u_int8_t span,
  * Related Defines
  */
 
-typedef u_int64_t REGION_KEY;
-typedef u_int32_t REGION_LEN;
+typedef uint64_t REGION_KEY;
+typedef uint32_t REGION_LEN;
 
 #define	MR_LD_STATE_OPTIMAL		3
 #define	FALSE					0
@@ -168,12 +168,12 @@ typedef u_int32_t REGION_LEN;
 
 #define	mega_mod64(dividend, divisor) ({ \
 int remainder; \
-remainder = ((u_int64_t) (dividend)) % (u_int32_t) (divisor); \
+remainder = ((uint64_t) (dividend)) % (uint32_t) (divisor); \
 remainder;})
 
 #define	mega_div64_32(dividend, divisor) ({ \
 int quotient; \
-quotient = ((u_int64_t) (dividend)) / (u_int32_t) (divisor); \
+quotient = ((uint64_t) (dividend)) / (uint32_t) (divisor); \
 quotient;})
 
 /*
@@ -182,69 +182,69 @@ quotient;})
  */
 
 MR_LD_RAID *
-MR_LdRaidGet(u_int32_t ld, MR_DRV_RAID_MAP_ALL * map)
+MR_LdRaidGet(uint32_t ld, MR_DRV_RAID_MAP_ALL * map)
 {
 	return (&map->raidMap.ldSpanMap[ld].ldRaid);
 }
 
-u_int16_t
-MR_GetLDTgtId(u_int32_t ld, MR_DRV_RAID_MAP_ALL * map)
+uint16_t
+MR_GetLDTgtId(uint32_t ld, MR_DRV_RAID_MAP_ALL * map)
 {
 	return le16toh(map->raidMap.ldSpanMap[ld].ldRaid.targetId);
 }
 
-static u_int16_t
-MR_LdSpanArrayGet(u_int32_t ld, u_int32_t span, MR_DRV_RAID_MAP_ALL * map)
+static uint16_t
+MR_LdSpanArrayGet(uint32_t ld, uint32_t span, MR_DRV_RAID_MAP_ALL * map)
 {
 	return le16toh(map->raidMap.ldSpanMap[ld].spanBlock[span].span.arrayRef);
 }
 
-static u_int8_t
-MR_LdDataArmGet(u_int32_t ld, u_int32_t armIdx, MR_DRV_RAID_MAP_ALL * map)
+static uint8_t
+MR_LdDataArmGet(uint32_t ld, uint32_t armIdx, MR_DRV_RAID_MAP_ALL * map)
 {
 	return map->raidMap.ldSpanMap[ld].dataArmMap[armIdx];
 }
 
-static u_int16_t
-MR_PdDevHandleGet(u_int32_t pd, MR_DRV_RAID_MAP_ALL * map)
+static uint16_t
+MR_PdDevHandleGet(uint32_t pd, MR_DRV_RAID_MAP_ALL * map)
 {
 	return map->raidMap.devHndlInfo[pd].curDevHdl;
 }
 
-static u_int8_t MR_PdInterfaceTypeGet(u_int32_t pd, MR_DRV_RAID_MAP_ALL *map)
+static uint8_t MR_PdInterfaceTypeGet(uint32_t pd, MR_DRV_RAID_MAP_ALL *map)
 {
     return map->raidMap.devHndlInfo[pd].interfaceType;
 }
 
-static u_int16_t
-MR_ArPdGet(u_int32_t ar, u_int32_t arm, MR_DRV_RAID_MAP_ALL * map)
+static uint16_t
+MR_ArPdGet(uint32_t ar, uint32_t arm, MR_DRV_RAID_MAP_ALL * map)
 {
 	return le16toh(map->raidMap.arMapInfo[ar].pd[arm]);
 }
 
 static MR_LD_SPAN *
-MR_LdSpanPtrGet(u_int32_t ld, u_int32_t span, MR_DRV_RAID_MAP_ALL * map)
+MR_LdSpanPtrGet(uint32_t ld, uint32_t span, MR_DRV_RAID_MAP_ALL * map)
 {
 	return &map->raidMap.ldSpanMap[ld].spanBlock[span].span;
 }
 
 static MR_SPAN_BLOCK_INFO *
-MR_LdSpanInfoGet(u_int32_t ld, MR_DRV_RAID_MAP_ALL * map)
+MR_LdSpanInfoGet(uint32_t ld, MR_DRV_RAID_MAP_ALL * map)
 {
 	return &map->raidMap.ldSpanMap[ld].spanBlock[0];
 }
 
-u_int8_t
-MR_TargetIdToLdGet(u_int32_t ldTgtId, MR_DRV_RAID_MAP_ALL * map)
+uint8_t
+MR_TargetIdToLdGet(uint32_t ldTgtId, MR_DRV_RAID_MAP_ALL * map)
 {
 	return map->raidMap.ldTgtIdToLd[ldTgtId];
 }
 
-u_int32_t
-MR_LdBlockSizeGet(u_int32_t ldTgtId, MR_DRV_RAID_MAP_ALL * map)
+uint32_t
+MR_LdBlockSizeGet(uint32_t ldTgtId, MR_DRV_RAID_MAP_ALL * map)
 {
 	MR_LD_RAID *raid;
-	u_int32_t ld, ldBlockSize = MRSAS_SCSIBLOCKSIZE;
+	uint32_t ld, ldBlockSize = MRSAS_SCSIBLOCKSIZE;
 
 	ld = MR_TargetIdToLdGet(ldTgtId, map);
 
@@ -269,7 +269,7 @@ static int
 MR_PopulateDrvRaidMapVentura(struct mrsas_softc *sc)
 {
 	unsigned int i, j;
-	u_int16_t ld_count;
+	uint16_t ld_count;
 
 	MR_FW_RAID_MAP_DYNAMIC *fw_map_dyn;
 	MR_RAID_MAP_DESC_TABLE *desc_table;
@@ -338,7 +338,7 @@ MR_PopulateDrvRaidMapVentura(struct mrsas_softc *sc)
 			    sizeof(MR_DEV_HANDLE_INFO) * le32toh(desc_table->raidMapDescElements));
 			break;
 		case RAID_MAP_DESC_TYPE_TGTID_INFO:
-			fw_map_dyn->RaidMapDescPtrs.ptrStruct.ldTgtIdToLd = (u_int16_t *)
+			fw_map_dyn->RaidMapDescPtrs.ptrStruct.ldTgtIdToLd = (uint16_t *)
 			    ((char *)raid_map_data +
 			     le32toh(desc_table->raidMapDescOffset));
 #if VD_EXT_DEBUG
@@ -379,12 +379,12 @@ MR_PopulateDrvRaidMapVentura(struct mrsas_softc *sc)
 				    "fw_map_dyn->ldSpanMap[%d].ldRaid.seqNum 0x%x size 0x%x\n",
 				    j, j, fw_map_dyn->RaidMapDescPtrs.ptrStruct.ldSpanMap[j].ldRaid.targetId, j,
 				    fw_map_dyn->RaidMapDescPtrs.ptrStruct.ldSpanMap[j].ldRaid.seqNum,
-				    (u_int32_t)fw_map_dyn->RaidMapDescPtrs.ptrStruct.ldSpanMap[j].ldRaid.rowSize);
+				    (uint32_t)fw_map_dyn->RaidMapDescPtrs.ptrStruct.ldSpanMap[j].ldRaid.rowSize);
 				printf("mrsas(%d) : pDrvRaidMap->ldSpanMap[%d].ldRaid.targetId 0x%x "
 				    "pDrvRaidMap->ldSpanMap[%d].ldRaid.seqNum 0x%x size 0x%x\n",
 				    j, j, pDrvRaidMap->ldSpanMap[j].ldRaid.targetId, j,
 				    pDrvRaidMap->ldSpanMap[j].ldRaid.seqNum,
-				    (u_int32_t)pDrvRaidMap->ldSpanMap[j].ldRaid.rowSize);
+				    (uint32_t)pDrvRaidMap->ldSpanMap[j].ldRaid.rowSize);
 				printf("mrsas : drv raid map all %p raid map %p LD RAID MAP %p/%p\n",
 				    drv_map, pDrvRaidMap, &fw_map_dyn->RaidMapDescPtrs.ptrStruct.ldSpanMap[j].ldRaid,
 				    &pDrvRaidMap->ldSpanMap[j].ldRaid);
@@ -411,7 +411,7 @@ MR_PopulateDrvRaidMap(struct mrsas_softc *sc)
 	MR_FW_RAID_MAP_EXT *fw_map_ext;
 	MR_FW_RAID_MAP *pFwRaidMap = NULL;
 	unsigned int i;
-	u_int16_t ld_count;
+	uint16_t ld_count;
 
 	MR_DRV_RAID_MAP_ALL *drv_map = sc->ld_drv_map[(sc->map_id & 1)];
 	MR_DRV_RAID_MAP *pDrvRaidMap = &drv_map->raidMap;
@@ -420,7 +420,7 @@ MR_PopulateDrvRaidMap(struct mrsas_softc *sc)
 		return MR_PopulateDrvRaidMapVentura(sc);
 	} else if (sc->max256vdSupport) {
 		fw_map_ext = (MR_FW_RAID_MAP_EXT *) sc->raidmap_mem[(sc->map_id & 1)];
-		ld_count = (u_int16_t)le16toh(fw_map_ext->ldCount);
+		ld_count = (uint16_t)le16toh(fw_map_ext->ldCount);
 		if (ld_count > MAX_LOGICAL_DRIVES_EXT) {
 			device_printf(sc->mrsas_dev,
 			    "mrsas: LD count exposed in RAID map in not valid\n");
@@ -438,7 +438,7 @@ MR_PopulateDrvRaidMap(struct mrsas_softc *sc)
 		pDrvRaidMap->ldCount = htole16(ld_count);
 		pDrvRaidMap->fpPdIoTimeoutSec = fw_map_ext->fpPdIoTimeoutSec;
 		for (i = 0; i < (MAX_LOGICAL_DRIVES_EXT); i++) {
-			pDrvRaidMap->ldTgtIdToLd[i] = (u_int16_t)fw_map_ext->ldTgtIdToLd[i];
+			pDrvRaidMap->ldTgtIdToLd[i] = (uint16_t)fw_map_ext->ldTgtIdToLd[i];
 		}
 		memcpy(pDrvRaidMap->ldSpanMap, fw_map_ext->ldSpanMap, sizeof(MR_LD_SPAN_MAP) * ld_count);
 #if VD_EXT_DEBUG
@@ -447,12 +447,12 @@ MR_PopulateDrvRaidMap(struct mrsas_softc *sc)
 			    "fw_map_ext->ldSpanMap[%d].ldRaid.seqNum 0x%x size 0x%x\n",
 			    i, i, fw_map_ext->ldSpanMap[i].ldRaid.targetId, i,
 			    fw_map_ext->ldSpanMap[i].ldRaid.seqNum,
-			    (u_int32_t)fw_map_ext->ldSpanMap[i].ldRaid.rowSize);
+			    (uint32_t)fw_map_ext->ldSpanMap[i].ldRaid.rowSize);
 			printf("mrsas(%d) : pDrvRaidMap->ldSpanMap[%d].ldRaid.targetId 0x%x"
 			    "pDrvRaidMap->ldSpanMap[%d].ldRaid.seqNum 0x%x size 0x%x\n", i, i,
 			    pDrvRaidMap->ldSpanMap[i].ldRaid.targetId, i,
 			    pDrvRaidMap->ldSpanMap[i].ldRaid.seqNum,
-			    (u_int32_t)pDrvRaidMap->ldSpanMap[i].ldRaid.rowSize);
+			    (uint32_t)pDrvRaidMap->ldSpanMap[i].ldRaid.rowSize);
 			printf("mrsas : drv raid map all %p raid map %p LD RAID MAP %p/%p\n",
 			    drv_map, pDrvRaidMap, &fw_map_ext->ldSpanMap[i].ldRaid,
 			    &pDrvRaidMap->ldSpanMap[i].ldRaid);
@@ -486,7 +486,7 @@ MR_PopulateDrvRaidMap(struct mrsas_softc *sc)
 
 		for (i = 0; i < MAX_RAIDMAP_LOGICAL_DRIVES + MAX_RAIDMAP_VIEWS; i++) {
 			pDrvRaidMap->ldTgtIdToLd[i] =
-			    (u_int8_t)pFwRaidMap->ldTgtIdToLd[i];
+			    (uint8_t)pFwRaidMap->ldTgtIdToLd[i];
 		}
 
 		for (i = 0; i < pDrvRaidMap->ldCount; i++) {
@@ -498,12 +498,12 @@ MR_PopulateDrvRaidMap(struct mrsas_softc *sc)
 			    "pFwRaidMap->ldSpanMap[%d].ldRaid.seqNum 0x%x size 0x%x\n",
 			    i, i, pFwRaidMap->ldSpanMap[i].ldRaid.targetId,
 			    pFwRaidMap->ldSpanMap[i].ldRaid.seqNum,
-			    (u_int32_t)pFwRaidMap->ldSpanMap[i].ldRaid.rowSize);
+			    (uint32_t)pFwRaidMap->ldSpanMap[i].ldRaid.rowSize);
 			device_printf(sc->mrsas_dev, "pDrvRaidMap->ldSpanMap[%d].ldRaid.targetId 0x%x"
 			    "pDrvRaidMap->ldSpanMap[%d].ldRaid.seqNum 0x%x size 0x%x\n", i, i,
 			    pDrvRaidMap->ldSpanMap[i].ldRaid.targetId,
 			    pDrvRaidMap->ldSpanMap[i].ldRaid.seqNum,
-			    (u_int32_t)pDrvRaidMap->ldSpanMap[i].ldRaid.rowSize);
+			    (uint32_t)pDrvRaidMap->ldSpanMap[i].ldRaid.rowSize);
 			device_printf(sc->mrsas_dev, "drv raid map all %p raid map %p LD RAID MAP %p/%p\n",
 			    drv_map, pDrvRaidMap,
 			    &pFwRaidMap->ldSpanMap[i].ldRaid, &pDrvRaidMap->ldSpanMap[i].ldRaid);
@@ -526,7 +526,7 @@ MR_PopulateDrvRaidMap(struct mrsas_softc *sc)
  * This function checks and validates the loaded RAID map. It returns 0 if
  * successful, and 1 otherwise.
  */
-u_int8_t
+uint8_t
 MR_ValidateMapInfo(struct mrsas_softc *sc)
 {
 	if (!sc) {
@@ -538,7 +538,7 @@ MR_ValidateMapInfo(struct mrsas_softc *sc)
 	MR_DRV_RAID_MAP_ALL *drv_map = sc->ld_drv_map[(sc->map_id & 1)];
 	MR_DRV_RAID_MAP *pDrvRaidMap = &drv_map->raidMap;
 
-	u_int32_t expected_map_size;
+	uint32_t expected_map_size;
 
 	drv_map = sc->ld_drv_map[(sc->map_id & 1)];
 	pDrvRaidMap = &drv_map->raidMap;
@@ -581,13 +581,13 @@ static int
 getSpanInfo(MR_DRV_RAID_MAP_ALL * map, PLD_SPAN_INFO ldSpanInfo)
 {
 
-	u_int8_t span;
-	u_int32_t element;
+	uint8_t span;
+	uint32_t element;
 	MR_LD_RAID *raid;
 	LD_SPAN_SET *span_set;
 	MR_QUAD_ELEMENT *quad;
 	int ldCount;
-	u_int16_t ld;
+	uint16_t ld;
 
 	for (ldCount = 0; ldCount < MAX_LOGICAL_DRIVES; ldCount++) {
 		ld = MR_TargetIdToLdGet(ldCount, map);
@@ -656,14 +656,14 @@ getSpanInfo(MR_DRV_RAID_MAP_ALL * map, PLD_SPAN_INFO ldSpanInfo)
  * 				div_error    - Devide error code.
  */
 
-u_int32_t
-mr_spanset_get_span_block(struct mrsas_softc *sc, u_int32_t ld, u_int64_t row,
-    u_int64_t *span_blk, MR_DRV_RAID_MAP_ALL * map, int *div_error)
+uint32_t
+mr_spanset_get_span_block(struct mrsas_softc *sc, uint32_t ld, uint64_t row,
+    uint64_t *span_blk, MR_DRV_RAID_MAP_ALL * map, int *div_error)
 {
 	MR_LD_RAID *raid = MR_LdRaidGet(ld, map);
 	LD_SPAN_SET *span_set;
 	MR_QUAD_ELEMENT *quad;
-	u_int32_t span, info;
+	uint32_t span, info;
 	PLD_SPAN_INFO ldSpanInfo = sc->log_to_span;
 
 	for (info = 0; info < MAX_QUAD_DEPTH; info++) {
@@ -689,7 +689,7 @@ mr_spanset_get_span_block(struct mrsas_softc *sc, u_int32_t ld, u_int64_t row,
 				    (mega_mod64(row - le64toh(quad->logStart),
 				    le32toh(quad->diff))) == 0) {
 					if (span_blk != NULL) {
-						u_int64_t blk;
+						uint64_t blk;
 
 						blk = mega_div64_32
 						    ((row - le64toh(quad->logStart)),
@@ -717,15 +717,15 @@ mr_spanset_get_span_block(struct mrsas_softc *sc, u_int32_t ld, u_int64_t row,
  * Outputs :	row - row associated with strip
  */
 
-static u_int64_t
+static uint64_t
 get_row_from_strip(struct mrsas_softc *sc,
-    u_int32_t ld, u_int64_t strip, MR_DRV_RAID_MAP_ALL * map)
+    uint32_t ld, uint64_t strip, MR_DRV_RAID_MAP_ALL * map)
 {
 	MR_LD_RAID *raid = MR_LdRaidGet(ld, map);
 	LD_SPAN_SET *span_set;
 	PLD_SPAN_INFO ldSpanInfo = sc->log_to_span;
-	u_int32_t info, strip_offset, span, span_offset;
-	u_int64_t span_set_Strip, span_set_Row;
+	uint32_t info, strip_offset, span, span_offset;
+	uint64_t span_set_Strip, span_set_Row;
 
 	for (info = 0; info < MAX_QUAD_DEPTH; info++) {
 		span_set = &(ldSpanInfo[ld].span_set[info]);
@@ -774,16 +774,16 @@ get_row_from_strip(struct mrsas_softc *sc,
  * Outputs :	Strip - Start strip associated with row
  */
 
-static u_int64_t
+static uint64_t
 get_strip_from_row(struct mrsas_softc *sc,
-    u_int32_t ld, u_int64_t row, MR_DRV_RAID_MAP_ALL * map)
+    uint32_t ld, uint64_t row, MR_DRV_RAID_MAP_ALL * map)
 {
 	MR_LD_RAID *raid = MR_LdRaidGet(ld, map);
 	LD_SPAN_SET *span_set;
 	MR_QUAD_ELEMENT *quad;
 	PLD_SPAN_INFO ldSpanInfo = sc->log_to_span;
-	u_int32_t span, info;
-	u_int64_t strip;
+	uint32_t span, info;
+	uint64_t strip;
 
 	for (info = 0; info < MAX_QUAD_DEPTH; info++) {
 		span_set = &(ldSpanInfo[ld].span_set[info]);
@@ -832,14 +832,14 @@ get_strip_from_row(struct mrsas_softc *sc,
  * Outputs :	Phys Arm - Phys Arm associated with strip
  */
 
-static u_int32_t
+static uint32_t
 get_arm_from_strip(struct mrsas_softc *sc,
-    u_int32_t ld, u_int64_t strip, MR_DRV_RAID_MAP_ALL * map)
+    uint32_t ld, uint64_t strip, MR_DRV_RAID_MAP_ALL * map)
 {
 	MR_LD_RAID *raid = MR_LdRaidGet(ld, map);
 	LD_SPAN_SET *span_set;
 	PLD_SPAN_INFO ldSpanInfo = sc->log_to_span;
-	u_int32_t info, strip_offset, span, span_offset;
+	uint32_t info, strip_offset, span, span_offset;
 
 	for (info = 0; info < MAX_QUAD_DEPTH; info++) {
 		span_set = &(ldSpanInfo[ld].span_set[info]);
@@ -849,7 +849,7 @@ get_arm_from_strip(struct mrsas_softc *sc,
 		if (strip > span_set->data_strip_end)
 			continue;
 
-		strip_offset = (u_int32_t)mega_mod64
+		strip_offset = (uint32_t)mega_mod64
 		    ((strip - span_set->data_strip_start),
 		    span_set->span_row_data_width);
 
@@ -874,14 +874,14 @@ get_arm_from_strip(struct mrsas_softc *sc,
 }
 
 /* This Function will return Phys arm */
-u_int8_t
-get_arm(struct mrsas_softc *sc, u_int32_t ld, u_int8_t span, u_int64_t stripe,
+uint8_t
+get_arm(struct mrsas_softc *sc, uint32_t ld, uint8_t span, uint64_t stripe,
     MR_DRV_RAID_MAP_ALL * map)
 {
 	MR_LD_RAID *raid = MR_LdRaidGet(ld, map);
 
 	/* Need to check correct default value */
-	u_int32_t arm = 0;
+	uint32_t arm = 0;
 
 	switch (raid->level) {
 	case 0:
@@ -913,21 +913,21 @@ get_arm(struct mrsas_softc *sc, u_int32_t ld, u_int8_t span, u_int64_t stripe,
  * Outputs :	span - Span number block - Absolute Block
  * number in the physical disk
  */
-static u_int8_t
-mr_spanset_get_phy_params(struct mrsas_softc *sc, u_int32_t ld, u_int64_t stripRow,
-    u_int16_t stripRef, struct IO_REQUEST_INFO *io_info,
+static uint8_t
+mr_spanset_get_phy_params(struct mrsas_softc *sc, uint32_t ld, uint64_t stripRow,
+    uint16_t stripRef, struct IO_REQUEST_INFO *io_info,
     RAID_CONTEXT * pRAID_Context, MR_DRV_RAID_MAP_ALL * map)
 {
 	MR_LD_RAID *raid = MR_LdRaidGet(ld, map);
-	u_int32_t pd, arRef, r1_alt_pd;
-	u_int8_t physArm, span;
-	u_int64_t row;
-	u_int8_t retval = TRUE;
-	u_int64_t *pdBlock = &io_info->pdBlock;
-	u_int16_t *pDevHandle = &io_info->devHandle;
-	u_int8_t  *pPdInterface = &io_info->pdInterface;
+	uint32_t pd, arRef, r1_alt_pd;
+	uint8_t physArm, span;
+	uint64_t row;
+	uint8_t retval = TRUE;
+	uint64_t *pdBlock = &io_info->pdBlock;
+	uint16_t *pDevHandle = &io_info->devHandle;
+	uint8_t  *pPdInterface = &io_info->pdInterface;
 
-	u_int32_t logArm, rowMod, armQ, arm;
+	uint32_t logArm, rowMod, armQ, arm;
 
 	/* Get row and span from io_info for Uneven Span IO. */
 	row = io_info->start_row;
@@ -940,7 +940,7 @@ mr_spanset_get_phy_params(struct mrsas_softc *sc, u_int32_t ld, u_int64_t stripR
 		arm = armQ + 1 + logArm;
 		if (arm >= SPAN_ROW_SIZE(map, ld, span))
 			arm -= SPAN_ROW_SIZE(map, ld, span);
-		physArm = (u_int8_t)arm;
+		physArm = (uint8_t)arm;
 	} else
 		/* Calculate the arm */
 		physArm = get_arm(sc, ld, span, stripRow, map);
@@ -992,23 +992,23 @@ mr_spanset_get_phy_params(struct mrsas_softc *sc, u_int32_t ld, u_int64_t stripR
  * information is calculated then the lock is acquired. This function will
  * return 0 if region lock was acquired OR return num strips.
  */
-u_int8_t
+uint8_t
 MR_BuildRaidContext(struct mrsas_softc *sc, struct IO_REQUEST_INFO *io_info,
     RAID_CONTEXT * pRAID_Context, MR_DRV_RAID_MAP_ALL * map)
 {
 	MR_LD_RAID *raid;
-	u_int32_t ld, stripSize, stripe_mask;
-	u_int64_t endLba, endStrip, endRow, start_row, start_strip;
+	uint32_t ld, stripSize, stripe_mask;
+	uint64_t endLba, endStrip, endRow, start_row, start_strip;
 	REGION_KEY regStart;
 	REGION_LEN regSize;
-	u_int8_t num_strips, numRows;
-	u_int16_t ref_in_start_stripe, ref_in_end_stripe;
-	u_int64_t ldStartBlock;
-	u_int32_t numBlocks, ldTgtId;
-	u_int8_t isRead, stripIdx;
-	u_int8_t retval = 0;
-	u_int8_t startlba_span = SPAN_INVALID;
-	u_int64_t *pdBlock = &io_info->pdBlock;
+	uint8_t num_strips, numRows;
+	uint16_t ref_in_start_stripe, ref_in_end_stripe;
+	uint64_t ldStartBlock;
+	uint32_t numBlocks, ldTgtId;
+	uint8_t isRead, stripIdx;
+	uint8_t retval = 0;
+	uint8_t startlba_span = SPAN_INVALID;
+	uint64_t *pdBlock = &io_info->pdBlock;
 	int error_code = 0;
 
 	ldStartBlock = io_info->ldStartBlock;
@@ -1043,11 +1043,11 @@ MR_BuildRaidContext(struct mrsas_softc *sc, struct IO_REQUEST_INFO *io_info,
 	 * calculate starting row and stripe, and number of strips and rows
 	 */
 	start_strip = ldStartBlock >> raid->stripeShift;
-	ref_in_start_stripe = (u_int16_t)(ldStartBlock & stripe_mask);
+	ref_in_start_stripe = (uint16_t)(ldStartBlock & stripe_mask);
 	endLba = ldStartBlock + numBlocks - 1;
-	ref_in_end_stripe = (u_int16_t)(endLba & stripe_mask);
+	ref_in_end_stripe = (uint16_t)(endLba & stripe_mask);
 	endStrip = endLba >> raid->stripeShift;
-	num_strips = (u_int8_t)(endStrip - start_strip + 1);	/* End strip */
+	num_strips = (uint8_t)(endStrip - start_strip + 1);	/* End strip */
 	if (io_info->IoforUnevenSpan) {
 		start_row = get_row_from_strip(sc, ld, start_strip, map);
 		endRow = get_row_from_strip(sc, ld, endStrip, map);
@@ -1055,7 +1055,7 @@ MR_BuildRaidContext(struct mrsas_softc *sc, struct IO_REQUEST_INFO *io_info,
 			startlba_span = 0;
 			*pdBlock = start_row << raid->stripeShift;
 		} else {
-			startlba_span = (u_int8_t)mr_spanset_get_span_block(sc, ld, start_row,
+			startlba_span = (uint8_t)mr_spanset_get_span_block(sc, ld, start_row,
 			    pdBlock, map, &error_code);
 			if (error_code == 1) {
 				mrsas_dprint(sc, MRSAS_PRL11, "AVAGO Debug: return from %s %d. Send IO w/o region lock.\n",
@@ -1085,7 +1085,7 @@ MR_BuildRaidContext(struct mrsas_softc *sc, struct IO_REQUEST_INFO *io_info,
 		endRow = mega_div64_32(endStrip, raid->rowDataSize);
 	}
 
-	numRows = (u_int8_t)(endRow - start_row + 1);	/* get the row count */
+	numRows = (uint8_t)(endRow - start_row + 1);	/* get the row count */
 
 	/*
 	 * Calculate region info.  (Assume region at start of first row, and
@@ -1218,14 +1218,14 @@ MR_BuildRaidContext(struct mrsas_softc *sc, struct IO_REQUEST_INFO *io_info,
 void
 mr_update_span_set(MR_DRV_RAID_MAP_ALL * map, PLD_SPAN_INFO ldSpanInfo)
 {
-	u_int8_t span, count;
-	u_int32_t element, span_row_width;
-	u_int64_t span_row;
+	uint8_t span, count;
+	uint32_t element, span_row_width;
+	uint64_t span_row;
 	MR_LD_RAID *raid;
 	LD_SPAN_SET *span_set, *span_set_prev;
 	MR_QUAD_ELEMENT *quad;
 	int ldCount;
-	u_int16_t ld;
+	uint16_t ld;
 
 	for (ldCount = 0; ldCount < MAX_LOGICAL_DRIVES; ldCount++) {
 		ld = MR_TargetIdToLdGet(ldCount, map);
@@ -1322,7 +1322,7 @@ mrsas_update_load_balance_params(struct mrsas_softc *sc,
     MR_DRV_RAID_MAP_ALL * drv_map, PLD_LOAD_BALANCE_INFO lbInfo)
 {
 	int ldCount;
-	u_int16_t ld;
+	uint16_t ld;
 	MR_LD_RAID *raid;
 
 	if (sc->lb_pending_cmds > 128 || sc->lb_pending_cmds < 1)
@@ -1357,17 +1357,17 @@ mrsas_update_load_balance_params(struct mrsas_softc *sc,
  * Used to set the PD logical block address in CDB for FP IOs.
  */
 void
-mrsas_set_pd_lba(MRSAS_RAID_SCSI_IO_REQUEST * io_request, u_int8_t cdb_len,
+mrsas_set_pd_lba(MRSAS_RAID_SCSI_IO_REQUEST * io_request, uint8_t cdb_len,
     struct IO_REQUEST_INFO *io_info, union ccb *ccb,
-    MR_DRV_RAID_MAP_ALL * local_map_ptr, u_int32_t ref_tag,
-    u_int32_t ld_block_size)
+    MR_DRV_RAID_MAP_ALL * local_map_ptr, uint32_t ref_tag,
+    uint32_t ld_block_size)
 {
 	MR_LD_RAID *raid;
-	u_int32_t ld;
-	u_int64_t start_blk = io_info->pdBlock;
-	u_int8_t *cdb = io_request->CDB.CDB32;
-	u_int32_t num_blocks = io_info->numBlocks;
-	u_int8_t opcode = 0, flagvals = 0, groupnum = 0, control = 0;
+	uint32_t ld;
+	uint64_t start_blk = io_info->pdBlock;
+	uint8_t *cdb = io_request->CDB.CDB32;
+	uint32_t num_blocks = io_info->numBlocks;
+	uint8_t opcode = 0, flagvals = 0, groupnum = 0, control = 0;
 	struct ccb_hdr *ccb_h = &(ccb->ccb_h);
 
 	/* Check if T10 PI (DIF) is enabled for this LD */
@@ -1385,14 +1385,14 @@ mrsas_set_pd_lba(MRSAS_RAID_SCSI_IO_REQUEST * io_request, u_int8_t cdb_len,
 		cdb[10] = MRSAS_RD_WR_PROTECT_CHECK_ALL;
 
 		/* LBA */
-		cdb[12] = (u_int8_t)((start_blk >> 56) & 0xff);
-		cdb[13] = (u_int8_t)((start_blk >> 48) & 0xff);
-		cdb[14] = (u_int8_t)((start_blk >> 40) & 0xff);
-		cdb[15] = (u_int8_t)((start_blk >> 32) & 0xff);
-		cdb[16] = (u_int8_t)((start_blk >> 24) & 0xff);
-		cdb[17] = (u_int8_t)((start_blk >> 16) & 0xff);
-		cdb[18] = (u_int8_t)((start_blk >> 8) & 0xff);
-		cdb[19] = (u_int8_t)(start_blk & 0xff);
+		cdb[12] = (uint8_t)((start_blk >> 56) & 0xff);
+		cdb[13] = (uint8_t)((start_blk >> 48) & 0xff);
+		cdb[14] = (uint8_t)((start_blk >> 40) & 0xff);
+		cdb[15] = (uint8_t)((start_blk >> 32) & 0xff);
+		cdb[16] = (uint8_t)((start_blk >> 24) & 0xff);
+		cdb[17] = (uint8_t)((start_blk >> 16) & 0xff);
+		cdb[18] = (uint8_t)((start_blk >> 8) & 0xff);
+		cdb[19] = (uint8_t)(start_blk & 0xff);
 
 		/* Logical block reference tag */
 		io_request->CDB.EEDP32.PrimaryReferenceTag = htobe32(ref_tag);
@@ -1400,10 +1400,10 @@ mrsas_set_pd_lba(MRSAS_RAID_SCSI_IO_REQUEST * io_request, u_int8_t cdb_len,
 		io_request->IoFlags = htole16(32);	/* Specify 32-byte cdb */
 
 		/* Transfer length */
-		cdb[28] = (u_int8_t)((num_blocks >> 24) & 0xff);
-		cdb[29] = (u_int8_t)((num_blocks >> 16) & 0xff);
-		cdb[30] = (u_int8_t)((num_blocks >> 8) & 0xff);
-		cdb[31] = (u_int8_t)(num_blocks & 0xff);
+		cdb[28] = (uint8_t)((num_blocks >> 24) & 0xff);
+		cdb[29] = (uint8_t)((num_blocks >> 16) & 0xff);
+		cdb[30] = (uint8_t)((num_blocks >> 8) & 0xff);
+		cdb[31] = (uint8_t)(num_blocks & 0xff);
 
 		/* set SCSI IO EEDP Flags */
 		if (ccb_h->flags == CAM_DIR_OUT) {
@@ -1444,8 +1444,8 @@ mrsas_set_pd_lba(MRSAS_RAID_SCSI_IO_REQUEST * io_request, u_int8_t cdb_len,
 			cdb[9] = control;
 
 			/* Transfer length */
-			cdb[8] = (u_int8_t)(num_blocks & 0xff);
-			cdb[7] = (u_int8_t)((num_blocks >> 8) & 0xff);
+			cdb[8] = (uint8_t)(num_blocks & 0xff);
+			cdb[7] = (uint8_t)((num_blocks >> 8) & 0xff);
 
 			io_request->IoFlags = htole16(10);	/* Specify 10-byte cdb */
 			cdb_len = 10;
@@ -1478,10 +1478,10 @@ mrsas_set_pd_lba(MRSAS_RAID_SCSI_IO_REQUEST * io_request, u_int8_t cdb_len,
 			cdb[15] = control;
 
 			/* Transfer length */
-			cdb[13] = (u_int8_t)(num_blocks & 0xff);
-			cdb[12] = (u_int8_t)((num_blocks >> 8) & 0xff);
-			cdb[11] = (u_int8_t)((num_blocks >> 16) & 0xff);
-			cdb[10] = (u_int8_t)((num_blocks >> 24) & 0xff);
+			cdb[13] = (uint8_t)(num_blocks & 0xff);
+			cdb[12] = (uint8_t)((num_blocks >> 8) & 0xff);
+			cdb[11] = (uint8_t)((num_blocks >> 16) & 0xff);
+			cdb[10] = (uint8_t)((num_blocks >> 24) & 0xff);
 
 			io_request->IoFlags = htole16(16);	/* Specify 16-byte cdb */
 			cdb_len = 16;
@@ -1495,36 +1495,36 @@ mrsas_set_pd_lba(MRSAS_RAID_SCSI_IO_REQUEST * io_request, u_int8_t cdb_len,
 			cdb[9] = control;
 
 			/* Set transfer length */
-			cdb[8] = (u_int8_t)(num_blocks & 0xff);
-			cdb[7] = (u_int8_t)((num_blocks >> 8) & 0xff);
+			cdb[8] = (uint8_t)(num_blocks & 0xff);
+			cdb[7] = (uint8_t)((num_blocks >> 8) & 0xff);
 
 			/* Specify 10-byte cdb */
 			cdb_len = 10;
 		}
 		/* Fall through normal case, just load LBA here */
-		u_int8_t val = cdb[1] & 0xE0;
+		uint8_t val = cdb[1] & 0xE0;
 
 		switch (cdb_len) {
 		case 6:
-			cdb[3] = (u_int8_t)(start_blk & 0xff);
-			cdb[2] = (u_int8_t)((start_blk >> 8) & 0xff);
-			cdb[1] = val | ((u_int8_t)(start_blk >> 16) & 0x1f);
+			cdb[3] = (uint8_t)(start_blk & 0xff);
+			cdb[2] = (uint8_t)((start_blk >> 8) & 0xff);
+			cdb[1] = val | ((uint8_t)(start_blk >> 16) & 0x1f);
 			break;
 		case 10:
-			cdb[5] = (u_int8_t)(start_blk & 0xff);
-			cdb[4] = (u_int8_t)((start_blk >> 8) & 0xff);
-			cdb[3] = (u_int8_t)((start_blk >> 16) & 0xff);
-			cdb[2] = (u_int8_t)((start_blk >> 24) & 0xff);
+			cdb[5] = (uint8_t)(start_blk & 0xff);
+			cdb[4] = (uint8_t)((start_blk >> 8) & 0xff);
+			cdb[3] = (uint8_t)((start_blk >> 16) & 0xff);
+			cdb[2] = (uint8_t)((start_blk >> 24) & 0xff);
 			break;
 		case 16:
-			cdb[9] = (u_int8_t)(start_blk & 0xff);
-			cdb[8] = (u_int8_t)((start_blk >> 8) & 0xff);
-			cdb[7] = (u_int8_t)((start_blk >> 16) & 0xff);
-			cdb[6] = (u_int8_t)((start_blk >> 24) & 0xff);
-			cdb[5] = (u_int8_t)((start_blk >> 32) & 0xff);
-			cdb[4] = (u_int8_t)((start_blk >> 40) & 0xff);
-			cdb[3] = (u_int8_t)((start_blk >> 48) & 0xff);
-			cdb[2] = (u_int8_t)((start_blk >> 56) & 0xff);
+			cdb[9] = (uint8_t)(start_blk & 0xff);
+			cdb[8] = (uint8_t)((start_blk >> 8) & 0xff);
+			cdb[7] = (uint8_t)((start_blk >> 16) & 0xff);
+			cdb[6] = (uint8_t)((start_blk >> 24) & 0xff);
+			cdb[5] = (uint8_t)((start_blk >> 32) & 0xff);
+			cdb[4] = (uint8_t)((start_blk >> 40) & 0xff);
+			cdb[3] = (uint8_t)((start_blk >> 48) & 0xff);
+			cdb[2] = (uint8_t)((start_blk >> 56) & 0xff);
 			break;
 		}
 	}
@@ -1540,20 +1540,20 @@ mrsas_set_pd_lba(MRSAS_RAID_SCSI_IO_REQUEST * io_request, u_int8_t cdb_len,
  * This function determines and returns the best arm by looking at the
  * parameters of the last PD access.
  */
-u_int8_t 
+uint8_t 
 mrsas_get_best_arm_pd(struct mrsas_softc *sc,
     PLD_LOAD_BALANCE_INFO lbInfo, struct IO_REQUEST_INFO *io_info)
 {
 	MR_LD_RAID *raid;
 	MR_DRV_RAID_MAP_ALL *drv_map;
-	u_int16_t pd1_devHandle;
-	u_int16_t pend0, pend1, ld;
-	u_int64_t diff0, diff1;
-	u_int8_t bestArm, pd0, pd1, span, arm;
-	u_int32_t arRef, span_row_size;
+	uint16_t pd1_devHandle;
+	uint16_t pend0, pend1, ld;
+	uint64_t diff0, diff1;
+	uint8_t bestArm, pd0, pd1, span, arm;
+	uint32_t arRef, span_row_size;
 
-	u_int64_t block = io_info->ldStartBlock;
-	u_int32_t count = io_info->numBlocks;
+	uint64_t block = io_info->ldStartBlock;
+	uint32_t count = io_info->numBlocks;
 
 	span = ((io_info->span_arm & RAID_CTX_SPANARM_SPAN_MASK)
 	    >> RAID_CTX_SPANARM_SPAN_SHIFT);
@@ -1613,12 +1613,12 @@ mrsas_get_best_arm_pd(struct mrsas_softc *sc,
  *
  * This function determines and returns the updated dev handle.
  */
-u_int16_t 
+uint16_t 
 mrsas_get_updated_dev_handle(struct mrsas_softc *sc,
     PLD_LOAD_BALANCE_INFO lbInfo, struct IO_REQUEST_INFO *io_info)
 {
-	u_int8_t arm_pd;
-	u_int16_t devHandle;
+	uint8_t arm_pd;
+	uint16_t devHandle;
 	MR_DRV_RAID_MAP_ALL *drv_map;
 
 	drv_map = sc->ld_drv_map[(sc->map_id & 1)];
@@ -1644,22 +1644,22 @@ mrsas_get_updated_dev_handle(struct mrsas_softc *sc,
  * This routine calculates the arm, span and block for the specified stripe and
  * reference in stripe.
  */
-u_int8_t
-MR_GetPhyParams(struct mrsas_softc *sc, u_int32_t ld,
-    u_int64_t stripRow,
-    u_int16_t stripRef, struct IO_REQUEST_INFO *io_info,
+uint8_t
+MR_GetPhyParams(struct mrsas_softc *sc, uint32_t ld,
+    uint64_t stripRow,
+    uint16_t stripRef, struct IO_REQUEST_INFO *io_info,
     RAID_CONTEXT * pRAID_Context, MR_DRV_RAID_MAP_ALL * map)
 {
 	MR_LD_RAID *raid = MR_LdRaidGet(ld, map);
-	u_int32_t pd, arRef, r1_alt_pd;
-	u_int8_t physArm, span;
-	u_int64_t row;
-	u_int8_t retval = TRUE;
+	uint32_t pd, arRef, r1_alt_pd;
+	uint8_t physArm, span;
+	uint64_t row;
+	uint8_t retval = TRUE;
 	int error_code = 0;
-	u_int64_t *pdBlock = &io_info->pdBlock;
-	u_int16_t *pDevHandle = &io_info->devHandle;
-	u_int8_t  *pPdInterface = &io_info->pdInterface;
-	u_int32_t rowMod, armQ, arm, logArm;
+	uint64_t *pdBlock = &io_info->pdBlock;
+	uint16_t *pDevHandle = &io_info->devHandle;
+	uint8_t  *pPdInterface = &io_info->pdInterface;
+	uint32_t rowMod, armQ, arm, logArm;
 
 	row = mega_div64_32(stripRow, raid->rowDataSize);
 
@@ -1673,7 +1673,7 @@ MR_GetPhyParams(struct mrsas_softc *sc, u_int32_t ld,
 		arm = armQ + 1 + logArm;/* data always logically follows Q */
 		if (arm >= raid->rowSize)	/* handle wrap condition */
 			arm -= raid->rowSize;
-		physArm = (u_int8_t)arm;
+		physArm = (uint8_t)arm;
 	} else {
 		if (raid->modFactor == 0)
 			return FALSE;
@@ -1684,7 +1684,7 @@ MR_GetPhyParams(struct mrsas_softc *sc, u_int32_t ld,
 		span = 0;
 		*pdBlock = row << raid->stripeShift;
 	} else {
-		span = (u_int8_t)MR_GetSpanBlock(ld, row, pdBlock, map, &error_code);
+		span = (uint8_t)MR_GetSpanBlock(ld, row, pdBlock, map, &error_code);
 		if (error_code == 1)
 			return FALSE;
 	}
@@ -1745,15 +1745,15 @@ MR_GetPhyParams(struct mrsas_softc *sc, u_int32_t ld,
  *
  * This routine calculates the span from the span block info.
  */
-u_int32_t
-MR_GetSpanBlock(u_int32_t ld, u_int64_t row, u_int64_t *span_blk,
+uint32_t
+MR_GetSpanBlock(uint32_t ld, uint64_t row, uint64_t *span_blk,
     MR_DRV_RAID_MAP_ALL * map, int *div_error)
 {
 	MR_SPAN_BLOCK_INFO *pSpanBlock = MR_LdSpanInfoGet(ld, map);
 	MR_QUAD_ELEMENT *quad;
 	MR_LD_RAID *raid = MR_LdRaidGet(ld, map);
-	u_int32_t span, j;
-	u_int64_t blk;
+	uint32_t span, j;
+	uint64_t blk;
 
 	for (span = 0; span < raid->spanDepth; span++, pSpanBlock++) {
 		for (j = 0; j < pSpanBlock->block_span_info.noElements; j++) {

@@ -239,7 +239,7 @@ fpu_ftoi(struct fpemu *fe, struct fpn *fp)
 u_int
 fpu_ftox(struct fpemu *fe, struct fpn *fp, u_int *res)
 {
-	u_int64_t i;
+	uint64_t i;
 	int sign, exp;
 
 	sign = fp->fp_sign;
@@ -264,8 +264,8 @@ fpu_ftox(struct fpemu *fe, struct fpn *fp, u_int *res)
 		/* NB: the following includes exp < 0 cases */
 		if (fpu_shr(fp, FP_NMANT - 1 - exp) != 0)
 			fe->fe_cx |= FPSCR_UX;
-		i = ((u_int64_t)fp->fp_mant[2]<<32)|fp->fp_mant[3];
-		if (i >= ((u_int64_t)0x8000000000000000LL + sign))
+		i = ((uint64_t)fp->fp_mant[2]<<32)|fp->fp_mant[3];
+		if (i >= ((uint64_t)0x8000000000000000LL + sign))
 			break;
 		return (sign ? -i : i);
 

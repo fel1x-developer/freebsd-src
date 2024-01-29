@@ -408,12 +408,12 @@ ng_gif_rcvmsg(node_p node, item_p item, hook_p lasthook)
 			strlcpy(resp->data, priv->ifp->if_xname, IFNAMSIZ);
 			break;
 		case NGM_GIF_GET_IFINDEX:
-			NG_MKRESPONSE(resp, msg, sizeof(u_int32_t), M_NOWAIT);
+			NG_MKRESPONSE(resp, msg, sizeof(uint32_t), M_NOWAIT);
 			if (resp == NULL) {
 				error = ENOMEM;
 				break;
 			}
-			*((u_int32_t *)resp->data) = priv->ifp->if_index;
+			*((uint32_t *)resp->data) = priv->ifp->if_index;
 			break;
 		default:
 			error = EINVAL;

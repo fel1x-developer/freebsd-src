@@ -80,7 +80,7 @@ typedef u_short mifi_t;		/* type of a mif index */
 #define	IF_SETSIZE	256
 #endif
 
-typedef	u_int32_t	if_mask;
+typedef	uint32_t	if_mask;
 #define	NIFBITS	(sizeof(if_mask) * NBBY)	/* bits per mask */
 
 #ifndef howmany
@@ -167,8 +167,8 @@ struct mrt6msg {
 #define MRT6MSG_WHOLEPKT	3		/* used for user level encap*/
 	u_char	    im6_mbz;			/* must be zero		    */
 	u_char	    im6_msgtype;		/* what type of message	    */
-	u_int16_t   im6_mif;			/* mif rec'd on		    */
-	u_int32_t   im6_pad;			/* padding for 64bit arch   */
+	uint16_t   im6_mif;			/* mif rec'd on		    */
+	uint32_t   im6_pad;			/* padding for 64bit arch   */
 	struct in6_addr  im6_src, im6_dst;
 };
 

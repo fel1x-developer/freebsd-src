@@ -1135,7 +1135,7 @@ ath_tx_calc_duration(struct ath_softc *sc, struct ath_buf *bf)
 	 */
 	if ((flags & HAL_TXDESC_NOACK) == 0 &&
 	    (wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) != IEEE80211_FC0_TYPE_CTL) {
-		u_int16_t dur;
+		uint16_t dur;
 		if (shortPreamble)
 			dur = rt->info[rix].spAckDuration;
 		else
@@ -1169,7 +1169,7 @@ ath_tx_calc_duration(struct ath_softc *sc, struct ath_buf *bf)
 		}
 
 		/* Update the duration field itself */
-		*(u_int16_t *)wh->i_dur = htole16(dur);
+		*(uint16_t *)wh->i_dur = htole16(dur);
 	}
 }
 
@@ -1557,7 +1557,7 @@ ath_tx_normal_setup(struct ath_softc *sc, struct ieee80211_node *ni,
 	struct ieee80211com *ic = &sc->sc_ic;
 	int error, iswep, ismcast, isfrag, ismrr;
 	int keyix, hdrlen, pktlen, try0 = 0;
-	u_int8_t rix = 0, txrate = 0;
+	uint8_t rix = 0, txrate = 0;
 	struct ath_desc *ds;
 	struct ieee80211_frame *wh;
 	u_int subtype, flags;
@@ -2142,7 +2142,7 @@ ath_tx_raw_start(struct ath_softc *sc, struct ieee80211_node *ni,
 	struct ieee80211vap *vap = ni->ni_vap;
 	int error, ismcast, ismrr;
 	int keyix, hdrlen, pktlen, try0, txantenna;
-	u_int8_t rix, txrate;
+	uint8_t rix, txrate;
 	struct ieee80211_frame *wh;
 	u_int flags;
 	HAL_PKT_TYPE atype;
@@ -2623,7 +2623,7 @@ ath_tx_action_frame_override_queue(struct ath_softc *sc,
 #endif
 
 	/* Extract out action frame */
-	frm = (u_int8_t *)&wh[1];
+	frm = (uint8_t *)&wh[1];
 	ia = (struct ieee80211_action_ba_addbarequest *) frm;
 
 	/* Not ADDBA? Bail */

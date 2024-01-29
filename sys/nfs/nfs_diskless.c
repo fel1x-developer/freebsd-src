@@ -345,7 +345,7 @@ match_done:
 static int
 inaddr_to_sockaddr(char *ev, struct sockaddr_in *sa)
 {
-	u_int32_t a[4];
+	uint32_t a[4];
 	char *cp;
 	int count;
 
@@ -368,7 +368,7 @@ static int
 hwaddr_to_sockaddr(char *ev, struct sockaddr_dl *sa)
 {
 	char *cp;
-	u_int32_t a[6];
+	uint32_t a[6];
 	int count;
 
 	bzero(sa, sizeof(*sa));

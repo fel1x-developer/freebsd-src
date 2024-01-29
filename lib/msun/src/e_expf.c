@@ -44,7 +44,7 @@ expf(float x)
 {
 	float y,hi=0.0,lo=0.0,c,t,twopk;
 	int32_t k=0,xsb;
-	u_int32_t hx;
+	uint32_t hx;
 
 	GET_FLOAT_WORD(hx,x);
 	xsb = (hx>>31)&1;		/* sign bit of x */
@@ -80,9 +80,9 @@ expf(float x)
     /* x is now in primary range */
 	t  = x*x;
 	if(k >= -125)
-	    SET_FLOAT_WORD(twopk,((u_int32_t)(0x7f+k))<<23);
+	    SET_FLOAT_WORD(twopk,((uint32_t)(0x7f+k))<<23);
 	else
-	    SET_FLOAT_WORD(twopk,((u_int32_t)(0x7f+(k+100)))<<23);
+	    SET_FLOAT_WORD(twopk,((uint32_t)(0x7f+(k+100)))<<23);
 	c  = x - t*(P1+t*P2);
 	if(k==0) 	return one-((x*c)/(c-(float)2.0)-x);
 	else 		y = one-((lo-(x*c)/((float)2.0-c))-hi);

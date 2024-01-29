@@ -240,7 +240,7 @@ chkquota(char *specname, struct quotafile *qfu, struct quotafile *qfg)
 	union dinode *dp;
 	struct fs *fs;
 	int i, ret, mode, errs = 0;
-	u_int32_t cg;
+	uint32_t cg;
 	ino_t curino, ino, inosused, userino = 0, groupino = 0;
 	dev_t dev, userdev = 0, groupdev = 0;
 	struct stat sb;

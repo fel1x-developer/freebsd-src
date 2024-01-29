@@ -381,7 +381,7 @@ rr_command_check(int len, struct icmp6_router_renum *rr, struct in6_addr *from,
 	if (rro.rro_seqnum > rr->rr_seqnum) {
 		syslog(LOG_WARNING,
 		    "<%s> rcvd old seqnum %d from %s",
-		    __func__, (u_int32_t)ntohl(rr->rr_seqnum),
+		    __func__, (uint32_t)ntohl(rr->rr_seqnum),
 		   inet_ntop(AF_INET6, from, ntopbuf, sizeof(ntopbuf)));
 		return (1);
 	}

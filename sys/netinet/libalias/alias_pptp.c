@@ -224,12 +224,12 @@ MODULE_DEPEND(alias_pptp, libalias, 1, 1, 1);
  */
 
 struct grehdr {				/* Enhanced GRE header. */
-	u_int16_t	gh_flags;	/* Flags. */
-	u_int16_t	gh_protocol;	/* Protocol type. */
-	u_int16_t	gh_length;	/* Payload length. */
-	u_int16_t	gh_call_id;	/* Call ID. */
-	u_int32_t	gh_seq_no;	/* Sequence number (optional). */
-	u_int32_t	gh_ack_no;	/* Acknowledgment number
+	uint16_t	gh_flags;	/* Flags. */
+	uint16_t	gh_protocol;	/* Protocol type. */
+	uint16_t	gh_length;	/* Payload length. */
+	uint16_t	gh_call_id;	/* Call ID. */
+	uint32_t	gh_seq_no;	/* Sequence number (optional). */
+	uint32_t	gh_ack_no;	/* Acknowledgment number
 					 * (optional). */
 };
 typedef struct grehdr GreHdr;
@@ -264,27 +264,27 @@ enum {
 
 /* Message structures */
 struct pptpMsgHead {
-	u_int16_t	length;	/* total length */
-	u_int16_t	msgType;/* PPTP message type */
-	u_int32_t	magic;	/* magic cookie */
-	u_int16_t	type;	/* control message type */
-	u_int16_t	resv0;	/* reserved */
+	uint16_t	length;	/* total length */
+	uint16_t	msgType;/* PPTP message type */
+	uint32_t	magic;	/* magic cookie */
+	uint16_t	type;	/* control message type */
+	uint16_t	resv0;	/* reserved */
 };
 typedef struct pptpMsgHead *PptpMsgHead;
 
 struct pptpCodes {
-	u_int8_t	resCode;/* Result Code */
-	u_int8_t	errCode;/* Error Code */
+	uint8_t	resCode;/* Result Code */
+	uint8_t	errCode;/* Error Code */
 };
 typedef struct pptpCodes *PptpCode;
 
 struct pptpCallIds {
-	u_int16_t	cid1;	/* Call ID field #1 */
-	u_int16_t	cid2;	/* Call ID field #2 */
+	uint16_t	cid1;	/* Call ID field #1 */
+	uint16_t	cid2;	/* Call ID field #2 */
 };
 typedef struct pptpCallIds *PptpCallId;
 
-static PptpCallId AliasVerifyPptp(struct ip *, u_int16_t *);
+static PptpCallId AliasVerifyPptp(struct ip *, uint16_t *);
 
 static void
 AliasHandlePptpOut(struct libalias *la,
@@ -294,7 +294,7 @@ AliasHandlePptpOut(struct libalias *la,
 	struct alias_link *pptp_lnk;
 	PptpCallId cptr;
 	PptpCode codes;
-	u_int16_t ctl_type;	/* control message type */
+	uint16_t ctl_type;	/* control message type */
 	struct tcphdr *tc;
 
 	/* Verify valid PPTP control message */
@@ -365,8 +365,8 @@ AliasHandlePptpIn(struct libalias *la,
 {
 	struct alias_link *pptp_lnk;
 	PptpCallId cptr;
-	u_int16_t *pcall_id;
-	u_int16_t ctl_type;	/* control message type */
+	uint16_t *pcall_id;
+	uint16_t ctl_type;	/* control message type */
 	struct tcphdr *tc;
 
 	/* Verify valid PPTP control message */
@@ -426,7 +426,7 @@ AliasHandlePptpIn(struct libalias *la,
 }
 
 static PptpCallId
-AliasVerifyPptp(struct ip *pip, u_int16_t * ptype) /* IP packet to examine/patch */
+AliasVerifyPptp(struct ip *pip, uint16_t * ptype) /* IP packet to examine/patch */
 {
 	int hlen, tlen, dlen;
 	PptpMsgHead hptr;
@@ -471,7 +471,7 @@ AliasHandlePptpGreOut(struct libalias *la, struct ip *pip)
 	gr = (GreHdr *)ip_next(pip);
 
 	/* Check GRE header bits. */
-	if ((ntohl(*((u_int32_t *)gr)) & PPTP_INIT_MASK) != PPTP_INIT_VALUE)
+	if ((ntohl(*((uint32_t *)gr)) & PPTP_INIT_MASK) != PPTP_INIT_VALUE)
 		return (-1);
 
 	lnk = FindPptpOutByPeerCallId(la, pip->ip_src, pip->ip_dst, gr->gh_call_id);
@@ -495,7 +495,7 @@ AliasHandlePptpGreIn(struct libalias *la, struct ip *pip)
 	gr = (GreHdr *)ip_next(pip);
 
 	/* Check GRE header bits. */
-	if ((ntohl(*((u_int32_t *)gr)) & PPTP_INIT_MASK) != PPTP_INIT_VALUE)
+	if ((ntohl(*((uint32_t *)gr)) & PPTP_INIT_MASK) != PPTP_INIT_VALUE)
 		return (-1);
 
 	lnk = FindPptpInByPeerCallId(la, pip->ip_src, pip->ip_dst, gr->gh_call_id);

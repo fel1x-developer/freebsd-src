@@ -506,8 +506,8 @@ freebsd4_ia32_sendsig(sig_t catcher, ksiginfo_t *ksi, sigset_t *mask)
 	bzero(&sf.sf_si, sizeof(sf.sf_si));
 	if (SIGISMEMBER(psp->ps_siginfo, sig)) {
 		/* Signal handler installed with SA_SIGINFO. */
-		sf.sf_siginfo = (u_int32_t)(uintptr_t)&sfp->sf_si;
-		sf.sf_ah = (u_int32_t)(uintptr_t)catcher;
+		sf.sf_siginfo = (uint32_t)(uintptr_t)&sfp->sf_si;
+		sf.sf_ah = (uint32_t)(uintptr_t)catcher;
 
 		/* Fill in POSIX parts */
 		sf.sf_si = siginfo;
@@ -515,8 +515,8 @@ freebsd4_ia32_sendsig(sig_t catcher, ksiginfo_t *ksi, sigset_t *mask)
 	} else {
 		/* Old FreeBSD-style arguments. */
 		sf.sf_siginfo = siginfo.si_code;
-		sf.sf_addr = (u_int32_t)siginfo.si_addr;
-		sf.sf_ah = (u_int32_t)(uintptr_t)catcher;
+		sf.sf_addr = (uint32_t)siginfo.si_addr;
+		sf.sf_ah = (uint32_t)(uintptr_t)catcher;
 	}
 	mtx_unlock(&psp->ps_mtx);
 
@@ -637,8 +637,8 @@ ia32_sendsig(sig_t catcher, ksiginfo_t *ksi, sigset_t *mask)
 	bzero(&sf.sf_si, sizeof(sf.sf_si));
 	if (SIGISMEMBER(psp->ps_siginfo, sig)) {
 		/* Signal handler installed with SA_SIGINFO. */
-		sf.sf_siginfo = (u_int32_t)(uintptr_t)&sfp->sf_si;
-		sf.sf_ah = (u_int32_t)(uintptr_t)catcher;
+		sf.sf_siginfo = (uint32_t)(uintptr_t)&sfp->sf_si;
+		sf.sf_ah = (uint32_t)(uintptr_t)catcher;
 
 		/* Fill in POSIX parts */
 		sf.sf_si = siginfo;
@@ -646,8 +646,8 @@ ia32_sendsig(sig_t catcher, ksiginfo_t *ksi, sigset_t *mask)
 	} else {
 		/* Old FreeBSD-style arguments. */
 		sf.sf_siginfo = siginfo.si_code;
-		sf.sf_addr = (u_int32_t)siginfo.si_addr;
-		sf.sf_ah = (u_int32_t)(uintptr_t)catcher;
+		sf.sf_addr = (uint32_t)siginfo.si_addr;
+		sf.sf_ah = (uint32_t)(uintptr_t)catcher;
 	}
 	mtx_unlock(&psp->ps_mtx);
 

@@ -103,7 +103,7 @@
  *  (unless there are no restrictions on who we can boot).
  */
 typedef struct client_s {
-	u_int8_t		addr[RMP_ADDRLEN];	/* addr of machine */
+	uint8_t		addr[RMP_ADDRLEN];	/* addr of machine */
 	char			*files[C_MAXFILE];	/* boot-able files */
 	struct client_s		*next;			/* ptr to next */
 } CLIENT;
@@ -136,14 +136,14 @@ extern	char	*BootDir;		/* directory w/boot files */
 extern	FILE	*DbgFp;			/* debug file pointer */
 extern	char	*IntfName;		/* interface we are attached to */
 
-extern	u_int16_t SessionID;		/* generated session ID */
+extern	uint16_t SessionID;		/* generated session ID */
 
 extern	char	*BootFiles[];		/* list of boot files */
 
 extern	CLIENT	*Clients;		/* list of addrs we'll accept */
 extern	RMPCONN	*RmpConns;		/* list of active connections */
 
-extern	u_int8_t RmpMcastAddr[];	/* RMP multicast address */
+extern	uint8_t RmpMcastAddr[];	/* RMP multicast address */
 
 void	 AddConn(RMPCONN *);
 int	 BootDone(RMPCONN *);
@@ -164,11 +164,11 @@ void	 FreeClients(void);
 void	 FreeConn(RMPCONN *);
 void	 FreeConns(void);
 int	 GetBootFiles(void);
-char	*GetEtherAddr(u_int8_t *);
-CLIENT	*NewClient(u_int8_t *);
+char	*GetEtherAddr(uint8_t *);
+CLIENT	*NewClient(uint8_t *);
 RMPCONN	*NewConn(RMPCONN *);
 char	*NewStr(char *);
-u_int8_t *ParseAddr(char *);
+uint8_t *ParseAddr(char *);
 int	 ParseConfig(void);
 void	 ProcessPacket(RMPCONN *, CLIENT *);
 void	 ReConfig(int);

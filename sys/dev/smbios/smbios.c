@@ -131,7 +131,7 @@ smbios_identify (driver_t *driver, device_t parent)
 			}
 		}
 		if (length != map_size) {
-			u_int8_t major, minor;
+			uint8_t major, minor;
 
 			major = eps->major_version;
 			minor = eps->minor_version;
@@ -301,9 +301,9 @@ smbios_cksum (void *v)
 {
 	struct smbios3_eps *eps3;
 	struct smbios_eps *eps;
-	u_int8_t *ptr;
-	u_int8_t cksum;
-	u_int8_t length;
+	uint8_t *ptr;
+	uint8_t cksum;
+	uint8_t length;
 	int i;
 
 	if (smbios_eps3(v)) {
@@ -313,7 +313,7 @@ smbios_cksum (void *v)
 		eps = (struct smbios_eps *)v;
 		length = eps->length;
 	}
-	ptr = (u_int8_t *)v;
+	ptr = (uint8_t *)v;
 	cksum = 0;
 	for (i = 0; i < length; i++) {
 		cksum += ptr[i];

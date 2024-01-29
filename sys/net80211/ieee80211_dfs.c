@@ -86,7 +86,7 @@ SYSCTL_INT(_net_wlan, OID_AUTO, dfs_debug, CTLFLAG_RW,
 #endif
 
 static int
-null_set_quiet(struct ieee80211_node *ni, u_int8_t *quiet_elm)
+null_set_quiet(struct ieee80211_node *ni, uint8_t *quiet_elm)
 {
 	return ENOSYS;
 }

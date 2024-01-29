@@ -145,8 +145,8 @@ static int
 amdpm_probe(device_t dev)
 {
 	u_long base;
-	u_int16_t vid;
-	u_int16_t did;
+	uint16_t vid;
+	uint16_t did;
 
 	vid = pci_get_vendor(dev);
 	did = pci_get_device(dev);

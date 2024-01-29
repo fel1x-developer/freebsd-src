@@ -505,7 +505,7 @@ create_service(struct netconfig *nconf)
 	int fd;
 	int nhostsbak;
 	int r;
-	u_int32_t host_addr[4];  /* IPv4 or IPv6 */
+	uint32_t host_addr[4];  /* IPv4 or IPv6 */
 	int mallocd_res;
 
 	if ((nconf->nc_semantics != NC_TPI_CLTS) &&

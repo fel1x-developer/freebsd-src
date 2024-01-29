@@ -667,14 +667,14 @@ nfs_feedback(int type, int proc, void *arg)
 int
 newnfs_request(struct nfsrv_descript *nd, struct nfsmount *nmp,
     struct nfsclient *clp, struct nfssockreq *nrp, vnode_t vp,
-    struct thread *td, struct ucred *cred, u_int32_t prog, u_int32_t vers,
-    u_char *retsum, int toplevel, u_int64_t *xidp, struct nfsclsession *dssep)
+    struct thread *td, struct ucred *cred, uint32_t prog, uint32_t vers,
+    u_char *retsum, int toplevel, uint64_t *xidp, struct nfsclsession *dssep)
 {
 	uint32_t retseq, retval, slotseq, *tl;
 	int i = 0, j = 0, opcnt, set_sigset = 0, slot;
 	int error = 0, usegssname = 0, secflavour = AUTH_SYS;
 	int freeslot, maxslot, reterr, slotpos, timeo;
-	u_int16_t procnum;
+	uint16_t procnum;
 	u_int nextconn;
 	struct nfs_feedback_arg nf;
 	struct timeval timo;
@@ -1098,8 +1098,8 @@ tryagain:
 		/*
 		 * and now the actual NFS xdr.
 		 */
-		NFSM_DISSECT(tl, u_int32_t *, NFSX_UNSIGNED);
-		nd->nd_repstat = fxdr_unsigned(u_int32_t, *tl);
+		NFSM_DISSECT(tl, uint32_t *, NFSX_UNSIGNED);
+		nd->nd_repstat = fxdr_unsigned(uint32_t, *tl);
 		if (nd->nd_repstat >= 10000)
 			NFSCL_DEBUG(1, "proc=%d reps=%d\n", (int)nd->nd_procnum,
 			    (int)nd->nd_repstat);
@@ -1110,12 +1110,12 @@ tryagain:
 		 */
 		if ((nd->nd_flag & ND_NFSV4) != 0 && nd->nd_repstat !=
 		    NFSERR_MINORVERMISMATCH) {
-			NFSM_DISSECT(tl, u_int32_t *, NFSX_UNSIGNED);
+			NFSM_DISSECT(tl, uint32_t *, NFSX_UNSIGNED);
 			i = fxdr_unsigned(int, *tl);
 			error = nfsm_advance(nd, NFSM_RNDUP(i), -1);
 			if (error)
 				goto nfsmout;
-			NFSM_DISSECT(tl, u_int32_t *, 3 * NFSX_UNSIGNED);
+			NFSM_DISSECT(tl, uint32_t *, 3 * NFSX_UNSIGNED);
 			opcnt = fxdr_unsigned(int, *tl++);
 			i = fxdr_unsigned(int, *tl++);
 			j = fxdr_unsigned(int, *tl);
@@ -1371,7 +1371,7 @@ tryagain:
 			if (j >= 10000)
 				NFSCL_DEBUG(1, "nop=%d nst=%d\n", i, j);
 			if (nmp != NULL && i == NFSV4OP_PUTFH && j == 0) {
-				NFSM_DISSECT(tl,u_int32_t *,2 * NFSX_UNSIGNED);
+				NFSM_DISSECT(tl,uint32_t *,2 * NFSX_UNSIGNED);
 				i = fxdr_unsigned(int, *tl++);
 				j = fxdr_unsigned(int, *tl);
 				if (j >= 10000)

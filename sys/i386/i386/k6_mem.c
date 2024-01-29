@@ -62,7 +62,7 @@
 static void	k6_mrinit(struct mem_range_softc *sc);
 static int	k6_mrset(struct mem_range_softc *, struct mem_range_desc *,
 		    int *);
-static __inline int k6_mrmake(struct mem_range_desc *, u_int32_t *);
+static __inline int k6_mrmake(struct mem_range_desc *, uint32_t *);
 static void	k6_mem_drvinit(void *);
 
 static struct mem_range_ops k6_mrops =
@@ -74,9 +74,9 @@ static struct mem_range_ops k6_mrops =
 };
 
 static __inline int
-k6_mrmake(struct mem_range_desc *desc, u_int32_t *mtrr)
+k6_mrmake(struct mem_range_desc *desc, uint32_t *mtrr)
 {
-	u_int32_t len = 0, wc, uc;
+	uint32_t len = 0, wc, uc;
 	int bit;
 
 	if (desc->mr_base &~ 0xfffe0000)
@@ -98,8 +98,8 @@ k6_mrmake(struct mem_range_desc *desc, u_int32_t *mtrr)
 static void
 k6_mrinit(struct mem_range_softc *sc)
 {
-	u_int64_t reg;
-	u_int32_t addr, mask, wc, uc;
+	uint64_t reg;
+	uint32_t addr, mask, wc, uc;
 	int d;
 
 	sc->mr_cap = 0;
@@ -111,7 +111,7 @@ k6_mrinit(struct mem_range_softc *sc)
 
 	reg = rdmsr(UWCCR);
 	for (d = 0; d < sc->mr_ndesc; d++) {
-		u_int32_t one = (reg & (0xffffffff << (32 * d))) >> (32 * d);
+		uint32_t one = (reg & (0xffffffff << (32 * d))) >> (32 * d);
 
 		K6_REG_GET(one, addr, mask, wc, uc);
 		sc->mr_desc[d].mr_base = addr;
@@ -128,8 +128,8 @@ k6_mrinit(struct mem_range_softc *sc)
 static int
 k6_mrset(struct mem_range_softc *sc, struct mem_range_desc *desc, int *arg)
 {
-	u_int64_t reg;
-	u_int32_t mtrr;
+	uint64_t reg;
+	uint32_t mtrr;
 	int error, d;
 
 	switch (*arg) {

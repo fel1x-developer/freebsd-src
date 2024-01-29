@@ -645,7 +645,7 @@ ram_attach(device_t dev)
 	smapbase = (struct bios_smap *)preload_search_info(kmdp,
 	    MODINFO_METADATA | MODINFOMD_SMAP);
 	if (smapbase != NULL) {
-		smapsize = *((u_int32_t *)smapbase - 1);
+		smapsize = *((uint32_t *)smapbase - 1);
 		smapend = (struct bios_smap *)((uintptr_t)smapbase + smapsize);
 
 		rid = 0;

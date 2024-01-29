@@ -1010,7 +1010,7 @@ static int
 pf_nveth_rule_addr_to_keth_rule_addr(const nvlist_t *nvl,
     struct pf_keth_rule_addr *krule)
 {
-	static const u_int8_t EMPTY_MAC[ETHER_ADDR_LEN] = { 0 };
+	static const uint8_t EMPTY_MAC[ETHER_ADDR_LEN] = { 0 };
 	int error = 0;
 
 	PFNV_CHK(pf_nvbinary(nvl, "addr", &krule->addr, sizeof(krule->addr)));

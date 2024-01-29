@@ -111,8 +111,8 @@ static struct dcons_state {
 		int sport;
 		struct dcons_ch o;
 		struct dcons_ch i;
-		u_int32_t optr;
-		u_int32_t iptr;
+		uint32_t optr;
+		uint32_t iptr;
 		int s;
 		int infd;
 		int outfd;
@@ -271,7 +271,7 @@ dconschat_get_crom(struct dcons_state *dc)
 {
 	off_t addr;
 	int i, state = 0;
-	u_int32_t buf, hi = 0, lo = 0, reset_hi = 0, reset_lo = 0;
+	uint32_t buf, hi = 0, lo = 0, reset_hi = 0, reset_lo = 0;
 	struct csrreg *reg; 
 
 	reg = (struct csrreg *)&buf;
@@ -435,7 +435,7 @@ dconschat_fetch_header(struct dcons_state *dc)
 static int
 dconschat_get_ptr (struct dcons_state *dc) {
 	int dlen, i;
-	u_int32_t ptr[DCONS_NPORT*2+1];
+	uint32_t ptr[DCONS_NPORT*2+1];
 	static int retry = RETRY;
 	char ebuf[64];
 
@@ -470,7 +470,7 @@ static int
 dconschat_read_dcons(struct dcons_state *dc, int port, char *buf, int len)
 {
 	struct dcons_ch *ch;
-	u_int32_t ptr, pos, gen, next_gen;
+	uint32_t ptr, pos, gen, next_gen;
 	int rlen, dlen, lost;
 	int retry = RETRY;
 
@@ -548,7 +548,7 @@ static int
 dconschat_write_dcons(struct dcons_state *dc, int port, char *buf, int blen)
 {
 	struct dcons_ch *ch;
-	u_int32_t ptr;
+	uint32_t ptr;
 	int len, wlen;
 	int retry = RETRY;
 
@@ -588,7 +588,7 @@ dconschat_write_dcons(struct dcons_state *dc, int port, char *buf, int blen)
 	if (verbose > 2)
 		printf("(iptr: 0x%x)", ptr);
 again:
-	len = dwrite(dc, &ptr, sizeof(u_int32_t),
+	len = dwrite(dc, &ptr, sizeof(uint32_t),
 		dc->paddr + __offsetof(struct dcons_buf, iptr[port]));
 	if (len < 0) {
 		if (errno == ETIMEDOUT)
@@ -1029,8 +1029,8 @@ main(int argc, char **argv)
 			if (eui64_hostton(optarg, &target) != 0 &&
 			    eui64_aton(optarg, &target) != 0)
 				errx(1, "invalid target: %s", optarg);
-			eui.hi = ntohl(*(u_int32_t*)&(target.octet[0]));
-			eui.lo = ntohl(*(u_int32_t*)&(target.octet[4]));
+			eui.hi = ntohl(*(uint32_t*)&(target.octet[0]));
+			eui.lo = ntohl(*(uint32_t*)&(target.octet[4]));
 			dc->type = TYPE_FW;
 			break;
 		case 'u':

@@ -99,7 +99,7 @@ struct ifnet {
 	int	if_amcount;		/* number of all-multicast requests */
 	struct	ifaddr	*if_addr;	/* pointer to link-level address */
 	void	*if_hw_addr;		/* hardware link-level address */
-	const u_int8_t *if_broadcastaddr; /* linklevel broadcast bytestring */
+	const uint8_t *if_broadcastaddr; /* linklevel broadcast bytestring */
 	struct	mtx if_afdata_lock;
 	void	*if_afdata[AF_MAX];
 	int	if_afdata_initialized;

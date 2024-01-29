@@ -55,16 +55,16 @@ extern FILE			*yyin;
 
 static struct named_csid_list	 named_csids;
 static char			*encoding, *name, *output = NULL, *variable;
-static u_int32_t		 invalid;
+static uint32_t		 invalid;
 static int			 debug = 0, num_csids = 0, use_invalid = 0;
 
 static void	 dump_file(void);
-static void	 register_named_csid(char *, u_int32_t);
-static void	 set_invalid(u_int32_t);
+static void	 register_named_csid(char *, uint32_t);
+static void	 set_invalid(uint32_t);
 static void	 set_prop_string(const char *, char **, char **);
 %}
 %union {
-	u_int32_t	i_value;
+	uint32_t	i_value;
 	char		*s_value;
 }
 
@@ -224,7 +224,7 @@ set_prop_string(const char *res, char **store, char **data)
 }
 
 static void
-set_invalid(u_int32_t inv)
+set_invalid(uint32_t inv)
 {
 
 	invalid = inv;
@@ -232,7 +232,7 @@ set_invalid(u_int32_t inv)
 }
 
 static void
-register_named_csid(char *sym, u_int32_t val)
+register_named_csid(char *sym, uint32_t val)
 {
 	struct named_csid *csid;
 

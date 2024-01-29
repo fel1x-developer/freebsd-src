@@ -152,7 +152,7 @@ void
 client_dispatch_dns(int fd, short events, void *p)
 {
 	struct imsg		 imsg;
-	u_int16_t		 dlen;
+	uint16_t		 dlen;
 	u_char			*data;
 	struct ypldap_addr	*h;
 	int			 n, wait_cnt = 0;
@@ -671,7 +671,7 @@ client_configure(struct env *env)
 {
 	struct timeval	 tv;
 	struct idm	*idm;
-        u_int16_t        dlen;
+        uint16_t        dlen;
 
 	log_debug("connecting to directories");
 

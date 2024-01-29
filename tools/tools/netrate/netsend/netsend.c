@@ -138,7 +138,7 @@ timing_loop(struct _a *a)
 {
 	struct timespec nexttime, starttime, tmptime;
 	long long waited;
-	u_int32_t counter;
+	uint32_t counter;
 	long finishtime;
 	long send_errors, send_calls;
 	/* do not call gettimeofday more than every 20us */

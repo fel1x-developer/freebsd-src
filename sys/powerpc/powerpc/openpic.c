@@ -74,7 +74,7 @@ openpic_common_attach(device_t dev, uint32_t node)
 {
 	struct openpic_softc *sc;
 	u_int     cpu, ipi, irq;
-	u_int32_t x;
+	uint32_t x;
 
 	sc = device_get_softc(dev);
 	sc->sc_dev = dev;

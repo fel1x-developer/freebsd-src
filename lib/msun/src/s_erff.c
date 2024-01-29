@@ -82,7 +82,7 @@ erff(float x)
 	GET_FLOAT_WORD(hx,x);
 	ix = hx&0x7fffffff;
 	if(ix>=0x7f800000) {		/* erff(nan)=nan */
-	    i = ((u_int32_t)hx>>31)<<1;
+	    i = ((uint32_t)hx>>31)<<1;
 	    return (float)(1-i)+one/x;	/* erff(+-inf)=+-1 */
 	}
 
@@ -130,7 +130,7 @@ erfcf(float x)
 	ix = hx&0x7fffffff;
 	if(ix>=0x7f800000) {			/* erfcf(nan)=nan */
 						/* erfcf(+-inf)=0,2 */
-	    return (float)(((u_int32_t)hx>>31)<<1)+one/x;
+	    return (float)(((uint32_t)hx>>31)<<1)+one/x;
 	}
 
 	if(ix < 0x3f580000) {		/* |x|<0.84375 */

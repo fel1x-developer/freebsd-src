@@ -671,12 +671,12 @@ fsl_sata_slotsfree(device_t dev)
 }
 
 static int
-fsl_sata_phy_check_events(struct fsl_sata_channel *ch, u_int32_t serr)
+fsl_sata_phy_check_events(struct fsl_sata_channel *ch, uint32_t serr)
 {
 
 	if (((ch->pm_level == 0) && (serr & ATA_SE_PHY_CHANGED)) ||
 	    ((ch->pm_level != 0) && (serr & ATA_SE_EXCHANGED))) {
-		u_int32_t status = ATA_INL(ch->r_mem, FSL_SATA_P_SSTS);
+		uint32_t status = ATA_INL(ch->r_mem, FSL_SATA_P_SSTS);
 		union ccb *ccb;
 
 		if (bootverbose) {
@@ -702,7 +702,7 @@ fsl_sata_phy_check_events(struct fsl_sata_channel *ch, u_int32_t serr)
 }
 
 static void
-fsl_sata_notify_events(struct fsl_sata_channel *ch, u_int32_t status)
+fsl_sata_notify_events(struct fsl_sata_channel *ch, uint32_t status)
 {
 	struct cam_path *dpath;
 	int i;
@@ -1522,7 +1522,7 @@ fsl_sata_process_request_sense(struct fsl_sata_channel *ch, union ccb *ccb)
 static void
 fsl_sata_start(struct fsl_sata_channel *ch)
 {
-	u_int32_t cmd;
+	uint32_t cmd;
 
 	/* Clear SATA error register */
 	ATA_OUTL(ch->r_mem, FSL_SATA_P_SERR, 0xFFFFFFFF);

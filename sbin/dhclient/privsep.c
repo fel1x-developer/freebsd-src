@@ -110,7 +110,7 @@ dispatch_imsg(struct interface_info *ifix, int fd)
 	struct client_lease	 lease;
 	int			 ret, i;
 	struct buf		*buf;
-	u_int16_t		mtu;
+	uint16_t		mtu;
 
 	buf_read(fd, &hdr, sizeof(hdr));
 
@@ -236,10 +236,10 @@ dispatch_imsg(struct interface_info *ifix, int fd)
 		send_packet_priv(ifix, &hdr, fd);
 		break;
 	case IMSG_SET_INTERFACE_MTU:
-		if (hdr.len < sizeof(hdr) + sizeof(u_int16_t))
+		if (hdr.len < sizeof(hdr) + sizeof(uint16_t))
 			error("corrupted message received");	
 	
-		buf_read(fd, &mtu, sizeof(u_int16_t));
+		buf_read(fd, &mtu, sizeof(uint16_t));
 		interface_set_mtu_priv(ifix->name, mtu);
 		break;
 	default:

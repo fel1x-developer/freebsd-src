@@ -912,8 +912,8 @@ reset_dbregs(void)
 int
 user_dbreg_trap(register_t dr6)
 {
-        u_int64_t dr7;
-        u_int64_t bp;       /* breakpoint bits extracted from dr6 */
+        uint64_t dr7;
+        uint64_t bp;       /* breakpoint bits extracted from dr6 */
         int nbp;            /* number of breakpoints that triggered */
         caddr_t addr[4];    /* breakpoint addresses */
         int i;

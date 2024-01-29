@@ -117,9 +117,9 @@ print(PR *pr, u_char *bp)
 	  int16_t s2;
 	  int32_t s4;
 	  int64_t s8;
-	u_int16_t u2;
-	u_int32_t u4;
-	u_int64_t u8;
+	uint16_t u2;
+	uint32_t u4;
+	uint64_t u8;
 
 	switch(pr->flags) {
 	case F_ADDRESS:

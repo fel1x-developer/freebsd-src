@@ -272,7 +272,7 @@ do_char(struct lcd_driver *driver, char ch)
  */
 
 static int	hd_fd;
-static u_int8_t	hd_cbits;
+static uint8_t	hd_cbits;
 static int	hd_lines = 2;
 static int	hd_blink = 0;
 static int 	hd_cursor = 0;
@@ -286,8 +286,8 @@ static int	hd_font = 0;
 #define HD_BF		0x80		/* internal busy flag */
 #define HD_ADDRMASK	0x7f		/* DDRAM address mask */
 
-#define hd_sctrl(v)	{u_int8_t _val; _val = hd_cbits | v; ioctl(hd_fd, PPISCTRL, &_val);}
-#define hd_sdata(v)	{u_int8_t _val; _val = v; ioctl(hd_fd, PPISDATA, &_val);}
+#define hd_sctrl(v)	{uint8_t _val; _val = hd_cbits | v; ioctl(hd_fd, PPISCTRL, &_val);}
+#define hd_sdata(v)	{uint8_t _val; _val = v; ioctl(hd_fd, PPISDATA, &_val);}
 #define hd_gdata(v)	ioctl(hd_fd, PPIGDATA, &v)
 
 static void
@@ -296,14 +296,14 @@ hd44780_output(int type, int data)
     debug(3, "%s -> 0x%02x", (type == HD_COMMAND) ? "cmd " : "data", data);
     hd_sctrl(type | HD_WRITE | STROBE);	/* set direction, address */
     hd_sctrl(type | HD_WRITE);		/* raise E */
-    hd_sdata((u_int8_t) data);		/* drive data */
+    hd_sdata((uint8_t) data);		/* drive data */
     hd_sctrl(type | HD_WRITE | STROBE);	/* lower E */
 }
 
 static int
 hd44780_input(int type) 
 {
-    u_int8_t	val;
+    uint8_t	val;
 
     hd_sctrl(type | HD_READ | STROBE);	/* set direction, address */ 
     hd_sctrl(type | HD_READ);		/* raise E */
@@ -361,7 +361,7 @@ hd44780_finish(void)
 static void
 hd44780_command(int cmd) 
 {
-    u_int8_t	val;
+    uint8_t	val;
 
     switch (cmd) {
     case CMD_RESET:	/* full manual reset and reconfigure as per datasheet */

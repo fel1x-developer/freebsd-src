@@ -12851,7 +12851,7 @@ send:
 				if (tp->t_state == TCPS_SYN_RECEIVED) {
 					to.to_tfo_len = TCP_FASTOPEN_COOKIE_LEN;
 					to.to_tfo_cookie =
-					    (u_int8_t *)&tp->t_tfo_cookie.server;
+					    (uint8_t *)&tp->t_tfo_cookie.server;
 					to.to_flags |= TOF_FASTOPEN;
 					wanted_cookie = 1;
 				} else if (tp->t_state == TCPS_SYN_SENT) {

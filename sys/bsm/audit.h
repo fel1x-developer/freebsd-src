@@ -177,21 +177,21 @@ __BEGIN_DECLS
 
 typedef	uid_t		au_id_t;
 typedef	pid_t		au_asid_t;
-typedef	u_int16_t	au_event_t;
-typedef	u_int16_t	au_emod_t;
-typedef	u_int32_t	au_class_t;
-typedef	u_int64_t	au_asflgs_t __attribute__ ((aligned (8)));
+typedef	uint16_t	au_event_t;
+typedef	uint16_t	au_emod_t;
+typedef	uint32_t	au_class_t;
+typedef	uint64_t	au_asflgs_t __attribute__ ((aligned (8)));
 
 struct au_tid {
-	u_int32_t	port;		/* XXX dev_t compatibility */
-	u_int32_t	machine;
+	uint32_t	port;		/* XXX dev_t compatibility */
+	uint32_t	machine;
 };
 typedef	struct au_tid	au_tid_t;
 
 struct au_tid_addr {
-	u_int32_t	at_port;	/* XXX dev_t compatibility */
-	u_int32_t	at_type;
-	u_int32_t	at_addr[4];
+	uint32_t	at_port;	/* XXX dev_t compatibility */
+	uint32_t	at_type;
+	uint32_t	at_addr[4];
 };
 typedef	struct au_tid_addr	au_tid_addr_t;
 
@@ -294,8 +294,8 @@ typedef	struct audit_stat	au_stat_t;
  * Structure for the audit file statistics.
  */
 struct audit_fstat {
-	u_int64_t	af_filesz;
-	u_int64_t	af_currsz;
+	uint64_t	af_filesz;
+	uint64_t	af_currsz;
 };
 typedef	struct audit_fstat	au_fstat_t;
 

@@ -47,12 +47,12 @@
 /*
  * OZ's original sdbm hash
  */
-u_int32_t
+uint32_t
 hash(const void *keyarg, size_t len)
 {
 	const u_char *key;
 	size_t loop;
-	u_int32_t h;
+	uint32_t h;
 
 #define HASHC   h = *key++ + 65599 * h
 
@@ -97,7 +97,7 @@ hash(const void *keyarg, size_t len)
  * We mask off all but the lower 8 bits since our table array
  * can only hole 256 elements.
  */
-u_int32_t hashkey(char *key)
+uint32_t hashkey(char *key)
 {
 
 	if (key == NULL)
@@ -130,7 +130,7 @@ void mstore (struct member_entry *table[], char *key, int gid, int dup)
 {
 	struct member_entry *cur, *new;
 	struct grouplist *tmp;
-	u_int32_t i;
+	uint32_t i;
 
 	i = hashkey(key);
 	cur = table[i];

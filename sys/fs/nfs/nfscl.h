@@ -37,9 +37,9 @@
  * name.
  */
 struct nfsv4node {
-	u_int16_t	n4_fhlen;
-	u_int16_t	n4_namelen;
-	u_int8_t	n4_data[1];
+	uint16_t	n4_fhlen;
+	uint16_t	n4_namelen;
+	uint8_t	n4_data[1];
 };
 
 #define	NFS4NODENAME(n)	(&((n)->n4_data[(n)->n4_fhlen]))

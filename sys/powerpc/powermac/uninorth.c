@@ -230,7 +230,7 @@ unin_update_reg(device_t dev, uint32_t regoff, uint32_t set, uint32_t clr)
 {
 	volatile u_int *reg;
 	struct unin_chip_softc *sc;
-	u_int32_t tmpl;
+	uint32_t tmpl;
 
 	sc = device_get_softc(dev);
 	reg = (void *)(sc->sc_addr + regoff);

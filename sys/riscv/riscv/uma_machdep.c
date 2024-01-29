@@ -35,7 +35,7 @@
 #include <vm/uma_int.h>
 
 void *
-uma_small_alloc(uma_zone_t zone, vm_size_t bytes, int domain, u_int8_t *flags,
+uma_small_alloc(uma_zone_t zone, vm_size_t bytes, int domain, uint8_t *flags,
     int wait)
 {
 	vm_page_t m;
@@ -55,7 +55,7 @@ uma_small_alloc(uma_zone_t zone, vm_size_t bytes, int domain, u_int8_t *flags,
 }
 
 void
-uma_small_free(void *mem, vm_size_t size, u_int8_t flags)
+uma_small_free(void *mem, vm_size_t size, uint8_t flags)
 {
 	vm_page_t m;
 	vm_paddr_t pa;

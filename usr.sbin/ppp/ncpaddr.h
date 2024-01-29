@@ -63,8 +63,8 @@ extern int ncpaddr_isset(const struct ncpaddr *);
 extern int ncpaddr_isdefault(const struct ncpaddr *);
 extern int ncpaddr_equal(const struct ncpaddr *, const struct ncpaddr *);
 extern void ncpaddr_copy(struct ncpaddr *, const struct ncpaddr *);
-extern void ncpaddr_setip4addr(struct ncpaddr *, u_int32_t);
-extern int ncpaddr_getip4addr(const struct ncpaddr *, u_int32_t *);
+extern void ncpaddr_setip4addr(struct ncpaddr *, uint32_t);
+extern int ncpaddr_getip4addr(const struct ncpaddr *, uint32_t *);
 extern void ncpaddr_setip4(struct ncpaddr *, struct in_addr);
 extern int ncpaddr_getip4(const struct ncpaddr *, struct in_addr *);
 #ifndef NOINET6

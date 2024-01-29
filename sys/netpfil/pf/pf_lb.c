@@ -58,7 +58,7 @@ static void		 pf_hash(struct pf_addr *, struct pf_addr *,
 			    struct pf_poolhashkey *, sa_family_t);
 static struct pf_krule	*pf_match_translation(struct pf_pdesc *, struct mbuf *,
 			    int, struct pfi_kkif *,
-			    struct pf_addr *, u_int16_t, struct pf_addr *,
+			    struct pf_addr *, uint16_t, struct pf_addr *,
 			    uint16_t, int, struct pf_kanchor_stackframe *);
 static int pf_get_sport(sa_family_t, uint8_t, struct pf_krule *,
     struct pf_addr *, uint16_t, struct pf_addr *, uint16_t, struct pf_addr *,
@@ -84,7 +84,7 @@ static void
 pf_hash(struct pf_addr *inaddr, struct pf_addr *hash,
     struct pf_poolhashkey *key, sa_family_t af)
 {
-	u_int32_t	a = 0x9e3779b9, b = 0x9e3779b9, c = key->key32[0];
+	uint32_t	a = 0x9e3779b9, b = 0x9e3779b9, c = key->key32[0];
 
 	switch (af) {
 #ifdef INET
@@ -123,7 +123,7 @@ pf_hash(struct pf_addr *inaddr, struct pf_addr *hash,
 
 static struct pf_krule *
 pf_match_translation(struct pf_pdesc *pd, struct mbuf *m, int off,
-    struct pfi_kkif *kif, struct pf_addr *saddr, u_int16_t sport,
+    struct pfi_kkif *kif, struct pf_addr *saddr, uint16_t sport,
     struct pf_addr *daddr, uint16_t dport, int rs_num,
     struct pf_kanchor_stackframe *anchor_stack)
 {
@@ -213,7 +213,7 @@ pf_match_translation(struct pf_pdesc *pd, struct mbuf *m, int off,
 }
 
 static int
-pf_get_sport(sa_family_t af, u_int8_t proto, struct pf_krule *r,
+pf_get_sport(sa_family_t af, uint8_t proto, struct pf_krule *r,
     struct pf_addr *saddr, uint16_t sport, struct pf_addr *daddr,
     uint16_t dport, struct pf_addr *naddr, uint16_t *nport, uint16_t low,
     uint16_t high, struct pf_ksrc_node **sn)
@@ -313,7 +313,7 @@ pf_get_sport(sa_family_t af, u_int8_t proto, struct pf_krule *r,
 }
 
 static int
-pf_get_mape_sport(sa_family_t af, u_int8_t proto, struct pf_krule *r,
+pf_get_mape_sport(sa_family_t af, uint8_t proto, struct pf_krule *r,
     struct pf_addr *saddr, uint16_t sport, struct pf_addr *daddr,
     uint16_t dport, struct pf_addr *naddr, uint16_t *nport,
     struct pf_ksrc_node **sn)

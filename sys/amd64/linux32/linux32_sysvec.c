@@ -115,9 +115,9 @@ static void	linux32_set_fork_retval(struct thread *td);
 static void	linux32_set_syscall_retval(struct thread *td, int error);
 
 struct linux32_ps_strings {
-	u_int32_t ps_argvstr;	/* first of 0 or more argument strings */
+	uint32_t ps_argvstr;	/* first of 0 or more argument strings */
 	u_int ps_nargvstr;	/* the number of argument strings */
-	u_int32_t ps_envstr;	/* first of 0 or more environment strings */
+	uint32_t ps_envstr;	/* first of 0 or more environment strings */
 	u_int ps_nenvstr;	/* the number of environment strings */
 };
 #define	LINUX32_PS_STRINGS	(LINUX32_USRSTACK - \
@@ -213,7 +213,7 @@ linux_rt_sendsig(sig_t catcher, ksiginfo_t *ksi, sigset_t *mask)
 	frame.sf_uc.uc_mcontext.sc_esp_at_signal = regs->tf_rsp;
 	frame.sf_uc.uc_mcontext.sc_ss     = regs->tf_ss;
 	frame.sf_uc.uc_mcontext.sc_err    = regs->tf_err;
-	frame.sf_uc.uc_mcontext.sc_cr2    = (u_int32_t)(uintptr_t)ksi->ksi_addr;
+	frame.sf_uc.uc_mcontext.sc_cr2    = (uint32_t)(uintptr_t)ksi->ksi_addr;
 	frame.sf_uc.uc_mcontext.sc_trapno = bsd_to_linux_trapcode(code);
 
 	if (copyout(&frame, fp, sizeof(frame)) != 0) {
@@ -317,7 +317,7 @@ linux_sendsig(sig_t catcher, ksiginfo_t *ksi, sigset_t *mask)
 	frame.sf_sc.sc_esp_at_signal = regs->tf_rsp;
 	frame.sf_sc.sc_ss     = regs->tf_ss;
 	frame.sf_sc.sc_err    = regs->tf_err;
-	frame.sf_sc.sc_cr2    = (u_int32_t)(uintptr_t)ksi->ksi_addr;
+	frame.sf_sc.sc_cr2    = (uint32_t)(uintptr_t)ksi->ksi_addr;
 	frame.sf_sc.sc_trapno = bsd_to_linux_trapcode(code);
 
 	if (copyout(&frame, fp, sizeof(frame)) != 0) {
@@ -617,7 +617,7 @@ static int
 linux_copyout_strings(struct image_params *imgp, uintptr_t *stack_base)
 {
 	int argc, envc, error;
-	u_int32_t *vectp;
+	uint32_t *vectp;
 	char *stringp;
 	uintptr_t destp, ustringp;
 	struct linux32_ps_strings *arginfo;

@@ -32,8 +32,8 @@
 
 typedef unsigned char *POINTER;
 typedef const unsigned char *CONST_POINTER;
-typedef u_int16_t UINT2;
-typedef u_int32_t UINT4;
+typedef uint16_t UINT2;
+typedef uint32_t UINT4;
 
 #define PROTO_LIST(list) list
 

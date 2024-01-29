@@ -97,7 +97,7 @@ static struct ng_type	typestruct = {
 
 /* Globals */
 extern int					ifqmaxlen;
-static u_int32_t				ng_btsocket_l2cap_debug_level;
+static uint32_t				ng_btsocket_l2cap_debug_level;
 static node_p					ng_btsocket_l2cap_node;
 static struct ng_bt_itemq			ng_btsocket_l2cap_queue;
 static struct mtx				ng_btsocket_l2cap_queue_mtx;
@@ -186,13 +186,13 @@ static int ng_btsocket_l2cap_process_l2ca_write_rsp
 static int  ng_btsocket_l2cap_send_l2ca_con_req
 	(ng_btsocket_l2cap_pcb_p);
 static int  ng_btsocket_l2cap_send_l2ca_con_rsp_req
-	(u_int32_t, ng_btsocket_l2cap_rtentry_p, bdaddr_p, int, int, int, int);
+	(uint32_t, ng_btsocket_l2cap_rtentry_p, bdaddr_p, int, int, int, int);
 static int  ng_btsocket_l2cap_send_l2ca_cfg_req
 	(ng_btsocket_l2cap_pcb_p);
 static int  ng_btsocket_l2cap_send_l2ca_cfg_rsp
 	(ng_btsocket_l2cap_pcb_p);
 static int  ng_btsocket_l2cap_send_l2ca_discon_req
-	(u_int32_t, ng_btsocket_l2cap_pcb_p);
+	(uint32_t, ng_btsocket_l2cap_pcb_p);
 
 static int ng_btsocket_l2cap_send2
 	(ng_btsocket_l2cap_pcb_p);
@@ -210,7 +210,7 @@ static void ng_btsocket_l2cap_process_timeout (void *);
  */
 
 static ng_btsocket_l2cap_pcb_p     ng_btsocket_l2cap_pcb_by_addr(bdaddr_p, int);
-static ng_btsocket_l2cap_pcb_p     ng_btsocket_l2cap_pcb_by_token(u_int32_t);
+static ng_btsocket_l2cap_pcb_p     ng_btsocket_l2cap_pcb_by_token(uint32_t);
 static ng_btsocket_l2cap_pcb_p     ng_btsocket_l2cap_pcb_by_cid (bdaddr_p, int,int);
 static int                         ng_btsocket_l2cap_result2errno(int);
 
@@ -591,8 +591,8 @@ ng_btsocket_l2cap_process_l2ca_con_ind(struct ng_mesg *msg,
 	ng_l2cap_l2ca_con_ind_ip	*ip = NULL;
 	ng_btsocket_l2cap_pcb_t		*pcb = NULL, *pcb1 = NULL;
 	int				 error = 0;
-	u_int32_t			 token = 0;
-	u_int16_t			 result = 0;
+	uint32_t			 token = 0;
+	uint16_t			 result = 0;
 
 	if (msg->header.arglen != sizeof(*ip))
 		return (EMSGSIZE);
@@ -1253,7 +1253,7 @@ ng_btsocket_l2cap_send_l2ca_con_req(ng_btsocket_l2cap_pcb_p pcb)
  */
 
 static int
-ng_btsocket_l2cap_send_l2ca_con_rsp_req(u_int32_t token,
+ng_btsocket_l2cap_send_l2ca_con_rsp_req(uint32_t token,
 		ng_btsocket_l2cap_rtentry_p rt, bdaddr_p dst, int ident, 
 					int lcid, int result, int linktype)
 {
@@ -1359,7 +1359,7 @@ ng_btsocket_l2cap_send_l2ca_cfg_rsp(ng_btsocket_l2cap_pcb_p pcb)
  */
 
 static int
-ng_btsocket_l2cap_send_l2ca_discon_req(u_int32_t token,
+ng_btsocket_l2cap_send_l2ca_discon_req(uint32_t token,
 		ng_btsocket_l2cap_pcb_p pcb)
 {
 	struct ng_mesg		*msg = NULL;
@@ -1974,7 +1974,7 @@ ng_btsocket_l2cap_close(struct socket *so)
 int
 ng_btsocket_l2cap_attach(struct socket *so, int proto, struct thread *td)
 {
-	static u_int32_t	token = 0;
+	static uint32_t	token = 0;
 	ng_btsocket_l2cap_pcb_p	pcb = so2l2cap_pcb(so);
 	int			error;
 
@@ -2737,7 +2737,7 @@ ng_btsocket_l2cap_pcb_by_addr(bdaddr_p bdaddr, int psm)
  */
 
 static ng_btsocket_l2cap_pcb_p
-ng_btsocket_l2cap_pcb_by_token(u_int32_t token)
+ng_btsocket_l2cap_pcb_by_token(uint32_t token)
 {
 	ng_btsocket_l2cap_pcb_p	p = NULL;
 

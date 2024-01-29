@@ -168,13 +168,13 @@ struct file_lock *	allocate_file_lock(const netobj *lockowner,
 void	deallocate_file_lock(struct file_lock *fl);
 void	fill_file_lock(struct file_lock *fl, const fhandle_t *fh,
 		       const bool_t exclusive, const int32_t svid,
-    const u_int64_t offset, const u_int64_t len,
+    const uint64_t offset, const uint64_t len,
     const int state, const int status, const int flags, const int blocking);
-int	regions_overlap(const u_int64_t start1, const u_int64_t len1,
-    const u_int64_t start2, const u_int64_t len2);
-enum split_status  region_compare(const u_int64_t starte, const u_int64_t lene,
-    const u_int64_t startu, const u_int64_t lenu,
-    u_int64_t *start1, u_int64_t *len1, u_int64_t *start2, u_int64_t *len2);
+int	regions_overlap(const uint64_t start1, const uint64_t len1,
+    const uint64_t start2, const uint64_t len2);
+enum split_status  region_compare(const uint64_t starte, const uint64_t lene,
+    const uint64_t startu, const uint64_t lenu,
+    uint64_t *start1, uint64_t *len1, uint64_t *start2, uint64_t *len2);
 int	same_netobj(const netobj *n0, const netobj *n1);
 int	same_filelock_identity(const struct file_lock *fl0,
     const struct file_lock *fl2);
@@ -424,7 +424,7 @@ allocate_file_lock(const netobj *lockowner, const netobj *matchcookie,
 void
 fill_file_lock(struct file_lock *fl, const fhandle_t *fh,
     const bool_t exclusive, const int32_t svid,
-    const u_int64_t offset, const u_int64_t len,
+    const uint64_t offset, const uint64_t len,
     const int state, const int status, const int flags, const int blocking)
 {
 	bcopy(fh, &fl->filehandle, sizeof(fhandle_t));
@@ -457,10 +457,10 @@ deallocate_file_lock(struct file_lock *fl)
  * overlap.
  */
 int
-regions_overlap(const u_int64_t start1, const u_int64_t len1,
-    const u_int64_t start2, const u_int64_t len2)
+regions_overlap(const uint64_t start1, const uint64_t len1,
+    const uint64_t start2, const uint64_t len2)
 {
-	u_int64_t d1,d2,d3,d4;
+	uint64_t d1,d2,d3,d4;
 	enum split_status result;
 
 	debuglog("Entering region overlap with vals: %llu:%llu--%llu:%llu\n",
@@ -486,9 +486,9 @@ regions_overlap(const u_int64_t start1, const u_int64_t len1,
  * XXX: This DESPERATELY needs a regression test.
  */
 enum split_status
-region_compare(const u_int64_t starte, const u_int64_t lene,
-    const u_int64_t startu, const u_int64_t lenu, u_int64_t *start1,
-    u_int64_t *len1, u_int64_t *start2, u_int64_t *len2)
+region_compare(const uint64_t starte, const uint64_t lene,
+    const uint64_t startu, const uint64_t lenu, uint64_t *start1,
+    uint64_t *len1, uint64_t *start2, uint64_t *len2)
 {
 	/*
 	 * Please pay attention to the sequential exclusions
@@ -913,7 +913,7 @@ split_nfslock(const struct file_lock *exist_lock,
     const struct file_lock *unlock_lock, struct file_lock **left_lock,
     struct file_lock **right_lock)
 {
-	u_int64_t start1, len1, start2, len2;
+	uint64_t start1, len1, start2, len2;
 	enum split_status spstatus;
 
 	spstatus = region_compare(exist_lock->client.l_offset, exist_lock->client.l_len,

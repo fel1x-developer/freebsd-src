@@ -507,7 +507,7 @@ netisr_clearqdrops(const struct netisr_handler *nhp)
  * Query current drop counters across all workstreams for a protocol.
  */
 void
-netisr_getqdrops(const struct netisr_handler *nhp, u_int64_t *qdropp)
+netisr_getqdrops(const struct netisr_handler *nhp, uint64_t *qdropp)
 {
 	struct netisr_work *npwp;
 	struct rm_priotracker tracker;

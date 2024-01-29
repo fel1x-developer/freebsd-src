@@ -122,7 +122,7 @@ powf(float x, float y)
 	    return z;
 	}
 
-	n = ((u_int32_t)hx>>31)-1;
+	n = ((uint32_t)hx>>31)-1;
 
     /* (x<0)**(non-int) is NaN */
 	if((n|yisint)==0) return (x-x)/(x-x);

@@ -69,10 +69,10 @@ struct fha_ctls {
 struct fha_hash_entry {
 	struct mtx *mtx;
 	LIST_ENTRY(fha_hash_entry) link;
-	u_int64_t fh;
-	u_int32_t num_rw;
-	u_int32_t num_exclusive;
-	u_int8_t num_threads;
+	uint64_t fh;
+	uint32_t num_rw;
+	uint32_t num_exclusive;
+	uint8_t num_threads;
 	struct svcthread_list threads;
 };
 
@@ -85,7 +85,7 @@ struct fha_hash_slot {
 
 /* A structure used for passing around data internally. */
 struct fha_info {
-	u_int64_t fh;
+	uint64_t fh;
 	off_t offset;
 	int locktype;
 	int read;

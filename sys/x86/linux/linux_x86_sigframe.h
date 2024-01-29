@@ -84,40 +84,40 @@ struct l_ucontext {
 } __packed;
 
 struct l_fpreg {
-	u_int16_t	significand[4];
-	u_int16_t	exponent;
+	uint16_t	significand[4];
+	uint16_t	exponent;
 };
 
 struct l_fpxreg {
-	u_int16_t	significand[4];
-	u_int16_t	exponent;
-	u_int16_t	padding[3];
+	uint16_t	significand[4];
+	uint16_t	exponent;
+	uint16_t	padding[3];
 };
 
 struct l_xmmreg {
-	u_int32_t	element[4];
+	uint32_t	element[4];
 };
 
 struct l_fpstate {
 	/* Regular FPU environment */
-	u_int32_t		cw;
-	u_int32_t		sw;
-	u_int32_t		tag;
-	u_int32_t		ipoff;
-	u_int32_t		cssel;
-	u_int32_t		dataoff;
-	u_int32_t		datasel;
+	uint32_t		cw;
+	uint32_t		sw;
+	uint32_t		tag;
+	uint32_t		ipoff;
+	uint32_t		cssel;
+	uint32_t		dataoff;
+	uint32_t		datasel;
 	struct l_fpreg		_st[8];
-	u_int16_t		status;
-	u_int16_t		magic;		/* 0xffff = regular FPU data */
+	uint16_t		status;
+	uint16_t		magic;		/* 0xffff = regular FPU data */
 
 	/* FXSR FPU environment */
-	u_int32_t		_fxsr_env[6];	/* env is ignored. */
-	u_int32_t		mxcsr;
-	u_int32_t		reserved;
+	uint32_t		_fxsr_env[6];	/* env is ignored. */
+	uint32_t		mxcsr;
+	uint32_t		reserved;
 	struct l_fpxreg		_fxsr_st[8];	/* reg data is ignored. */
 	struct l_xmmreg		_xmm[8];
-	u_int32_t		padding[56];
+	uint32_t		padding[56];
 };
 
 /*
@@ -142,19 +142,19 @@ struct l_rt_sigframe {
 #else
 
 struct l_fpstate {
-	u_int16_t cwd;
-	u_int16_t swd;
-	u_int16_t twd;
-	u_int16_t fop;
-	u_int64_t rip;
-	u_int64_t rdp;
-	u_int32_t mxcsr;
-	u_int32_t mxcsr_mask;
-	u_int8_t st[8][16];
-	u_int8_t xmm[16][16];
-	u_int32_t reserved2[12];
+	uint16_t cwd;
+	uint16_t swd;
+	uint16_t twd;
+	uint16_t fop;
+	uint64_t rip;
+	uint64_t rdp;
+	uint32_t mxcsr;
+	uint32_t mxcsr_mask;
+	uint8_t st[8][16];
+	uint8_t xmm[16][16];
+	uint32_t reserved2[12];
 	union {
-		u_int32_t		reserved3[12];
+		uint32_t		reserved3[12];
 		struct l_fpx_sw_bytes	sw_reserved;
 	};
 } __aligned(16);

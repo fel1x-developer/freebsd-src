@@ -86,7 +86,7 @@ static devclass_t agp_devclass;
 
 /* Helper functions for implementing chipset mini drivers. */
 
-u_int8_t
+uint8_t
 agp_find_caps(device_t dev)
 {
 	int capreg;
@@ -132,8 +132,8 @@ agp_find_display(void)
 struct agp_gatt *
 agp_alloc_gatt(device_t dev)
 {
-	u_int32_t apsize = AGP_GET_APERTURE(dev);
-	u_int32_t entries = apsize >> AGP_PAGE_SHIFT;
+	uint32_t apsize = AGP_GET_APERTURE(dev);
+	uint32_t entries = apsize >> AGP_PAGE_SHIFT;
 	struct agp_gatt *gatt;
 
 	if (bootverbose)
@@ -308,7 +308,7 @@ agp_generic_detach(device_t dev)
  * Default AGP aperture size detection which simply returns the size of
  * the aperture's PCI resource.
  */
-u_int32_t
+uint32_t
 agp_generic_get_aperture(device_t dev)
 {
 	struct agp_softc *sc = device_get_softc(dev);
@@ -321,9 +321,9 @@ agp_generic_get_aperture(device_t dev)
  * changes to resource size.
  */
 int
-agp_generic_set_aperture(device_t dev, u_int32_t aperture)
+agp_generic_set_aperture(device_t dev, uint32_t aperture)
 {
-	u_int32_t current_aperture;
+	uint32_t current_aperture;
 
 	current_aperture = AGP_GET_APERTURE(dev);
 	if (current_aperture != aperture)
@@ -337,10 +337,10 @@ agp_generic_set_aperture(device_t dev, u_int32_t aperture)
  * restrictions as in place for v2 -- one bus, one device on the bus.
  */
 static int
-agp_v3_enable(device_t dev, device_t mdev, u_int32_t mode)
+agp_v3_enable(device_t dev, device_t mdev, uint32_t mode)
 {
-	u_int32_t tstatus, mstatus;
-	u_int32_t command;
+	uint32_t tstatus, mstatus;
+	uint32_t command;
 	int rq, sba, fw, rate, arqsz, cal;
 
 	tstatus = pci_read_config(dev, agp_find_caps(dev) + AGP_STATUS, 4);
@@ -406,10 +406,10 @@ agp_v3_enable(device_t dev, device_t mdev, u_int32_t mode)
 }
 
 static int
-agp_v2_enable(device_t dev, device_t mdev, u_int32_t mode)
+agp_v2_enable(device_t dev, device_t mdev, uint32_t mode)
 {
-	u_int32_t tstatus, mstatus;
-	u_int32_t command;
+	uint32_t tstatus, mstatus;
+	uint32_t command;
 	int rq, sba, fw, rate;
 
 	tstatus = pci_read_config(dev, agp_find_caps(dev) + AGP_STATUS, 4);
@@ -459,10 +459,10 @@ agp_v2_enable(device_t dev, device_t mdev, u_int32_t mode)
 }
 
 int
-agp_generic_enable(device_t dev, u_int32_t mode)
+agp_generic_enable(device_t dev, uint32_t mode)
 {
 	device_t mdev = agp_find_display();
-	u_int32_t tstatus, mstatus;
+	uint32_t tstatus, mstatus;
 
 	if (!mdev) {
 		AGP_DPF("can't find display\n");
@@ -959,7 +959,7 @@ agp_release(device_t dev)
 }
 
 int
-agp_enable(device_t dev, u_int32_t mode)
+agp_enable(device_t dev, uint32_t mode)
 {
 	return AGP_ENABLE(dev, mode);
 }

@@ -987,7 +987,7 @@ ether_sprintf(const u_char *ap)
  * Perform common duties while attaching to interface list
  */
 void
-ether_ifattach(struct ifnet *ifp, const u_int8_t *lla)
+ether_ifattach(struct ifnet *ifp, const uint8_t *lla)
 {
 	int i;
 	struct ifaddr *ifa;

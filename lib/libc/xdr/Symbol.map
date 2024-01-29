@@ -6,11 +6,11 @@ FBSD_1.0 {
 	xdr_long;
 	xdr_u_long;
 	xdr_int32_t;
-	xdr_u_int32_t;
+	xdr_uint32_t;
 	xdr_short;
 	xdr_u_short;
 	xdr_int16_t;
-	xdr_u_int16_t;
+	xdr_uint16_t;
 	xdr_char;
 	xdr_u_char;
 	xdr_bool;
@@ -22,7 +22,7 @@ FBSD_1.0 {
 	xdr_string;
 	xdr_wrapstring;
 	xdr_int64_t;
-	xdr_u_int64_t;
+	xdr_uint64_t;
 	xdr_hyper;
 	xdr_u_hyper;
 	xdr_longlong_t;

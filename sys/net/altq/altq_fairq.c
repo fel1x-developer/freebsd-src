@@ -123,7 +123,7 @@ static int	fairq_class_destroy(struct fairq_class *);
 static int	fairq_enqueue(struct ifaltq *, struct mbuf *, struct altq_pktattr *);
 static struct mbuf *fairq_dequeue(struct ifaltq *, int);
 
-static int	fairq_addq(struct fairq_class *, struct mbuf *, u_int32_t);
+static int	fairq_addq(struct fairq_class *, struct mbuf *, uint32_t);
 static struct mbuf *fairq_getq(struct fairq_class *, uint64_t);
 static struct mbuf *fairq_pollq(struct fairq_class *, uint64_t, int *);
 static fairq_bucket_t *fairq_selectq(struct fairq_class *, int);
@@ -484,7 +484,7 @@ fairq_enqueue(struct ifaltq *ifq, struct mbuf *m, struct altq_pktattr *pktattr)
 	struct fairq_if *pif = (struct fairq_if *)ifq->altq_disc;
 	struct fairq_class *cl = NULL; /* Make compiler happy */
 	struct pf_mtag *t;
-	u_int32_t qid_hash = 0;
+	uint32_t qid_hash = 0;
 	int len;
 
 	IFQ_LOCK_ASSERT(ifq);
@@ -606,7 +606,7 @@ fairq_dequeue(struct ifaltq *ifq, int op)
 }
 
 static int
-fairq_addq(struct fairq_class *cl, struct mbuf *m, u_int32_t bucketid)
+fairq_addq(struct fairq_class *cl, struct mbuf *m, uint32_t bucketid)
 {
 	fairq_bucket_t *b;
 	u_int hindex;

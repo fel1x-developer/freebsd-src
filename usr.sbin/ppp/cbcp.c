@@ -170,7 +170,7 @@ cbcp_NewPhase(struct cbcp *cbcp, int new)
 struct cbcp_header {
   u_char code;
   u_char id;
-  u_int16_t length;	/* Network byte order */
+  uint16_t length;	/* Network byte order */
 };
 
 

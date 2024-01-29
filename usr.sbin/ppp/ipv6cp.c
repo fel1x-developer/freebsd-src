@@ -424,7 +424,7 @@ ipv6cp_PushPacket(struct ipv6cp *ipv6cp, struct link *l)
   struct mqueue *queue;
   struct mbuf *bp;
   int m_len;
-  u_int32_t secs = 0;
+  uint32_t secs = 0;
   unsigned alivesecs = 0;
 
   if (ipv6cp->fsm.state != ST_OPENED)

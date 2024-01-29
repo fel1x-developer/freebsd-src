@@ -191,7 +191,7 @@ gre_clone_create(struct if_clone *ifc, int unit, caddr_t params)
 	GRE2IFP(sc)->if_capabilities |= IFCAP_LINKSTATE;
 	GRE2IFP(sc)->if_capenable |= IFCAP_LINKSTATE;
 	if_attach(GRE2IFP(sc));
-	bpfattach(GRE2IFP(sc), DLT_NULL, sizeof(u_int32_t));
+	bpfattach(GRE2IFP(sc), DLT_NULL, sizeof(uint32_t));
 	return (0);
 }
 

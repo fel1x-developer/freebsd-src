@@ -39,7 +39,7 @@
 fp_rnd_t
 fpsetround(fp_rnd_t rnd_dir)
 {
-	u_int64_t fpscr;
+	uint64_t fpscr;
 	fp_rnd_t old;
 
 	__asm__ __volatile("mffs %0" : "=f"(fpscr));

@@ -57,16 +57,16 @@
 
 /* simple token backet meter profile */
 struct	tb_profile {
-	u_int64_t	rate;	/* rate in bit-per-sec */
-	u_int32_t	depth;	/* depth in bytes */
+	uint64_t	rate;	/* rate in bit-per-sec */
+	uint32_t	depth;	/* depth in bytes */
 };
 
 /*
  * generic packet counter
  */
 struct pktcntr {
-	u_int64_t	packets;
-	u_int64_t	bytes;
+	uint64_t	packets;
+	uint64_t	bytes;
 };
 
 #define	PKTCNTR_ADD(cntr, len)	\

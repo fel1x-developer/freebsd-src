@@ -34,10 +34,10 @@ struct tpm_softc {
 	bus_space_tag_t sc_bt, sc_batm;
 	bus_space_handle_t sc_bh, sc_bahm;
 
-	u_int32_t sc_devid;
-	u_int32_t sc_rev;
-	u_int32_t sc_stat;
-	u_int32_t sc_capabilities;
+	uint32_t sc_devid;
+	uint32_t sc_rev;
+	uint32_t sc_stat;
+	uint32_t sc_capabilities;
 
 	int sc_flags;
 #define	TPM_OPEN	0x0001

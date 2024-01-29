@@ -174,26 +174,26 @@ struct malo_cmd_caltable {
 
 struct malo_cmd_get_hwspec {
 	struct malo_cmd_header	cmdhdr;
-	u_int8_t		version;	/* version of the HW  */
-	u_int8_t		hostif;		/* host interface  */
+	uint8_t		version;	/* version of the HW  */
+	uint8_t		hostif;		/* host interface  */
 	/* Max. number of WCB FW can handle  */
-	u_int16_t		num_wcb;
+	uint16_t		num_wcb;
 	/* MaxNbr of MC addresses FW can handle */
-	u_int16_t		num_mcastaddr;
+	uint16_t		num_mcastaddr;
 	/* MAC address programmed in HW */
-	u_int8_t		permaddr[6];
-	u_int16_t		regioncode;
+	uint8_t		permaddr[6];
+	uint16_t		regioncode;
 	/* Number of antenna used */
-	u_int16_t		num_antenna;
+	uint16_t		num_antenna;
 	/* 4 byte of FW release number */
-	u_int32_t		fw_releasenum;
-	u_int32_t		wcbbase0;
-	u_int32_t		rxpdwr_ptr;
-	u_int32_t		rxpdrd_ptr;
-	u_int32_t		ul_fw_awakecookie;
-	u_int32_t		wcbbase1;
-	u_int32_t		wcbbase2;
-	u_int32_t		wcbbase3;
+	uint32_t		fw_releasenum;
+	uint32_t		wcbbase0;
+	uint32_t		rxpdwr_ptr;
+	uint32_t		rxpdrd_ptr;
+	uint32_t		ul_fw_awakecookie;
+	uint32_t		wcbbase1;
+	uint32_t		wcbbase2;
+	uint32_t		wcbbase3;
 } __packed;
 
 struct malo_cmd_set_hwspec {
@@ -542,8 +542,8 @@ struct malo_softc {
 	struct malo_hal_txrxdma	malo_hwdma;	/* h/w dma setup */
 	uint32_t		malo_imask;	/* interrupt mask copy */
 	struct malo_hal_channel	malo_curchan;
-	u_int16_t		malo_rxantenna;	/* rx antenna */
-	u_int16_t		malo_txantenna;	/* tx antenna */
+	uint16_t		malo_rxantenna;	/* rx antenna */
+	uint16_t		malo_txantenna;	/* tx antenna */
 
 	struct malo_descdma	malo_rxdma;	/* rx bus dma resources */
 	malo_rxbufhead		malo_rxbuf;	/* rx buffers */

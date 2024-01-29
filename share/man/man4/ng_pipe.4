@@ -117,26 +117,26 @@ Return current node configuration as
 .Vt "struct ng_pipe_cfg"
 .Bd -literal
 struct ng_pipe_cfg {
-  u_int64_t  bandwidth;     /* bits per second */
-  u_int64_t  delay;         /* additional delay, usec */
-  u_int32_t  header_offset; /* offset of IP header in bytes */
-  u_int32_t  overhead;      /* assumed L2 overhead in bytes */
+  uint64_t  bandwidth;     /* bits per second */
+  uint64_t  delay;         /* additional delay, usec */
+  uint32_t  header_offset; /* offset of IP header in bytes */
+  uint32_t  overhead;      /* assumed L2 overhead in bytes */
   struct ng_pipe_hookcfg  downstream;
   struct ng_pipe_hookcfg  upstream;
 };
 
 /* Config structure for one hook */
 struct ng_pipe_hookcfg {
-  u_int64_t  bandwidth;       /* bits per second */
-  u_int64_t  ber;             /* avg. interval between bit errors (1 / BER) */
-  u_int32_t  qin_size_limit;  /* number of queue items */
-  u_int32_t  qout_size_limit; /* number of queue items */
-  u_int32_t  duplicate;       /* probability in % */
-  u_int32_t  fifo;            /* 0 = off, 1 = on */
-  u_int32_t  drr;             /* 0 = off, 1 = 2048 bytes, or x bytes */
-  u_int32_t  wfq;             /* 0 = off, 1 = on */
-  u_int32_t  droptail;        /* 0 = off, 1 = on */
-  u_int32_t  drophead;        /* 0 = off, 1 = on */
+  uint64_t  bandwidth;       /* bits per second */
+  uint64_t  ber;             /* avg. interval between bit errors (1 / BER) */
+  uint32_t  qin_size_limit;  /* number of queue items */
+  uint32_t  qout_size_limit; /* number of queue items */
+  uint32_t  duplicate;       /* probability in % */
+  uint32_t  fifo;            /* 0 = off, 1 = on */
+  uint32_t  drr;             /* 0 = off, 1 = 2048 bytes, or x bytes */
+  uint32_t  wfq;             /* 0 = off, 1 = on */
+  uint32_t  droptail;        /* 0 = off, 1 = on */
+  uint32_t  drophead;        /* 0 = off, 1 = on */
 };
 .Ed
 .It Dv NGM_PIPE_GET_STATS Pq Ic getstats
@@ -145,12 +145,12 @@ Return node statistics as
 .Bd -literal
 /* Statistics structure for one hook */
 struct ng_pipe_hookstat {
-  u_int64_t  fwd_octets;
-  u_int64_t  fwd_frames;
-  u_int64_t  in_disc_octets;
-  u_int64_t  in_disc_frames;
-  u_int64_t  out_disc_octets;
-  u_int64_t  out_disc_frames;
+  uint64_t  fwd_octets;
+  uint64_t  fwd_frames;
+  uint64_t  in_disc_octets;
+  uint64_t  in_disc_frames;
+  uint64_t  out_disc_octets;
+  uint64_t  out_disc_frames;
 };
 
 /* Statistics structure returned by NGM_PIPE_GET_STATS */
@@ -169,11 +169,11 @@ Return node statistics as
 .Bd -literal
 /* Runtime structure for one hook */
 struct ng_pipe_hookrun {
-  u_int32_t  fifo_queues;
-  u_int32_t  qin_octets;
-  u_int32_t  qin_frames;
-  u_int32_t  qout_octets;
-  u_int32_t  qout_frames;
+  uint32_t  fifo_queues;
+  uint32_t  qin_octets;
+  uint32_t  qin_frames;
+  uint32_t  qout_octets;
+  uint32_t  qout_frames;
 };
 
 /* Runtime structure returned by NGM_PIPE_GET_RUN */

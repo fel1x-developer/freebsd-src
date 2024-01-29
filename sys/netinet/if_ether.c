@@ -767,7 +767,7 @@ in_arpinput(struct mbuf *m)
 	struct in_ifaddr *ia;
 	struct sockaddr sa;
 	struct in_addr isaddr, itaddr, myaddr;
-	u_int8_t *enaddr = NULL;
+	uint8_t *enaddr = NULL;
 	int op;
 	int bridged = 0, is_bridge = 0;
 	int carped;
@@ -886,7 +886,7 @@ in_arpinput(struct mbuf *m)
 	ifa_ref(&ia->ia_ifa);
 match:
 	if (!enaddr)
-		enaddr = (u_int8_t *)IF_LLADDR(ifp);
+		enaddr = (uint8_t *)IF_LLADDR(ifp);
 	carped = (ia->ia_ifa.ifa_carp != NULL);
 	myaddr = ia->ia_addr.sin_addr;
 	ifa_free(&ia->ia_ifa);

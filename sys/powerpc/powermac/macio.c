@@ -152,7 +152,7 @@ EARLY_DRIVER_MODULE(macio, pci, macio_pci_driver, 0, 0, BUS_PASS_BUS);
  * PCI ID search table
  */
 static struct macio_pci_dev {
-        u_int32_t  mpd_devid;
+        uint32_t  mpd_devid;
 	char    *mpd_desc;
 } macio_pci_devlist[] = {
 	{ 0x0017106b, "Paddington I/O Controller" },
@@ -300,7 +300,7 @@ static int
 macio_probe(device_t dev)
 {
         int i;
-        u_int32_t devid;
+        uint32_t devid;
 
         devid = pci_get_devid(dev);
         for (i = 0; macio_pci_devlist[i].mpd_desc != NULL; i++) {

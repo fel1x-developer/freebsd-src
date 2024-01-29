@@ -39,9 +39,9 @@
 #define _NETIPSEC_IPCOMP_H_
 
 struct ipcomp {
-	u_int8_t comp_nxt;	/* Next Header */
-	u_int8_t comp_flags;	/* reserved, must be zero */
-	u_int16_t comp_cpi;	/* Compression parameter index */
+	uint8_t comp_nxt;	/* Next Header */
+	uint8_t comp_flags;	/* reserved, must be zero */
+	uint16_t comp_cpi;	/* Compression parameter index */
 };
 
 #define	IPCOMP_HLENGTH	4	/* Length of IPCOMP header */

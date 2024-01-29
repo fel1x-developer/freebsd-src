@@ -72,7 +72,7 @@ SYSCTL_INT(_net_smb, OID_AUTO, tcprcvbuf, CTLFLAG_RW, &smb_tcprcvbuf, 0, "");
 #define nb_sosend(so,m,flags,td) sosend(so, NULL, 0, m, 0, flags, td)
 
 static int  nbssn_recv(struct nbpcb *nbp, struct mbuf **mpp, int *lenp,
-	u_int8_t *rpcodep, struct thread *td);
+	uint8_t *rpcodep, struct thread *td);
 static int  smb_nbst_disconnect(struct smb_vc *vcp, struct thread *td);
 
 static int
@@ -110,9 +110,9 @@ nb_upcall(struct socket *so, void *arg, int waitflag)
 }
 
 static int
-nb_sethdr(struct mbuf *m, u_int8_t type, u_int32_t len)
+nb_sethdr(struct mbuf *m, uint8_t type, uint32_t len)
 {
-	u_int32_t *p = mtod(m, u_int32_t *);
+	uint32_t *p = mtod(m, uint32_t *);
 
 	*p = htonl((len & 0x1FFFF) | (type << 24));
 	return 0;
@@ -202,7 +202,7 @@ nbssn_rq_request(struct nbpcb *nbp, struct thread *td)
 	struct timeval tv;
 	struct sockaddr_in sin;
 	u_short port;
-	u_int8_t rpcode;
+	uint8_t rpcode;
 	int error, rplen;
 
 	mbp = malloc(sizeof(struct mbchain), M_NBDATA, M_WAITOK);
@@ -286,12 +286,12 @@ nbssn_rq_request(struct nbpcb *nbp, struct thread *td)
 
 static int
 nbssn_recvhdr(struct nbpcb *nbp, int *lenp,
-	u_int8_t *rpcodep, int flags, struct thread *td)
+	uint8_t *rpcodep, int flags, struct thread *td)
 {
 	struct socket *so = nbp->nbp_tso;
 	struct uio auio;
 	struct iovec aio;
-	u_int32_t len;
+	uint32_t len;
 	int error;
 
 	aio.iov_base = (caddr_t)&len;
@@ -326,12 +326,12 @@ nbssn_recvhdr(struct nbpcb *nbp, int *lenp,
 
 static int
 nbssn_recv(struct nbpcb *nbp, struct mbuf **mpp, int *lenp,
-	u_int8_t *rpcodep, struct thread *td)
+	uint8_t *rpcodep, struct thread *td)
 {
 	struct socket *so = nbp->nbp_tso;
 	struct uio auio;
 	struct mbuf *m, *tm, *im;
-	u_int8_t rpcode;
+	uint8_t rpcode;
 	int len, resid;
 	int error, rcvflg;
 
@@ -601,7 +601,7 @@ static int
 smb_nbst_recv(struct smb_vc *vcp, struct mbuf **mpp, struct thread *td)
 {
 	struct nbpcb *nbp = vcp->vc_tdata;
-	u_int8_t rpcode;
+	uint8_t rpcode;
 	int error, rplen;
 
 	nbp->nbp_flags |= NBF_RECVLOCK;

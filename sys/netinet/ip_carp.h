@@ -60,20 +60,20 @@
 
 struct carp_header {
 #if BYTE_ORDER == LITTLE_ENDIAN
-	u_int8_t	carp_type:4,
+	uint8_t	carp_type:4,
 			carp_version:4;
 #endif
 #if BYTE_ORDER == BIG_ENDIAN
-	u_int8_t	carp_version:4,
+	uint8_t	carp_version:4,
 			carp_type:4;
 #endif
-	u_int8_t	carp_vhid;	/* virtual host id */
-	u_int8_t	carp_advskew;	/* advertisement skew */
-	u_int8_t	carp_authlen;   /* size of counter+md, 32bit chunks */
-	u_int8_t	carp_pad1;	/* reserved */
-	u_int8_t	carp_advbase;	/* advertisement interval */
-	u_int16_t	carp_cksum;
-	u_int32_t	carp_counter[2];
+	uint8_t	carp_vhid;	/* virtual host id */
+	uint8_t	carp_advskew;	/* advertisement skew */
+	uint8_t	carp_authlen;   /* size of counter+md, 32bit chunks */
+	uint8_t	carp_pad1;	/* reserved */
+	uint8_t	carp_advbase;	/* advertisement interval */
+	uint16_t	carp_cksum;
+	uint32_t	carp_counter[2];
 	unsigned char	carp_md[20];	/* SHA1 HMAC */
 } __packed;
 

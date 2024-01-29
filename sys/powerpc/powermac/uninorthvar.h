@@ -53,8 +53,8 @@ struct unin_chip_softc {
  * Format of a unin reg property entry.
  */
 struct unin_chip_reg {
-        u_int32_t       mr_base;
-        u_int32_t       mr_size;
+        uint32_t       mr_base;
+        uint32_t       mr_size;
 };
 
 /*

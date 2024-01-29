@@ -242,7 +242,7 @@ int	lapic_ipi_wait(int delay);
 int	lapic_ipi_alloc(inthand_t *ipifunc);
 void	lapic_ipi_free(int vector);
 int	lapic_set_lvt_mask(u_int apic_id, u_int lvt, u_char masked);
-int	lapic_set_lvt_mode(u_int apic_id, u_int lvt, u_int32_t mode);
+int	lapic_set_lvt_mode(u_int apic_id, u_int lvt, uint32_t mode);
 int	lapic_set_lvt_polarity(u_int apic_id, u_int lvt,
 	    enum intr_polarity pol);
 int	lapic_set_lvt_triggermode(u_int apic_id, u_int lvt,

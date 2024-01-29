@@ -995,10 +995,10 @@ SYSCTL_PROC(_hw_snd, OID_AUTO, clone_gc,
     "global clone garbage collector");
 #endif
 
-static u_int8_t
+static uint8_t
 pcm_mode_init(struct snddev_info *d)
 {
-	u_int8_t mode = 0;
+	uint8_t mode = 0;
 
 	if (d->playcount > 0)
 		mode |= PCM_MODE_PLAY;
@@ -1014,7 +1014,7 @@ static void
 pcm_sysinit(device_t dev)
 {
   	struct snddev_info *d = device_get_softc(dev);
-	u_int8_t mode;
+	uint8_t mode;
 
 	mode = pcm_mode_init(d);
 

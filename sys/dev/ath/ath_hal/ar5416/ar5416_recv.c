@@ -46,7 +46,7 @@ ar5416GetRxFilter(struct ath_hal *ah)
  * Set the receive filter.
  */
 void
-ar5416SetRxFilter(struct ath_hal *ah, u_int32_t bits)
+ar5416SetRxFilter(struct ath_hal *ah, uint32_t bits)
 {
 	uint32_t phybits;
 

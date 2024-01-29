@@ -59,7 +59,7 @@ pass1(void)
 	struct cg *cgp;
 	ino_t inumber, inosused, mininos;
 	ufs2_daddr_t i, cgd;
-	u_int8_t *cp;
+	uint8_t *cp;
 	int c, rebuiltcg;
 
 	badblk = dupblk = lastino = 0;

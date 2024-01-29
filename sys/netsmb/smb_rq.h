@@ -69,11 +69,11 @@ struct smb_rq {
 	struct smb_vc * 	sr_vc;
 	struct smb_share*	sr_share;
 	u_short			sr_mid;
-	u_int32_t		sr_seqno;
-	u_int32_t		sr_rseqno;
+	uint32_t		sr_seqno;
+	uint32_t		sr_rseqno;
 	struct mbchain		sr_rq;
-	u_int8_t		sr_rqflags;
-	u_int16_t		sr_rqflags2;
+	uint8_t		sr_rqflags;
+	uint16_t		sr_rqflags2;
 	u_char *		sr_wcount;
 	void *			sr_bcount;	/* Points to 2-byte buffer. */
 	struct mdchain		sr_rp;
@@ -87,31 +87,31 @@ struct smb_rq {
 	int			sr_sendcnt;
 	struct timespec 	sr_timesent;
 	int			sr_lerror;
-	u_int8_t *		sr_rqsig;
+	uint8_t *		sr_rqsig;
 	void *			sr_rqtid;	/* Points to 2-byte buffer. */
 	void *			sr_rquid;	/* Points to 2-byte buffer. */
-	u_int8_t		sr_errclass;
-	u_int16_t		sr_serror;
-	u_int32_t		sr_error;
-	u_int8_t		sr_rpflags;
-	u_int16_t		sr_rpflags2;
-	u_int16_t		sr_rptid;
-	u_int16_t		sr_rppid;
-	u_int16_t		sr_rpuid;
-	u_int16_t		sr_rpmid;
+	uint8_t		sr_errclass;
+	uint16_t		sr_serror;
+	uint32_t		sr_error;
+	uint8_t		sr_rpflags;
+	uint16_t		sr_rpflags2;
+	uint16_t		sr_rptid;
+	uint16_t		sr_rppid;
+	uint16_t		sr_rpuid;
+	uint16_t		sr_rpmid;
 	struct smb_slock	sr_slock;	/* short term locks */
 	struct smb_t2rq *	sr_t2;
 	TAILQ_ENTRY(smb_rq)	sr_link;
 };
 
 struct smb_t2rq {
-	u_int16_t	t2_setupcount;
-	u_int16_t *	t2_setupdata;
-	u_int16_t	t2_setup[2];	/* most of rqs has setupcount of 1 */
-	u_int8_t	t2_maxscount;	/* max setup words to return */
-	u_int16_t	t2_maxpcount;	/* max param bytes to return */
-	u_int16_t	t2_maxdcount;	/* max data bytes to return */
-	u_int16_t	t2_fid;		/* for T2 request */
+	uint16_t	t2_setupcount;
+	uint16_t *	t2_setupdata;
+	uint16_t	t2_setup[2];	/* most of rqs has setupcount of 1 */
+	uint8_t	t2_maxscount;	/* max setup words to return */
+	uint16_t	t2_maxpcount;	/* max param bytes to return */
+	uint16_t	t2_maxdcount;	/* max data bytes to return */
+	uint16_t	t2_fid;		/* for T2 request */
 	char *		t_name;		/* for T request, should be zero for T2 */
 	int		t2_flags;	/* SMBT2_ */
 	struct mbchain	t2_tparam;	/* parameters to transmit */

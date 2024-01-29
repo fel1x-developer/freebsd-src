@@ -267,19 +267,19 @@ FindUdpTcpOut(struct libalias *la, struct in_addr _src_addr, struct in_addr _dst
     u_short _src_port, u_short _dst_port, u_char _proto, int _create);
 struct alias_link *
 AddPptp(struct libalias *la, struct in_addr _src_addr, struct in_addr _dst_addr,
-    struct in_addr _alias_addr, u_int16_t _src_call_id);
+    struct in_addr _alias_addr, uint16_t _src_call_id);
 struct alias_link *
 FindPptpOutByCallId(struct libalias *la, struct in_addr _src_addr,
-    struct in_addr _dst_addr, u_int16_t _src_call_id);
+    struct in_addr _dst_addr, uint16_t _src_call_id);
 struct alias_link *
 FindPptpInByCallId(struct libalias *la, struct in_addr _dst_addr,
-    struct in_addr _alias_addr, u_int16_t _dst_call_id);
+    struct in_addr _alias_addr, uint16_t _dst_call_id);
 struct alias_link *
 FindPptpOutByPeerCallId(struct libalias *la, struct in_addr _src_addr,
-    struct in_addr _dst_addr, u_int16_t _dst_call_id);
+    struct in_addr _dst_addr, uint16_t _dst_call_id);
 struct alias_link *
 FindPptpInByPeerCallId(struct libalias *la, struct in_addr _dst_addr,
-    struct in_addr _alias_addr, u_int16_t _alias_call_id);
+    struct in_addr _alias_addr, uint16_t _alias_call_id);
 struct alias_link *
 FindRtspOut(struct libalias *la, struct in_addr _src_addr, struct in_addr _dst_addr,
     u_short _src_port, u_short _alias_port, u_char _proto);
@@ -323,7 +323,7 @@ void		AddSeq(struct alias_link *lnk, int delta, u_int ip_hl,
 void		SetExpire (struct alias_link *_lnk, int _expire);
 void		SetProtocolFlags(struct alias_link *_lnk, int _pflags);
 int		GetProtocolFlags(struct alias_link *_lnk);
-void		SetDestCallId(struct alias_link *_lnk, u_int16_t _cid);
+void		SetDestCallId(struct alias_link *_lnk, uint16_t _cid);
 
 #ifndef NO_FW_PUNCH
 void		PunchFWHole(struct alias_link *_lnk);

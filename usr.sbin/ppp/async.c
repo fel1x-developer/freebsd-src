@@ -70,7 +70,7 @@ async_Setup(struct async *async)
 }
 
 void
-async_SetLinkParams(struct async *async, u_int32_t mymap, u_int32_t hismap)
+async_SetLinkParams(struct async *async, uint32_t mymap, uint32_t hismap)
 {
   async->my_accmap = mymap;
   async->his_accmap = hismap | mymap;

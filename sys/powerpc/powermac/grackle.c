@@ -67,10 +67,10 @@ static int		grackle_attach(device_t);
 /*
  * pcib interface.
  */
-static u_int32_t	grackle_read_config(device_t, u_int, u_int, u_int,
+static uint32_t	grackle_read_config(device_t, u_int, u_int, u_int,
 			    u_int, int);
 static void		grackle_write_config(device_t, u_int, u_int, u_int,
-			    u_int, u_int32_t, int);
+			    u_int, uint32_t, int);
 
 /*
  * Local routines.
@@ -136,13 +136,13 @@ grackle_attach(device_t dev)
 	return (ofw_pcib_attach(dev));
 }
 
-static u_int32_t
+static uint32_t
 grackle_read_config(device_t dev, u_int bus, u_int slot, u_int func, u_int reg,
     int width)
 {
 	struct		grackle_softc *sc;
 	vm_offset_t	caoff;
-	u_int32_t	retval = 0xffffffff;
+	uint32_t	retval = 0xffffffff;
 
 	sc = device_get_softc(dev);
 	caoff = sc->sc_data + (reg & 0x03);
@@ -178,7 +178,7 @@ grackle_read_config(device_t dev, u_int bus, u_int slot, u_int func, u_int reg,
 
 static void
 grackle_write_config(device_t dev, u_int bus, u_int slot, u_int func,
-    u_int reg, u_int32_t val, int width)
+    u_int reg, uint32_t val, int width)
 {
 	struct		grackle_softc *sc;
 	vm_offset_t	caoff;
@@ -209,7 +209,7 @@ static int
 grackle_enable_config(struct grackle_softc *sc, u_int bus, u_int slot,
     u_int func, u_int reg)
 {
-	u_int32_t	cfgval;
+	uint32_t	cfgval;
 
 	/*
 	 * Unlike UniNorth, the format of the config word is the same

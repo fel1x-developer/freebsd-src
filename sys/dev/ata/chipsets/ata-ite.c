@@ -173,13 +173,13 @@ ata_ite_8213_setmode(device_t dev, int target, int mode)
 	device_t parent = device_get_parent(dev);
 	struct ata_pci_controller *ctlr = device_get_softc(parent);
 	int piomode;
-	u_int16_t reg40 = pci_read_config(parent, 0x40, 2);
-	u_int8_t reg44 = pci_read_config(parent, 0x44, 1);
-	u_int8_t reg48 = pci_read_config(parent, 0x48, 1);
-	u_int16_t reg4a = pci_read_config(parent, 0x4a, 2);
-	u_int16_t reg54 = pci_read_config(parent, 0x54, 2);
-	u_int16_t mask40 = 0, new40 = 0;
-	u_int8_t mask44 = 0, new44 = 0;
+	uint16_t reg40 = pci_read_config(parent, 0x40, 2);
+	uint8_t reg44 = pci_read_config(parent, 0x44, 1);
+	uint8_t reg48 = pci_read_config(parent, 0x48, 1);
+	uint16_t reg4a = pci_read_config(parent, 0x4a, 2);
+	uint16_t reg54 = pci_read_config(parent, 0x54, 2);
+	uint16_t mask40 = 0, new40 = 0;
+	uint8_t mask44 = 0, new44 = 0;
 	static const uint8_t timings[] =
 	    { 0x00, 0x00, 0x10, 0x21, 0x23, 0x00, 0x21, 0x23 };
 	static const uint8_t utimings[] =

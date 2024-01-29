@@ -156,14 +156,14 @@ static int ng_btsocket_rfcomm_receive_rls
 static int ng_btsocket_rfcomm_receive_pn
 	(ng_btsocket_rfcomm_session_p s, struct mbuf *m0);
 static void ng_btsocket_rfcomm_set_pn
-	(ng_btsocket_rfcomm_pcb_p pcb, u_int8_t cr, u_int8_t flow_control, 
-	 u_int8_t credits, u_int16_t mtu);
+	(ng_btsocket_rfcomm_pcb_p pcb, uint8_t cr, uint8_t flow_control, 
+	 uint8_t credits, uint16_t mtu);
 
 static int ng_btsocket_rfcomm_send_command
-	(ng_btsocket_rfcomm_session_p s, u_int8_t type, u_int8_t dlci);
+	(ng_btsocket_rfcomm_session_p s, uint8_t type, uint8_t dlci);
 static int ng_btsocket_rfcomm_send_uih
-	(ng_btsocket_rfcomm_session_p s, u_int8_t address, u_int8_t pf, 
-	 u_int8_t credits, struct mbuf *data);
+	(ng_btsocket_rfcomm_session_p s, uint8_t address, uint8_t pf, 
+	 uint8_t credits, struct mbuf *data);
 static int ng_btsocket_rfcomm_send_msc
 	(ng_btsocket_rfcomm_pcb_p pcb);
 static int ng_btsocket_rfcomm_send_pn
@@ -192,8 +192,8 @@ static struct mbuf * ng_btsocket_rfcomm_prepare_packet
 
 /* Globals */
 extern int					ifqmaxlen;
-static u_int32_t				ng_btsocket_rfcomm_debug_level;
-static u_int32_t				ng_btsocket_rfcomm_timo;
+static uint32_t				ng_btsocket_rfcomm_debug_level;
+static uint32_t				ng_btsocket_rfcomm_timo;
 struct task					ng_btsocket_rfcomm_task;
 static LIST_HEAD(, ng_btsocket_rfcomm_session)	ng_btsocket_rfcomm_sessions;
 static struct mtx				ng_btsocket_rfcomm_sessions_mtx;
@@ -222,7 +222,7 @@ SYSCTL_UINT(_net_bluetooth_rfcomm_sockets_stream, OID_AUTO, timeout,
  *****************************************************************************
  *****************************************************************************/
 
-static u_int8_t	ng_btsocket_rfcomm_crc_table[256] = {
+static uint8_t	ng_btsocket_rfcomm_crc_table[256] = {
 	0x00, 0x91, 0xe3, 0x72, 0x07, 0x96, 0xe4, 0x75,
 	0x0e, 0x9f, 0xed, 0x7c, 0x09, 0x98, 0xea, 0x7b,
 	0x1c, 0x8d, 0xff, 0x6e, 0x1b, 0x8a, 0xf8, 0x69,
@@ -265,10 +265,10 @@ static u_int8_t	ng_btsocket_rfcomm_crc_table[256] = {
 };
 
 /* CRC */
-static u_int8_t
-ng_btsocket_rfcomm_crc(u_int8_t *data, int length)
+static uint8_t
+ng_btsocket_rfcomm_crc(uint8_t *data, int length)
 {
-	u_int8_t	crc = 0xff;
+	uint8_t	crc = 0xff;
 
 	while (length --)
 		crc = ng_btsocket_rfcomm_crc_table[crc ^ *data++];
@@ -277,15 +277,15 @@ ng_btsocket_rfcomm_crc(u_int8_t *data, int length)
 } /* ng_btsocket_rfcomm_crc */
 
 /* FCS on 2 bytes */
-static u_int8_t
-ng_btsocket_rfcomm_fcs2(u_int8_t *data)
+static uint8_t
+ng_btsocket_rfcomm_fcs2(uint8_t *data)
 {
 	return (0xff - ng_btsocket_rfcomm_crc(data, 2));
 } /* ng_btsocket_rfcomm_fcs2 */
   
 /* FCS on 3 bytes */
-static u_int8_t
-ng_btsocket_rfcomm_fcs3(u_int8_t *data)
+static uint8_t
+ng_btsocket_rfcomm_fcs3(uint8_t *data)
 {
 	return (0xff - ng_btsocket_rfcomm_crc(data, 3));
 } /* ng_btsocket_rfcomm_fcs3 */
@@ -309,7 +309,7 @@ ng_btsocket_rfcomm_fcs3(u_int8_t *data)
  */
 
 static int
-ng_btsocket_rfcomm_check_fcs(u_int8_t *data, int type, u_int8_t fcs)
+ng_btsocket_rfcomm_check_fcs(uint8_t *data, int type, uint8_t fcs)
 {
 	if (type != RFCOMM_FRAME_UIH)
 		return (ng_btsocket_rfcomm_fcs3(data) != fcs);
@@ -1257,7 +1257,7 @@ ng_btsocket_rfcomm_session_create(ng_btsocket_rfcomm_session_p *sp,
 	struct sockaddr_l2cap		l2sa;
 	struct sockopt			l2sopt;
 	int				error;
-	u_int16_t			mtu;
+	uint16_t			mtu;
 
 	mtx_assert(&ng_btsocket_rfcomm_sessions_mtx, MA_OWNED);
 
@@ -1815,8 +1815,8 @@ ng_btsocket_rfcomm_receive_frame(ng_btsocket_rfcomm_session_p s,
 {
 	struct rfcomm_frame_hdr	*hdr = NULL;
 	struct mbuf		*m = NULL;
-	u_int16_t		 length;
-	u_int8_t		 dlci, type;
+	uint16_t		 length;
+	uint8_t		 dlci, type;
 	int			 error = 0;
 
 	mtx_assert(&s->session_mtx, MA_OWNED);
@@ -1868,7 +1868,7 @@ ng_btsocket_rfcomm_receive_frame(ng_btsocket_rfcomm_session_p s,
 	 * and already m_pullup'ed mbuf chain, so it should be safe.
 	 */
 
-	if (ng_btsocket_rfcomm_check_fcs((u_int8_t *) hdr, type, m->m_data[m->m_len - 1])) {
+	if (ng_btsocket_rfcomm_check_fcs((uint8_t *) hdr, type, m->m_data[m->m_len - 1])) {
 		NG_BTSOCKET_RFCOMM_ERR(
 "%s: Invalid RFCOMM packet. Bad checksum\n", __func__);
 		NG_FREE_M(m0);
@@ -2314,10 +2314,10 @@ ng_btsocket_rfcomm_receive_uih(ng_btsocket_rfcomm_session_p s, int dlci,
 		NG_BTSOCKET_RFCOMM_INFO(
 "%s: Got %d more credits for dlci=%d, state=%d, flags=%#x, " \
 "rx_cred=%d, tx_cred=%d\n",
-			__func__, *mtod(m0, u_int8_t *), dlci, pcb->state, 
+			__func__, *mtod(m0, uint8_t *), dlci, pcb->state, 
 			pcb->flags, pcb->rx_cred, pcb->tx_cred);
 
-		pcb->tx_cred += *mtod(m0, u_int8_t *);
+		pcb->tx_cred += *mtod(m0, uint8_t *);
 		m_adj(m0, 1);
 
 		/* Send more from the DLC. XXX check for errors? */
@@ -2405,7 +2405,7 @@ static int
 ng_btsocket_rfcomm_receive_mcc(ng_btsocket_rfcomm_session_p s, struct mbuf *m0)
 {
 	struct rfcomm_mcc_hdr	*hdr = NULL;
-	u_int8_t		 cr, type, length;
+	uint8_t		 cr, type, length;
 
 	mtx_assert(&s->session_mtx, MA_OWNED);
 
@@ -2459,7 +2459,7 @@ ng_btsocket_rfcomm_receive_mcc(ng_btsocket_rfcomm_session_p s, struct mbuf *m0)
 	case RFCOMM_MCC_NSC:
 		NG_BTSOCKET_RFCOMM_ERR(
 "%s: Got MCC NSC, type=%#x, cr=%d, length=%d, session state=%d, flags=%#x, " \
-"mtu=%d, len=%d\n",	__func__, RFCOMM_MCC_TYPE(*((u_int8_t *)(hdr + 1))), cr,
+"mtu=%d, len=%d\n",	__func__, RFCOMM_MCC_TYPE(*((uint8_t *)(hdr + 1))), cr,
 			 length, s->state, s->flags, s->mtu, m0->m_pkthdr.len);
 		NG_FREE_M(m0);
 		break;
@@ -2528,7 +2528,7 @@ static int
 ng_btsocket_rfcomm_receive_fc(ng_btsocket_rfcomm_session_p s, struct mbuf *m0)
 {
 	struct rfcomm_mcc_hdr	*hdr = mtod(m0, struct rfcomm_mcc_hdr *);
-	u_int8_t		 type = RFCOMM_MCC_TYPE(hdr->type);
+	uint8_t		 type = RFCOMM_MCC_TYPE(hdr->type);
 	int			 error = 0;
 
 	mtx_assert(&s->session_mtx, MA_OWNED);
@@ -2638,8 +2638,8 @@ ng_btsocket_rfcomm_receive_rpn(ng_btsocket_rfcomm_session_p s, struct mbuf *m0)
 	struct rfcomm_mcc_hdr	*hdr = mtod(m0, struct rfcomm_mcc_hdr *);
 	struct rfcomm_mcc_rpn	*rpn = (struct rfcomm_mcc_rpn *)(hdr + 1);
 	int			 error = 0;
-	u_int16_t		 param_mask;
-	u_int8_t		 bit_rate, data_bits, stop_bits, parity,
+	uint16_t		 param_mask;
+	uint8_t		 bit_rate, data_bits, stop_bits, parity,
 				 flow_control, xon_char, xoff_char;
 
 	mtx_assert(&s->session_mtx, MA_OWNED);
@@ -2914,8 +2914,8 @@ ng_btsocket_rfcomm_receive_pn(ng_btsocket_rfcomm_session_p s, struct mbuf *m0)
  */
 
 static void
-ng_btsocket_rfcomm_set_pn(ng_btsocket_rfcomm_pcb_p pcb, u_int8_t cr,
-		u_int8_t flow_control, u_int8_t credits, u_int16_t mtu)
+ng_btsocket_rfcomm_set_pn(ng_btsocket_rfcomm_pcb_p pcb, uint8_t cr,
+		uint8_t flow_control, uint8_t credits, uint16_t mtu)
 {
 	mtx_assert(&pcb->pcb_mtx, MA_OWNED);
 
@@ -2951,7 +2951,7 @@ ng_btsocket_rfcomm_set_pn(ng_btsocket_rfcomm_pcb_p pcb, u_int8_t cr,
 
 static int
 ng_btsocket_rfcomm_send_command(ng_btsocket_rfcomm_session_p s,
-		u_int8_t type, u_int8_t dlci)
+		uint8_t type, uint8_t dlci)
 {
 	struct rfcomm_cmd_hdr	*hdr = NULL;
 	struct mbuf		*m = NULL;
@@ -2990,7 +2990,7 @@ ng_btsocket_rfcomm_send_command(ng_btsocket_rfcomm_session_p s,
 	hdr->address = RFCOMM_MKADDRESS(cr, dlci);
 	hdr->control = RFCOMM_MKCONTROL(type, 1);
 	hdr->length = RFCOMM_MKLEN8(0);
-	hdr->fcs = ng_btsocket_rfcomm_fcs3((u_int8_t *) hdr);
+	hdr->fcs = ng_btsocket_rfcomm_fcs3((uint8_t *) hdr);
 
 	NG_BT_MBUFQ_ENQUEUE(&s->outq, m);
 
@@ -3002,12 +3002,12 @@ ng_btsocket_rfcomm_send_command(ng_btsocket_rfcomm_session_p s,
  */
 
 static int
-ng_btsocket_rfcomm_send_uih(ng_btsocket_rfcomm_session_p s, u_int8_t address,
-		u_int8_t pf, u_int8_t credits, struct mbuf *data)
+ng_btsocket_rfcomm_send_uih(ng_btsocket_rfcomm_session_p s, uint8_t address,
+		uint8_t pf, uint8_t credits, struct mbuf *data)
 {
 	struct rfcomm_frame_hdr	*hdr = NULL;
 	struct mbuf		*m = NULL, *mcrc = NULL;
-	u_int16_t		 length;
+	uint16_t		 length;
 
 	mtx_assert(&s->session_mtx, MA_OWNED);
 
@@ -3031,12 +3031,12 @@ ng_btsocket_rfcomm_send_uih(ng_btsocket_rfcomm_session_p s, u_int8_t address,
 	hdr->control = RFCOMM_MKCONTROL(RFCOMM_FRAME_UIH, pf);
 
 	/* Calculate FCS */
-	mcrc->m_data[0] = ng_btsocket_rfcomm_fcs2((u_int8_t *) hdr);
+	mcrc->m_data[0] = ng_btsocket_rfcomm_fcs2((uint8_t *) hdr);
 
 	/* Put length back */
 	length = (data != NULL)? data->m_pkthdr.len : 0;
 	if (length > 127) {
-		u_int16_t	l = htole16(RFCOMM_MKLEN16(length));
+		uint16_t	l = htole16(RFCOMM_MKLEN16(length));
 
 		bcopy(&l, &hdr->length, sizeof(l));
 		m->m_pkthdr.len ++;
@@ -3172,7 +3172,7 @@ static int
 ng_btsocket_rfcomm_send_credits(ng_btsocket_rfcomm_pcb_p pcb)
 {
 	int		error = 0;
-	u_int8_t	credits;
+	uint8_t	credits;
 
 	mtx_assert(&pcb->pcb_mtx, MA_OWNED);
 	mtx_assert(&pcb->session->session_mtx, MA_OWNED);

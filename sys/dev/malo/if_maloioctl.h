@@ -84,13 +84,13 @@ struct malo_stats {
 
 struct malo_rx_radiotap_header {
 	struct ieee80211_radiotap_header wr_ihdr;
-	u_int8_t	wr_flags;
-	u_int8_t	wr_rate;
-	u_int16_t	wr_chan_freq;
-	u_int16_t	wr_chan_flags;
+	uint8_t	wr_flags;
+	uint8_t	wr_rate;
+	uint16_t	wr_chan_freq;
+	uint16_t	wr_chan_flags;
 	int8_t		wr_antsignal;
 	int8_t		wr_antnoise;
-	u_int8_t	wr_antenna;
+	uint8_t	wr_antenna;
 } __packed __aligned(8);
 
 #define MALO_TX_RADIOTAP_PRESENT (		\
@@ -103,12 +103,12 @@ struct malo_rx_radiotap_header {
 
 struct malo_tx_radiotap_header {
 	struct ieee80211_radiotap_header wt_ihdr;
-	u_int8_t	wt_flags;
-	u_int8_t	wt_rate;
-	u_int16_t	wt_chan_freq;
-	u_int16_t	wt_chan_flags;
-	u_int8_t	wt_txpower;
-	u_int8_t	wt_antenna;
+	uint8_t	wt_flags;
+	uint8_t	wt_rate;
+	uint16_t	wt_chan_freq;
+	uint16_t	wt_chan_flags;
+	uint8_t	wt_txpower;
+	uint8_t	wt_antenna;
 } __packed;
 
 #endif /* _DEV_MALO_MVIOCTL_H */

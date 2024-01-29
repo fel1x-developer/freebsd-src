@@ -119,17 +119,17 @@ struct devstat_match_table {
 };
 
 struct device_selection {
-	u_int32_t	device_number;
+	uint32_t	device_number;
 	char		device_name[DEVSTAT_NAME_LEN];
 	int		unit_number;
 	int		selected;
-	u_int64_t	bytes;
+	uint64_t	bytes;
 	int		position;
 };
 
 struct devinfo {
 	struct devstat	*devices;
-	u_int8_t	*mem_ptr;
+	uint8_t	*mem_ptr;
 	long		generation;
 	int		numdevs;
 };

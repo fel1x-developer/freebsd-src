@@ -92,7 +92,7 @@ ncl_nhuninit(void)
  * nfsnode structure is returned.
  */
 int
-ncl_nget(struct mount *mntp, u_int8_t *fhp, int fhsize, struct nfsnode **npp,
+ncl_nget(struct mount *mntp, uint8_t *fhp, int fhsize, struct nfsnode **npp,
     int lkflags)
 {
 	struct thread *td = curthread;	/* XXX */

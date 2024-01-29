@@ -46,7 +46,7 @@
 static void	get_tablesize(char const *source, struct ng_mesg *msg, void *ctx);
 struct gettable
 {
-	u_int32_t	tok;
+	uint32_t	tok;
 	int		cnt;
 };
 
@@ -307,7 +307,7 @@ ATF_TC_BODY(many_unicasts, dummy)
 	ng_errors(PASS);
 	rm.tok = ng_send_msg("bridge:", "gettable");
 	ng_errors(FAIL);
-	if (rm.tok == (u_int32_t)-1)
+	if (rm.tok == (uint32_t)-1)
 	{
 		ATF_CHECK_ERRNO(ENOBUFS, 1);
 		atf_tc_expect_fail("response too large");

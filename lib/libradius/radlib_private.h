@@ -99,7 +99,7 @@ struct rad_handle {
 };
 
 struct vendor_attribute {
-	u_int32_t vendor_value;
+	uint32_t vendor_value;
 	u_char attrib_type;
 	u_char attrib_len;
 	u_char attrib_data[1];

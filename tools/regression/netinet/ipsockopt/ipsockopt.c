@@ -111,7 +111,7 @@ get_socket(int type, int priv)
 static void
 test_ip_options(int sock, const char *socktypename)
 {
-	u_int32_t new_options, test_options[2];
+	uint32_t new_options, test_options[2];
 	socklen_t len;
 
 	/*
@@ -143,7 +143,7 @@ test_ip_options(int sock, const char *socktypename)
 	/*
 	 * Store some random cruft in a local variable and retrieve the
 	 * options to make sure they set.  Note that we pass in an array
-	 * of u_int32_t's so that if whatever ended up in the option was
+	 * of uint32_t's so that if whatever ended up in the option was
 	 * larger than what we put in, we find out about it here.
 	 */
 	test_options[0] = TEST_MAGIC;

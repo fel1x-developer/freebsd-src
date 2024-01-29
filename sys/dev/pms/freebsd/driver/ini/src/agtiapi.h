@@ -37,7 +37,7 @@
 #include <dev/pms/RefTisa/tisa/api/titypes.h>
 #include <vm/uma.h>
 
-typedef u_int32_t atomic_t;
+typedef uint32_t atomic_t;
 
 #define atomic_set(p,v)		(*(p) = (v))
 #define atomic_read(p)		(*(p))

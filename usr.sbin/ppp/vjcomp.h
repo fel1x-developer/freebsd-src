@@ -31,6 +31,6 @@ struct link;
 struct ipcp;
 struct bundle;
 
-extern const char *vj2asc(u_int32_t);
+extern const char *vj2asc(uint32_t);
 
 extern struct layer vjlayer;

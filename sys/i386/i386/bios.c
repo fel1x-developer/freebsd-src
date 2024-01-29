@@ -79,7 +79,7 @@ bios32_init(void *junk)
     u_long			sigaddr;
     struct bios32_SDheader	*sdh;
     struct PnPBIOS_table	*pt;
-    u_int8_t			ck, *cv;
+    uint8_t			ck, *cv;
     int				i;
     char			*p;
     
@@ -91,7 +91,7 @@ bios32_init(void *junk)
     if ((sigaddr = bios_sigsearch(0, "_32_", 4, 16, 0)) != 0) {
 	/* get a virtual pointer to the structure */
 	sdh = (struct bios32_SDheader *)(uintptr_t)BIOS_PADDRTOVADDR(sigaddr);
-	for (cv = (u_int8_t *)sdh, ck = 0, i = 0; i < (sdh->len * 16); i++) {
+	for (cv = (uint8_t *)sdh, ck = 0, i = 0; i < (sdh->len * 16); i++) {
 	    ck += cv[i];
 	}
 	/* If checksum is OK, enable use of the entrypoint */
@@ -127,7 +127,7 @@ bios32_init(void *junk)
 	((sigaddr = bios_sigsearch(0, "$PnP", 4, 16, 0)) != 0)) {
 	/* get a virtual pointer to the structure */
 	pt = (struct PnPBIOS_table *)(uintptr_t)BIOS_PADDRTOVADDR(sigaddr);
-	for (cv = (u_int8_t *)pt, ck = 0, i = 0; i < pt->len; i++) {
+	for (cv = (uint8_t *)pt, ck = 0, i = 0; i < pt->len; i++) {
 	    ck += cv[i];
 	}
 	/* If checksum is OK, enable use of the entrypoint */
@@ -202,8 +202,8 @@ bios32_SDlookup(struct bios32_SDentry *ent)
  * signature was not found.
  */
 
-u_int32_t
-bios_sigsearch(u_int32_t start, u_char *sig, int siglen, int paralen, int sigofs)
+uint32_t
+bios_sigsearch(uint32_t start, u_char *sig, int siglen, int paralen, int sigofs)
 {
     u_char	*sp, *end;
     
@@ -224,7 +224,7 @@ bios_sigsearch(u_int32_t start, u_char *sig, int siglen, int paralen, int sigofs
 	/* compare here */
 	if (!bcmp(sp + sigofs, sig, siglen)) {
 	    /* convert back to physical address */
-	    return((u_int32_t)BIOS_VADDRTOPADDR(sp));
+	    return((uint32_t)BIOS_VADDRTOPADDR(sp));
 	}
 	sp += paralen;
     }
@@ -524,11 +524,11 @@ bios_oem_strings(struct bios_oem *oem, u_char *buffer, size_t maxlen)
 
 struct pnp_sysdev 
 {
-    u_int16_t	size;
-    u_int8_t	handle;
-    u_int32_t	devid;
-    u_int8_t	type[3];
-    u_int16_t	attrib;
+    uint16_t	size;
+    uint8_t	handle;
+    uint32_t	devid;
+    uint8_t	type[3];
+    uint16_t	attrib;
 #define PNPATTR_NODISABLE	(1<<0)	/* can't be disabled */
 #define PNPATTR_NOCONFIG	(1<<1)	/* can't be configured */
 #define PNPATTR_OUTPUT		(1<<2)	/* can be primary output */
@@ -541,13 +541,13 @@ struct pnp_sysdev
 #define PNPATTR_CONFIG_DYNONLY	(3)
 #define PNPATTR_CONFIG(a)	(((a) >> 7) & 0x3)
     /* device-specific data comes here */
-    u_int8_t	devdata[0];
+    uint8_t	devdata[0];
 } __packed;
 
 /* We have to cluster arguments within a 64k range for the bios16 call */
 struct pnp_sysdevargs
 {
-    u_int16_t	next;
+    uint16_t	next;
     struct pnp_sysdev node;
 };
 
@@ -570,10 +570,10 @@ pnpbios_identify(driver_t *driver, device_t parent)
     struct bios_args		args;
     struct pnp_sysdev		*pd;
     struct pnp_sysdevargs	*pda;
-    u_int16_t			ndevs, bigdev;
+    uint16_t			ndevs, bigdev;
     int				error, currdev;
-    u_int8_t			*devnodebuf, tag;
-    u_int32_t			*devid, *compid;
+    uint8_t			*devnodebuf, tag;
+    uint32_t			*devid, *compid;
     int				idx, left;
     device_t			dev;
         
@@ -681,7 +681,7 @@ pnpbios_identify(driver_t *driver, device_t parent)
 		/* Small resource */
 		switch (PNP_SRES_NUM(tag)) {
 		case PNP_TAG_COMPAT_DEVICE:
-		    compid = (u_int32_t *)(pd->devdata + idx);
+		    compid = (uint32_t *)(pd->devdata + idx);
 		    if (bootverbose)
 			printf("pnpbios: node %d compat ID 0x%08x\n", pd->handle, *compid);
 		    /* FALLTHROUGH */
@@ -694,7 +694,7 @@ pnpbios_identify(driver_t *driver, device_t parent)
 		}
 	    } else
 		/* Large resource, skip it */
-		idx += *(u_int16_t *)(pd->devdata + idx) + 2;
+		idx += *(uint16_t *)(pd->devdata + idx) + 2;
 	}
 	if (bootverbose) {
 	    printf("pnpbios: handle %d device ID %s (%08x)", 

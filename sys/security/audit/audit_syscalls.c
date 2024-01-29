@@ -288,13 +288,13 @@ sys_auditon(struct thread *td, struct auditon_args *uap)
 	case A_GETQCTRL:
 		if (uap->length == sizeof(udata.au_qctrl64)) {
 			udata.au_qctrl64.aq64_hiwater =
-			    (u_int64_t)audit_qctrl.aq_hiwater;
+			    (uint64_t)audit_qctrl.aq_hiwater;
 			udata.au_qctrl64.aq64_lowater =
-			    (u_int64_t)audit_qctrl.aq_lowater;
+			    (uint64_t)audit_qctrl.aq_lowater;
 			udata.au_qctrl64.aq64_bufsz =
-			    (u_int64_t)audit_qctrl.aq_bufsz;
+			    (uint64_t)audit_qctrl.aq_bufsz;
 			udata.au_qctrl64.aq64_minfree =
-			    (u_int64_t)audit_qctrl.aq_minfree;
+			    (uint64_t)audit_qctrl.aq_minfree;
 			break;
 		}
 		if (uap->length != sizeof(udata.au_qctrl))

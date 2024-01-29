@@ -68,10 +68,10 @@ static int		uninorth_attach(device_t);
 /*
  * pcib interface.
  */
-static u_int32_t	uninorth_read_config(device_t, u_int, u_int, u_int,
+static uint32_t	uninorth_read_config(device_t, u_int, u_int, u_int,
 			    u_int, int);
 static void		uninorth_write_config(device_t, u_int, u_int, u_int,
-			    u_int, u_int32_t, int);
+			    u_int, uint32_t, int);
 
 /*
  * Local routines.
@@ -173,13 +173,13 @@ uninorth_attach(device_t dev)
 	return (ofw_pcib_attach(dev));
 }
 
-static u_int32_t
+static uint32_t
 uninorth_read_config(device_t dev, u_int bus, u_int slot, u_int func, u_int reg,
     int width)
 {
 	struct		uninorth_softc *sc;
 	vm_offset_t	caoff;
-	u_int32_t	val;
+	uint32_t	val;
 
 	sc = device_get_softc(dev);
 	caoff = sc->sc_data + (reg & 0x07);
@@ -206,7 +206,7 @@ uninorth_read_config(device_t dev, u_int bus, u_int slot, u_int func, u_int reg,
 
 static void
 uninorth_write_config(device_t dev, u_int bus, u_int slot, u_int func,
-    u_int reg, u_int32_t val, int width)
+    u_int reg, uint32_t val, int width)
 {
 	struct		uninorth_softc *sc;
 	vm_offset_t	caoff;

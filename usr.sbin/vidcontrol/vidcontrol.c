@@ -1277,7 +1277,7 @@ dump_screen(int mode, int opt)
 	if (opt == DUMP_ALL)
 		shot.ysize += info.mv_hsz;
 
-	shot.buf = alloca(shot.xsize * shot.ysize * sizeof(u_int16_t));
+	shot.buf = alloca(shot.xsize * shot.ysize * sizeof(uint16_t));
 	if (shot.buf == NULL) {
 		revert();
 		errx(1, "failed to allocate memory for dump");
@@ -1295,11 +1295,11 @@ dump_screen(int mode, int opt)
 		fflush(stdout);
 
 		write(STDOUT_FILENO, shot.buf,
-		      shot.xsize * shot.ysize * sizeof(u_int16_t));
+		      shot.xsize * shot.ysize * sizeof(uint16_t));
 	} else {
 		char *line;
 		int x, y;
-		u_int16_t ch;
+		uint16_t ch;
 
 		line = alloca(shot.xsize + 1);
 

@@ -57,11 +57,11 @@ static const struct addrinfo *hints, hintipv4only = { .ai_family = AF_INET };
  * We don't have good random(3)-type functions that are thread-safe,
  * unfortunately.
  */
-static u_int32_t
+static uint32_t
 my_arc4random_r(void)
 {
 	static pthread_mutex_t mymutex = PTHREAD_MUTEX_INITIALIZER;
-	u_int32_t ret;
+	uint32_t ret;
 
 	(void)pthread_mutex_lock(&mymutex);
 	ret = arc4random();

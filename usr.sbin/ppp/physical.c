@@ -1098,7 +1098,7 @@ physical_AwaitCarrier(struct physical *p)
 
 
 void
-physical_SetAsyncParams(struct physical *p, u_int32_t mymap, u_int32_t hismap)
+physical_SetAsyncParams(struct physical *p, uint32_t mymap, uint32_t hismap)
 {
   if (p->handler && p->handler->setasyncparams)
     return (*p->handler->setasyncparams)(p, mymap, hismap);

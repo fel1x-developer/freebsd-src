@@ -77,7 +77,7 @@ static void ips_io_request_callback(void *cmdptr, bus_dma_segment_t *segments,in
 	ips_io_cmd *command_struct;
 	struct bio *iobuf = command->arg;
 	int i, length = 0;
-	u_int8_t cmdtype;
+	uint8_t cmdtype;
 
 	sc = command->sc;
 	if(error){
@@ -98,7 +98,7 @@ static void ips_io_request_callback(void *cmdptr, bus_dma_segment_t *segments,in
 		else
 			cmdtype = IPS_SG_WRITE_CMD;
 		command_struct->segnum = segnum;
-		sg_list = (ips_sg_element_t *)((u_int8_t *)
+		sg_list = (ips_sg_element_t *)((uint8_t *)
 			   command->command_buffer + IPS_COMMAND_LEN);
 		for(i = 0; i < segnum; i++){
 			sg_list[i].addr = segments[i].ds_addr;
@@ -106,7 +106,7 @@ static void ips_io_request_callback(void *cmdptr, bus_dma_segment_t *segments,in
 			length += segments[i].ds_len;
 		}
 		command_struct->buffaddr = 
-	    	    (u_int32_t)command->command_phys_addr + IPS_COMMAND_LEN;
+	    	    (uint32_t)command->command_phys_addr + IPS_COMMAND_LEN;
 	} else {
 		if(ips_read_request(iobuf))
 			cmdtype = IPS_READ_CMD;

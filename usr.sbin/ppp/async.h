@@ -33,8 +33,8 @@ struct async {
   int length;
   u_char hbuff[HDLCSIZE];	/* recv buffer */
   u_char xbuff[HDLCSIZE];	/* xmit buffer */
-  u_int32_t my_accmap;
-  u_int32_t his_accmap;
+  uint32_t my_accmap;
+  uint32_t his_accmap;
 
   struct {
     u_char EscMap[33];
@@ -48,6 +48,6 @@ struct bundle;
 
 extern void async_Init(struct async *);
 extern void async_Setup(struct async *);
-extern void async_SetLinkParams(struct async *, u_int32_t, u_int32_t);
+extern void async_SetLinkParams(struct async *, uint32_t, uint32_t);
 
 extern struct layer asynclayer;

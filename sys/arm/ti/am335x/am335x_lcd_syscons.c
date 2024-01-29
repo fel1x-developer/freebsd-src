@@ -730,7 +730,7 @@ am335x_syscons_putc(video_adapter_t *adp, vm_offset_t off, uint8_t c, uint8_t a)
 }
 
 static int
-am335x_syscons_puts(video_adapter_t *adp, vm_offset_t off, u_int16_t *s, int len)
+am335x_syscons_puts(video_adapter_t *adp, vm_offset_t off, uint16_t *s, int len)
 {
 	int i;
 

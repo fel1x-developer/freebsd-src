@@ -270,7 +270,7 @@ struct interface {
 	} int_data;
 #	define MAX_AUTH_KEYS 5
 	struct auth {			/* authentication info */
-	    u_int16_t type;
+	    uint16_t type;
 	    u_char  key[RIP_AUTH_PW_LEN];
 	    u_char  keyid;
 	    time_t  start, end;

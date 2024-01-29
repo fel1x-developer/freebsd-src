@@ -58,8 +58,8 @@
 #else
 #define MD5_DIGEST_LEN 16
 typedef struct {
-	u_int32_t state[4];		/* state (ABCD) */
-	u_int32_t count[2];		/* # of bits, modulo 2^64 (LSB 1st) */
+	uint32_t state[4];		/* state (ABCD) */
+	uint32_t count[2];		/* # of bits, modulo 2^64 (LSB 1st) */
 	unsigned char buffer[64];	/* input buffer */
 } MD5_CTX;
 extern void MD5Init(MD5_CTX*);

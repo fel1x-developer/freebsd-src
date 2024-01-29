@@ -137,11 +137,11 @@ struct ath_hal;
 #define	OS_REG_WRITE(_ah, _reg, _val)	ath_hal_reg_write(_ah, _reg, _val)
 #define	OS_REG_READ(_ah, _reg)		ath_hal_reg_read(_ah, _reg)
 
-extern	void ath_hal_reg_write(struct ath_hal *ah, u_int reg, u_int32_t val);
-extern	u_int32_t ath_hal_reg_read(struct ath_hal *ah, u_int reg);
+extern	void ath_hal_reg_write(struct ath_hal *ah, u_int reg, uint32_t val);
+extern	uint32_t ath_hal_reg_read(struct ath_hal *ah, u_int reg);
 
 #ifdef AH_DEBUG_ALQ
-extern	void OS_MARK(struct ath_hal *, u_int id, u_int32_t value);
+extern	void OS_MARK(struct ath_hal *, u_int id, uint32_t value);
 #else
 #define	OS_MARK(_ah, _id, _v)
 #endif

@@ -71,13 +71,13 @@
 token_t *
 au_to_upriv(char sorf, char *priv)
 {
-	u_int16_t textlen;
+	uint16_t textlen;
 	u_char *dptr;
 	token_t *t;
 
 	textlen = strlen(priv) + 1;
 	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + sizeof(u_char) +
-	    sizeof(u_int16_t) + textlen);
+	    sizeof(uint16_t) + textlen);
 
 	ADD_U_CHAR(dptr, AUT_UPRIV);
 	ADD_U_CHAR(dptr, sorf);
@@ -96,14 +96,14 @@ au_to_upriv(char sorf, char *priv)
 token_t *
 au_to_privset(char *privtypestr, char *privstr)
 {
-	u_int16_t	 type_len, priv_len;
+	uint16_t	 type_len, priv_len;
 	u_char		*dptr;
 	token_t		*t;
 
 	type_len = strlen(privtypestr) + 1;
 	priv_len = strlen(privstr) + 1;
-	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + sizeof(u_int16_t) +
-	    sizeof(u_int16_t) + type_len + priv_len);
+	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + sizeof(uint16_t) +
+	    sizeof(uint16_t) + type_len + priv_len);
 
 	ADD_U_CHAR(dptr, AUT_PRIV);
 	ADD_U_INT16(dptr, type_len);
@@ -121,17 +121,17 @@ au_to_privset(char *privtypestr, char *privstr)
  * text                    N bytes + 1 terminating NULL byte
  */
 token_t *
-au_to_arg32(char n, const char *text, u_int32_t v)
+au_to_arg32(char n, const char *text, uint32_t v)
 {
 	token_t *t;
 	u_char *dptr = NULL;
-	u_int16_t textlen;
+	uint16_t textlen;
 
 	textlen = strlen(text);
 	textlen += 1;
 
-	GET_TOKEN_AREA(t, dptr, 2 * sizeof(u_char) + sizeof(u_int32_t) +
-	    sizeof(u_int16_t) + textlen);
+	GET_TOKEN_AREA(t, dptr, 2 * sizeof(u_char) + sizeof(uint32_t) +
+	    sizeof(uint16_t) + textlen);
 
 	ADD_U_CHAR(dptr, AUT_ARG32);
 	ADD_U_CHAR(dptr, n);
@@ -143,17 +143,17 @@ au_to_arg32(char n, const char *text, u_int32_t v)
 }
 
 token_t *
-au_to_arg64(char n, const char *text, u_int64_t v)
+au_to_arg64(char n, const char *text, uint64_t v)
 {
 	token_t *t;
 	u_char *dptr = NULL;
-	u_int16_t textlen;
+	uint16_t textlen;
 
 	textlen = strlen(text);
 	textlen += 1;
 
-	GET_TOKEN_AREA(t, dptr, 2 * sizeof(u_char) + sizeof(u_int64_t) +
-	    sizeof(u_int16_t) + textlen);
+	GET_TOKEN_AREA(t, dptr, 2 * sizeof(u_char) + sizeof(uint64_t) +
+	    sizeof(uint16_t) + textlen);
 
 	ADD_U_CHAR(dptr, AUT_ARG64);
 	ADD_U_CHAR(dptr, n);
@@ -165,7 +165,7 @@ au_to_arg64(char n, const char *text, u_int64_t v)
 }
 
 token_t *
-au_to_arg(char n, const char *text, u_int32_t v)
+au_to_arg(char n, const char *text, uint32_t v)
 {
 
 	return (au_to_arg32(n, text, v));
@@ -186,11 +186,11 @@ au_to_attr32(struct vnode_au_info *vni)
 {
 	token_t *t;
 	u_char *dptr = NULL;
-	u_int16_t pad0_16 = 0;
-	u_int32_t pad0_32 = 0;
+	uint16_t pad0_16 = 0;
+	uint32_t pad0_32 = 0;
 
-	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + 2 * sizeof(u_int16_t) +
-	    3 * sizeof(u_int32_t) + sizeof(u_int64_t) + sizeof(u_int32_t));
+	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + 2 * sizeof(uint16_t) +
+	    3 * sizeof(uint32_t) + sizeof(uint64_t) + sizeof(uint32_t));
 
 	ADD_U_CHAR(dptr, AUT_ATTR32);
 
@@ -233,11 +233,11 @@ au_to_attr64(struct vnode_au_info *vni)
 {
 	token_t *t;
 	u_char *dptr = NULL;
-	u_int16_t pad0_16 = 0;
-	u_int32_t pad0_32 = 0;
+	uint16_t pad0_16 = 0;
+	uint32_t pad0_32 = 0;
 
-	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + 2 * sizeof(u_int16_t) +
-	    3 * sizeof(u_int32_t) + sizeof(u_int64_t) * 2);
+	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + 2 * sizeof(uint16_t) +
+	    3 * sizeof(uint32_t) + sizeof(uint64_t) * 2);
 
 	ADD_U_CHAR(dptr, AUT_ATTR64);
 
@@ -349,7 +349,7 @@ au_to_exit(int retval, int err)
 	token_t *t;
 	u_char *dptr = NULL;
 
-	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + 2 * sizeof(u_int32_t));
+	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + 2 * sizeof(uint32_t));
 
 	ADD_U_CHAR(dptr, AUT_EXIT);
 	ADD_U_INT32(dptr, err);
@@ -373,14 +373,14 @@ au_to_groups(int *groups)
  * group list              count * 4 bytes
  */
 token_t *
-au_to_newgroups(u_int16_t n, gid_t *groups)
+au_to_newgroups(uint16_t n, gid_t *groups)
 {
 	token_t *t;
 	u_char *dptr = NULL;
 	int i;
 
-	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + sizeof(u_int16_t) +
-	    n * sizeof(u_int32_t));
+	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + sizeof(uint16_t) +
+	    n * sizeof(uint32_t));
 
 	ADD_U_CHAR(dptr, AUT_NEWGROUPS);
 	ADD_U_INT16(dptr, n);
@@ -418,7 +418,7 @@ au_to_in_addr_ex(struct in6_addr *internet_addr)
 {
 	token_t *t;
 	u_char *dptr = NULL;
-	u_int32_t type = AU_IPv6;
+	uint32_t type = AU_IPv6;
 
 	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + 5 * sizeof(uint32_t));
 
@@ -460,7 +460,7 @@ au_to_ipc(char type, int id)
 	token_t *t;
 	u_char *dptr = NULL;
 
-	GET_TOKEN_AREA(t, dptr, 2 * sizeof(u_char) + sizeof(u_int32_t));
+	GET_TOKEN_AREA(t, dptr, 2 * sizeof(u_char) + sizeof(uint32_t));
 
 	ADD_U_CHAR(dptr, AUT_IPC);
 	ADD_U_CHAR(dptr, type);
@@ -484,10 +484,10 @@ au_to_ipc_perm(struct ipc_perm *perm)
 {
 	token_t *t;
 	u_char *dptr = NULL;
-	u_int16_t pad0 = 0;
+	uint16_t pad0 = 0;
 
-	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + 12 * sizeof(u_int16_t) +
-	    sizeof(u_int32_t));
+	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + 12 * sizeof(uint16_t) +
+	    sizeof(uint32_t));
 
 	ADD_U_CHAR(dptr, AUT_IPC_PERM);
 
@@ -501,7 +501,7 @@ au_to_ipc_perm(struct ipc_perm *perm)
 	 * XXXRW: Possibly shoulid be conditionally compiled, and more cases
 	 * need to be handled.
 	 */
-	if (sizeof(perm->uid) != sizeof(u_int32_t)) {
+	if (sizeof(perm->uid) != sizeof(uint32_t)) {
 		ADD_U_INT16(dptr, pad0);
 		ADD_U_INT16(dptr, perm->uid);
 		ADD_U_INT16(dptr, pad0);
@@ -534,12 +534,12 @@ au_to_ipc_perm(struct ipc_perm *perm)
  * port IP address         2 bytes
  */
 token_t *
-au_to_iport(u_int16_t iport)
+au_to_iport(uint16_t iport)
 {
 	token_t *t;
 	u_char *dptr = NULL;
 
-	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + sizeof(u_int16_t));
+	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + sizeof(uint16_t));
 
 	ADD_U_CHAR(dptr, AUT_IPORT);
 	ADD_U_INT16(dptr, iport);
@@ -553,12 +553,12 @@ au_to_iport(u_int16_t iport)
  * data                    size bytes
  */
 token_t *
-au_to_opaque(const char *data, u_int16_t bytes)
+au_to_opaque(const char *data, uint16_t bytes)
 {
 	token_t *t;
 	u_char *dptr = NULL;
 
-	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + sizeof(u_int16_t) + bytes);
+	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + sizeof(uint16_t) + bytes);
 
 	ADD_U_CHAR(dptr, AUT_OPAQUE);
 	ADD_U_INT16(dptr, bytes);
@@ -579,14 +579,14 @@ au_to_file(const char *file, struct timeval tm)
 {
 	token_t *t;
 	u_char *dptr = NULL;
-	u_int16_t filelen;
-	u_int32_t timems;
+	uint16_t filelen;
+	uint32_t timems;
 
 	filelen = strlen(file);
 	filelen += 1;
 
-	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + 2 * sizeof(u_int32_t) +
-	    sizeof(u_int16_t) + filelen);
+	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + 2 * sizeof(uint32_t) +
+	    sizeof(uint16_t) + filelen);
 
 	timems = tm.tv_usec/1000;
 
@@ -609,14 +609,14 @@ au_to_text(const char *text)
 {
 	token_t *t;
 	u_char *dptr = NULL;
-	u_int16_t textlen;
+	uint16_t textlen;
 
 	textlen = strlen(text);
 	textlen += 1;
 
 	/* XXXRW: Should validate length against token size limit. */
 
-	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + sizeof(u_int16_t) + textlen);
+	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + sizeof(uint16_t) + textlen);
 
 	ADD_U_CHAR(dptr, AUT_TEXT);
 	ADD_U_INT16(dptr, textlen);
@@ -635,12 +635,12 @@ au_to_path(const char *text)
 {
 	token_t *t;
 	u_char *dptr = NULL;
-	u_int16_t textlen;
+	uint16_t textlen;
 
 	textlen = strlen(text);
 	textlen += 1;
 
-	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + sizeof(u_int16_t) + textlen);
+	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + sizeof(uint16_t) + textlen);
 
 	ADD_U_CHAR(dptr, AUT_PATH);
 	ADD_U_INT16(dptr, textlen);
@@ -669,7 +669,7 @@ au_to_process32(au_id_t auid, uid_t euid, gid_t egid, uid_t ruid, gid_t rgid,
 	token_t *t;
 	u_char *dptr = NULL;
 
-	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + 9 * sizeof(u_int32_t));
+	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + 9 * sizeof(uint32_t));
 
 	ADD_U_CHAR(dptr, AUT_PROCESS32);
 	ADD_U_INT32(dptr, auid);
@@ -687,7 +687,7 @@ au_to_process32(au_id_t auid, uid_t euid, gid_t egid, uid_t ruid, gid_t rgid,
 	 * simply writes the 4-byte address directly.  We support only IPv4
 	 * addresses for process32 tokens.
 	 */
-	ADD_MEM(dptr, &tid->machine, sizeof(u_int32_t));
+	ADD_MEM(dptr, &tid->machine, sizeof(uint32_t));
 
 	return (t);
 }
@@ -699,8 +699,8 @@ au_to_process64(au_id_t auid, uid_t euid, gid_t egid, uid_t ruid, gid_t rgid,
 	token_t *t;
 	u_char *dptr = NULL;
 
-	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + 8 * sizeof(u_int32_t) +
-	    sizeof(u_int64_t));
+	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + 8 * sizeof(uint32_t) +
+	    sizeof(uint64_t));
 
 	ADD_U_CHAR(dptr, AUT_PROCESS64);
 	ADD_U_INT32(dptr, auid);
@@ -718,7 +718,7 @@ au_to_process64(au_id_t auid, uid_t euid, gid_t egid, uid_t ruid, gid_t rgid,
 	 * simply writes the 4-byte address directly.  We support only IPv4
 	 * addresses for process64 tokens.
 	 */
-	ADD_MEM(dptr, &tid->machine, sizeof(u_int32_t));
+	ADD_MEM(dptr, &tid->machine, sizeof(uint32_t));
 
 	return (t);
 }
@@ -757,10 +757,10 @@ au_to_process32_ex(au_id_t auid, uid_t euid, gid_t egid, uid_t ruid,
 	    ("au_to_process32_ex: type %u", (unsigned int)tid->at_type));
 	if (tid->at_type == AU_IPv4)
 		GET_TOKEN_AREA(t, dptr, sizeof(u_char) +
-		    10 * sizeof(u_int32_t));
+		    10 * sizeof(uint32_t));
 	else
 		GET_TOKEN_AREA(t, dptr, sizeof(u_char) +
-		    13 * sizeof(u_int32_t));
+		    13 * sizeof(uint32_t));
 
 	ADD_U_CHAR(dptr, AUT_PROCESS32_EX);
 	ADD_U_INT32(dptr, auid);
@@ -772,11 +772,11 @@ au_to_process32_ex(au_id_t auid, uid_t euid, gid_t egid, uid_t ruid,
 	ADD_U_INT32(dptr, sid);
 	ADD_U_INT32(dptr, tid->at_port);
 	ADD_U_INT32(dptr, tid->at_type);
-	ADD_MEM(dptr, &tid->at_addr[0], sizeof(u_int32_t));
+	ADD_MEM(dptr, &tid->at_addr[0], sizeof(uint32_t));
 	if (tid->at_type == AU_IPv6) {
-		ADD_MEM(dptr, &tid->at_addr[1], sizeof(u_int32_t));
-		ADD_MEM(dptr, &tid->at_addr[2], sizeof(u_int32_t));
-		ADD_MEM(dptr, &tid->at_addr[3], sizeof(u_int32_t));
+		ADD_MEM(dptr, &tid->at_addr[1], sizeof(uint32_t));
+		ADD_MEM(dptr, &tid->at_addr[2], sizeof(uint32_t));
+		ADD_MEM(dptr, &tid->at_addr[3], sizeof(uint32_t));
 	}
 
 	return (t);
@@ -791,12 +791,12 @@ au_to_process64_ex(au_id_t auid, uid_t euid, gid_t egid, uid_t ruid,
 
 	if (tid->at_type == AU_IPv4)
 		GET_TOKEN_AREA(t, dptr, sizeof(u_char) +
-		    7 * sizeof(u_int32_t) + sizeof(u_int64_t) +
-		    2 * sizeof(u_int32_t));
+		    7 * sizeof(uint32_t) + sizeof(uint64_t) +
+		    2 * sizeof(uint32_t));
 	else if (tid->at_type == AU_IPv6)
 		GET_TOKEN_AREA(t, dptr, sizeof(u_char) +
-		    7 * sizeof(u_int32_t) + sizeof(u_int64_t) +
-		    5 * sizeof(u_int32_t));
+		    7 * sizeof(uint32_t) + sizeof(uint64_t) +
+		    5 * sizeof(uint32_t));
 	else
 		panic("au_to_process64_ex: invalidate at_type (%d)",
 		    tid->at_type);
@@ -811,11 +811,11 @@ au_to_process64_ex(au_id_t auid, uid_t euid, gid_t egid, uid_t ruid,
 	ADD_U_INT32(dptr, sid);
 	ADD_U_INT64(dptr, tid->at_port);
 	ADD_U_INT32(dptr, tid->at_type);
-	ADD_MEM(dptr, &tid->at_addr[0], sizeof(u_int32_t));
+	ADD_MEM(dptr, &tid->at_addr[0], sizeof(uint32_t));
 	if (tid->at_type == AU_IPv6) {
-		ADD_MEM(dptr, &tid->at_addr[1], sizeof(u_int32_t));
-		ADD_MEM(dptr, &tid->at_addr[2], sizeof(u_int32_t));
-		ADD_MEM(dptr, &tid->at_addr[3], sizeof(u_int32_t));
+		ADD_MEM(dptr, &tid->at_addr[1], sizeof(uint32_t));
+		ADD_MEM(dptr, &tid->at_addr[2], sizeof(uint32_t));
+		ADD_MEM(dptr, &tid->at_addr[3], sizeof(uint32_t));
 	}
 
 	return (t);
@@ -852,12 +852,12 @@ au_to_rights(cap_rights_t *rightsp)
  * return value            4 bytes/8 bytes (32-bit/64-bit value)
  */
 token_t *
-au_to_return32(char status, u_int32_t ret)
+au_to_return32(char status, uint32_t ret)
 {
 	token_t *t;
 	u_char *dptr = NULL;
 
-	GET_TOKEN_AREA(t, dptr, 2 * sizeof(u_char) + sizeof(u_int32_t));
+	GET_TOKEN_AREA(t, dptr, 2 * sizeof(u_char) + sizeof(uint32_t));
 
 	ADD_U_CHAR(dptr, AUT_RETURN32);
 	ADD_U_CHAR(dptr, status);
@@ -867,12 +867,12 @@ au_to_return32(char status, u_int32_t ret)
 }
 
 token_t *
-au_to_return64(char status, u_int64_t ret)
+au_to_return64(char status, uint64_t ret)
 {
 	token_t *t;
 	u_char *dptr = NULL;
 
-	GET_TOKEN_AREA(t, dptr, 2 * sizeof(u_char) + sizeof(u_int64_t));
+	GET_TOKEN_AREA(t, dptr, 2 * sizeof(u_char) + sizeof(uint64_t));
 
 	ADD_U_CHAR(dptr, AUT_RETURN64);
 	ADD_U_CHAR(dptr, status);
@@ -882,7 +882,7 @@ au_to_return64(char status, u_int64_t ret)
 }
 
 token_t *
-au_to_return(char status, u_int32_t ret)
+au_to_return(char status, uint32_t ret)
 {
 
 	return (au_to_return32(status, ret));
@@ -898,7 +898,7 @@ au_to_seq(long audit_count)
 	token_t *t;
 	u_char *dptr = NULL;
 
-	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + sizeof(u_int32_t));
+	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + sizeof(uint32_t));
 
 	ADD_U_CHAR(dptr, AUT_SEQ);
 	ADD_U_INT32(dptr, audit_count);
@@ -930,10 +930,10 @@ au_to_socket_ex(u_short so_domain, u_short so_type,
 
 	if (so_domain == AF_INET)
 		GET_TOKEN_AREA(t, dptr, sizeof(u_char) +
-		    5 * sizeof(u_int16_t) + 2 * sizeof(u_int32_t));
+		    5 * sizeof(uint16_t) + 2 * sizeof(uint32_t));
 	else if (so_domain == AF_INET6)
 		GET_TOKEN_AREA(t, dptr, sizeof(u_char) +
-		    5 * sizeof(u_int16_t) + 8 * sizeof(u_int32_t));
+		    5 * sizeof(uint16_t) + 8 * sizeof(uint32_t));
 	else
 		return (NULL);
 
@@ -972,10 +972,10 @@ kau_to_socket(struct socket_au_info *soi)
 {
 	token_t *t;
 	u_char *dptr;
-	u_int16_t so_type;
+	uint16_t so_type;
 
-	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + 2 * sizeof(u_int16_t) +
-	    sizeof(u_int32_t) + sizeof(u_int16_t) + sizeof(u_int32_t));
+	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + 2 * sizeof(uint16_t) +
+	    sizeof(uint32_t) + sizeof(uint16_t) + sizeof(uint32_t));
                                                  
 	ADD_U_CHAR(dptr, AUT_SOCKET);
 	/* Coerce the socket type into a short value */
@@ -1053,8 +1053,8 @@ au_to_sock_inet128(struct sockaddr_in6 *so)
 	token_t *t;
 	u_char *dptr = NULL;
 
-	GET_TOKEN_AREA(t, dptr, 3 * sizeof(u_char) + sizeof(u_int16_t) +
-	    4 * sizeof(u_int32_t));
+	GET_TOKEN_AREA(t, dptr, 3 * sizeof(u_char) + sizeof(uint16_t) +
+	    4 * sizeof(uint32_t));
 
 	ADD_U_CHAR(dptr, AUT_SOCKINET128);
 	/*
@@ -1098,7 +1098,7 @@ au_to_subject32(au_id_t auid, uid_t euid, gid_t egid, uid_t ruid, gid_t rgid,
 	token_t *t;
 	u_char *dptr = NULL;
 
-	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + 9 * sizeof(u_int32_t));
+	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + 9 * sizeof(uint32_t));
 
 	ADD_U_CHAR(dptr, AUT_SUBJECT32);
 	ADD_U_INT32(dptr, auid);
@@ -1109,7 +1109,7 @@ au_to_subject32(au_id_t auid, uid_t euid, gid_t egid, uid_t ruid, gid_t rgid,
 	ADD_U_INT32(dptr, pid);
 	ADD_U_INT32(dptr, sid);
 	ADD_U_INT32(dptr, tid->port);
-	ADD_MEM(dptr, &tid->machine, sizeof(u_int32_t));
+	ADD_MEM(dptr, &tid->machine, sizeof(uint32_t));
 
 	return (t);
 }
@@ -1121,8 +1121,8 @@ au_to_subject64(au_id_t auid, uid_t euid, gid_t egid, uid_t ruid, gid_t rgid,
 	token_t *t;
 	u_char *dptr = NULL;
 
-	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + 7 * sizeof(u_int32_t) +
-	    sizeof(u_int64_t) + sizeof(u_int32_t));
+	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + 7 * sizeof(uint32_t) +
+	    sizeof(uint64_t) + sizeof(uint32_t));
 
 	ADD_U_CHAR(dptr, AUT_SUBJECT64);
 	ADD_U_INT32(dptr, auid);
@@ -1133,7 +1133,7 @@ au_to_subject64(au_id_t auid, uid_t euid, gid_t egid, uid_t ruid, gid_t rgid,
 	ADD_U_INT32(dptr, pid);
 	ADD_U_INT32(dptr, sid);
 	ADD_U_INT64(dptr, tid->port);
-	ADD_MEM(dptr, &tid->machine, sizeof(u_int32_t));
+	ADD_MEM(dptr, &tid->machine, sizeof(uint32_t));
 
 	return (t);
 }
@@ -1173,10 +1173,10 @@ au_to_subject32_ex(au_id_t auid, uid_t euid, gid_t egid, uid_t ruid,
 
 	if (tid->at_type == AU_IPv4)
 		GET_TOKEN_AREA(t, dptr, sizeof(u_char) + 10 *
-		    sizeof(u_int32_t));
+		    sizeof(uint32_t));
 	else
 		GET_TOKEN_AREA(t, dptr, sizeof(u_char) + 13 *
-		    sizeof(u_int32_t));
+		    sizeof(uint32_t));
 
 	ADD_U_CHAR(dptr, AUT_SUBJECT32_EX);
 	ADD_U_INT32(dptr, auid);
@@ -1189,9 +1189,9 @@ au_to_subject32_ex(au_id_t auid, uid_t euid, gid_t egid, uid_t ruid,
 	ADD_U_INT32(dptr, tid->at_port);
 	ADD_U_INT32(dptr, tid->at_type);
 	if (tid->at_type == AU_IPv6)
-		ADD_MEM(dptr, &tid->at_addr[0], 4 * sizeof(u_int32_t));
+		ADD_MEM(dptr, &tid->at_addr[0], 4 * sizeof(uint32_t));
 	else
-		ADD_MEM(dptr, &tid->at_addr[0], sizeof(u_int32_t));
+		ADD_MEM(dptr, &tid->at_addr[0], sizeof(uint32_t));
 
 	return (t);
 }
@@ -1208,12 +1208,12 @@ au_to_subject64_ex(au_id_t auid, uid_t euid, gid_t egid, uid_t ruid,
 
 	if (tid->at_type == AU_IPv4)
 		GET_TOKEN_AREA(t, dptr, sizeof(u_char) +
-		    7 * sizeof(u_int32_t) + sizeof(u_int64_t) +
-		    2 * sizeof(u_int32_t));
+		    7 * sizeof(uint32_t) + sizeof(uint64_t) +
+		    2 * sizeof(uint32_t));
 	else
 		GET_TOKEN_AREA(t, dptr, sizeof(u_char) +
-		    7 * sizeof(u_int32_t) + sizeof(u_int64_t) +
-		    5 * sizeof(u_int32_t));
+		    7 * sizeof(uint32_t) + sizeof(uint64_t) +
+		    5 * sizeof(uint32_t));
 
 	ADD_U_CHAR(dptr, AUT_SUBJECT64_EX);
 	ADD_U_INT32(dptr, auid);
@@ -1226,9 +1226,9 @@ au_to_subject64_ex(au_id_t auid, uid_t euid, gid_t egid, uid_t ruid,
 	ADD_U_INT64(dptr, tid->at_port);
 	ADD_U_INT32(dptr, tid->at_type);
 	if (tid->at_type == AU_IPv6)
-		ADD_MEM(dptr, &tid->at_addr[0], 4 * sizeof(u_int32_t));
+		ADD_MEM(dptr, &tid->at_addr[0], 4 * sizeof(uint32_t));
 	else
-		ADD_MEM(dptr, &tid->at_addr[0], sizeof(u_int32_t));
+		ADD_MEM(dptr, &tid->at_addr[0], sizeof(uint32_t));
 
 	return (t);
 }
@@ -1281,7 +1281,7 @@ au_to_exec_strings(char *strs, int count, u_char type)
 {
 	token_t *t;
 	u_char *dptr = NULL;
-	u_int32_t totlen;
+	uint32_t totlen;
 	int ctr;
 	char *p;
 
@@ -1292,7 +1292,7 @@ au_to_exec_strings(char *strs, int count, u_char type)
 		totlen += strlen(p) + 1;
 		p = strs + totlen;
 	}
-	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + sizeof(u_int32_t) + totlen);
+	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + sizeof(uint32_t) + totlen);
 	ADD_U_CHAR(dptr, type);
 	ADD_U_INT32(dptr, count);
 	ADD_STRING(dptr, strs, totlen);
@@ -1349,7 +1349,7 @@ au_to_exec_args(char **argv)
 		nextarg = *(argv + count);
 	}
 
-	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + sizeof(u_int32_t) + totlen);
+	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + sizeof(uint32_t) + totlen);
 
 	ADD_U_CHAR(dptr, AUT_EXEC_ARGS);
 	ADD_U_INT32(dptr, count);
@@ -1387,7 +1387,7 @@ au_to_exec_env(char **envp)
 		nextenv = *(envp + count);
 	}
 
-	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + sizeof(u_int32_t) + totlen);
+	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + sizeof(uint32_t) + totlen);
 
 	ADD_U_CHAR(dptr, AUT_EXEC_ENV);
 	ADD_U_INT32(dptr, count);
@@ -1410,11 +1410,11 @@ token_t *
 au_to_zonename(const char *zonename)
 {
 	u_char *dptr = NULL;
-	u_int16_t textlen;
+	uint16_t textlen;
 	token_t *t;
 
 	textlen = strlen(zonename) + 1;
-	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + sizeof(u_int16_t) + textlen);
+	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + sizeof(uint16_t) + textlen);
 
 	ADD_U_CHAR(dptr, AUT_ZONENAME);
 	ADD_U_INT16(dptr, textlen);
@@ -1437,10 +1437,10 @@ au_to_header32_tm(int rec_size, au_event_t e_type, au_emod_t e_mod,
 {
 	token_t *t;
 	u_char *dptr = NULL;
-	u_int32_t timems;
+	uint32_t timems;
 
-	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + sizeof(u_int32_t) +
-	    sizeof(u_char) + 2 * sizeof(u_int16_t) + 2 * sizeof(u_int32_t));
+	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + sizeof(uint32_t) +
+	    sizeof(u_char) + 2 * sizeof(uint16_t) + 2 * sizeof(uint32_t));
 
 	ADD_U_CHAR(dptr, AUT_HEADER32);
 	ADD_U_INT32(dptr, rec_size);
@@ -1473,16 +1473,16 @@ au_to_header32_ex_tm(int rec_size, au_event_t e_type, au_emod_t e_mod,
 {
 	token_t *t;
 	u_char *dptr = NULL;
-	u_int32_t timems;
+	uint32_t timems;
 	au_tid_addr_t *tid;
 
 	tid = &aia->ai_termid;
 	KASSERT(tid->at_type == AU_IPv4 || tid->at_type == AU_IPv6,
 	    ("au_to_header32_ex_tm: invalid address family"));
 
-	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + sizeof(u_int32_t) +
-	    sizeof(u_char) + 2 * sizeof(u_int16_t) + 3 *
-	    sizeof(u_int32_t) + tid->at_type);
+	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + sizeof(uint32_t) +
+	    sizeof(u_char) + 2 * sizeof(uint16_t) + 3 *
+	    sizeof(uint32_t) + tid->at_type);
 
 	ADD_U_CHAR(dptr, AUT_HEADER32_EX);
 	ADD_U_INT32(dptr, rec_size);
@@ -1492,9 +1492,9 @@ au_to_header32_ex_tm(int rec_size, au_event_t e_type, au_emod_t e_mod,
 
 	ADD_U_INT32(dptr, tid->at_type);
 	if (tid->at_type == AU_IPv6)
-		ADD_MEM(dptr, &tid->at_addr[0], 4 * sizeof(u_int32_t));
+		ADD_MEM(dptr, &tid->at_addr[0], 4 * sizeof(uint32_t));
 	else
-		ADD_MEM(dptr, &tid->at_addr[0], sizeof(u_int32_t));
+		ADD_MEM(dptr, &tid->at_addr[0], sizeof(uint32_t));
 	timems = tm.tv_usec/1000;
 	/* Add the timestamp */
 	ADD_U_INT32(dptr, tm.tv_sec);
@@ -1509,10 +1509,10 @@ au_to_header64_tm(int rec_size, au_event_t e_type, au_emod_t e_mod,
 {
 	token_t *t;
 	u_char *dptr = NULL;
-	u_int32_t timems;
+	uint32_t timems;
 
-	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + sizeof(u_int32_t) +
-	    sizeof(u_char) + 2 * sizeof(u_int16_t) + 2 * sizeof(u_int64_t));
+	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + sizeof(uint32_t) +
+	    sizeof(u_char) + 2 * sizeof(uint16_t) + 2 * sizeof(uint64_t));
 
 	ADD_U_CHAR(dptr, AUT_HEADER64);
 	ADD_U_INT32(dptr, rec_size);
@@ -1595,10 +1595,10 @@ au_to_trailer(int rec_size)
 {
 	token_t *t;
 	u_char *dptr = NULL;
-	u_int16_t magic = AUT_TRAILER_MAGIC;
+	uint16_t magic = AUT_TRAILER_MAGIC;
 
-	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + sizeof(u_int16_t) +
-	    sizeof(u_int32_t));
+	GET_TOKEN_AREA(t, dptr, sizeof(u_char) + sizeof(uint16_t) +
+	    sizeof(uint32_t));
 
 	ADD_U_CHAR(dptr, AUT_TRAILER);
 	ADD_U_INT16(dptr, magic);

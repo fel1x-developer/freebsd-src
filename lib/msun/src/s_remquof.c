@@ -26,7 +26,7 @@ float
 remquof(float x, float y, int *quo)
 {
 	int32_t n,hx,hy,hz,ix,iy,sx,i;
-	u_int32_t q,sxy;
+	uint32_t q,sxy;
 
 	GET_FLOAT_WORD(hx,x);
 	GET_FLOAT_WORD(hy,y);
@@ -43,7 +43,7 @@ remquof(float x, float y, int *quo)
 	    goto fixup;	/* |x|<|y| return x or x-y */
 	} else if(hx==hy) {
 	    *quo = (sxy ? -1 : 1);
-	    return Zero[(u_int32_t)sx>>31];	/* |x|=|y| return x*0*/
+	    return Zero[(uint32_t)sx>>31];	/* |x|=|y| return x*0*/
 	}
 
     /* determine ix = ilogb(x) */
@@ -86,7 +86,7 @@ remquof(float x, float y, int *quo)
 	if(hx==0) {				/* return sign(x)*0 */
 	    q &= 0x7fffffff;
 	    *quo = (sxy ? -q : q);
-	    return Zero[(u_int32_t)sx>>31];
+	    return Zero[(uint32_t)sx>>31];
 	}
 	while(hx<0x00800000) {		/* normalize x */
 	    hx <<= 1;

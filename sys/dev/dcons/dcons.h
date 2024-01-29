@@ -48,18 +48,18 @@
 
 struct dcons_buf {
 #define DCONS_VERSION 2
-	V u_int32_t version;
-	V u_int32_t ooffset[DCONS_NPORT];
-	V u_int32_t ioffset[DCONS_NPORT];
-	V u_int32_t osize[DCONS_NPORT];
-	V u_int32_t isize[DCONS_NPORT];
+	V uint32_t version;
+	V uint32_t ooffset[DCONS_NPORT];
+	V uint32_t ioffset[DCONS_NPORT];
+	V uint32_t osize[DCONS_NPORT];
+	V uint32_t isize[DCONS_NPORT];
 #define DCONS_MAGIC 0x64636f6e	/* "dcon" */
-	V u_int32_t magic;
+	V uint32_t magic;
 #define DCONS_GEN_SHIFT		(24)
 #define DCONS_GEN_MASK		(0xff)
 #define DCONS_POS_MASK	((1<< DCONS_GEN_SHIFT) - 1)
-	V u_int32_t optr[DCONS_NPORT];
-	V u_int32_t iptr[DCONS_NPORT];
+	V uint32_t optr[DCONS_NPORT];
+	V uint32_t iptr[DCONS_NPORT];
 	V char buf[0];
 };
 
@@ -74,11 +74,11 @@ struct dcons_buf {
 #define	DCONS_NEXT_GEN(x)	(((x) + 1) & DCONS_GEN_MASK)
 
 struct dcons_ch {
-	u_int32_t size;
-	u_int32_t gen;
-	u_int32_t pos;
+	uint32_t size;
+	uint32_t gen;
+	uint32_t pos;
 #if defined(_KERNEL) || defined(_BOOT)
-	V u_int32_t *ptr;
+	V uint32_t *ptr;
 	V char *buf;
 #else
 	off_t buf;

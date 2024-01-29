@@ -1385,8 +1385,8 @@ set_dbregs(struct thread *td, struct dbreg *dbregs)
 int
 user_dbreg_trap(register_t dr6)
 {
-	u_int32_t dr7;
-	u_int32_t bp;       /* breakpoint bits extracted from dr6 */
+	uint32_t dr7;
+	uint32_t bp;       /* breakpoint bits extracted from dr6 */
 	int nbp;            /* number of breakpoints that triggered */
 	caddr_t addr[4];    /* breakpoint addresses */
 	int i;

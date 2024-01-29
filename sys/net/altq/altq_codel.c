@@ -61,9 +61,9 @@
 #include <net/altq/altq_codel.h>
 
 static int		 codel_should_drop(struct codel *, class_queue_t *,
-			    struct mbuf *, u_int64_t);
+			    struct mbuf *, uint64_t);
 static void		 codel_Newton_step(struct codel_vars *);
-static u_int64_t	 codel_control_law(u_int64_t t, u_int64_t, u_int32_t);
+static uint64_t	 codel_control_law(uint64_t t, uint64_t, uint32_t);
 
 #define	codel_time_after(a, b)		((int64_t)(a) - (int64_t)(b) > 0)
 #define	codel_time_after_eq(a, b)	((int64_t)(a) - (int64_t)(b) >= 0)
@@ -310,7 +310,7 @@ codel_addq(struct codel *c, class_queue_t *q, struct mbuf *m)
 
 static int
 codel_should_drop(struct codel *c, class_queue_t *q, struct mbuf *m,
-    u_int64_t now)
+    uint64_t now)
 {
 	struct m_tag *mtag;
 	uint64_t *enqueue_time;
@@ -365,24 +365,24 @@ codel_Newton_step(struct codel_vars *vars)
 	uint64_t val;
 
 /* sizeof_in_bits(rec_inv_sqrt) */
-#define	REC_INV_SQRT_BITS (8 * sizeof(u_int16_t))
+#define	REC_INV_SQRT_BITS (8 * sizeof(uint16_t))
 /* needed shift to get a Q0.32 number from rec_inv_sqrt */
 #define	REC_INV_SQRT_SHIFT (32 - REC_INV_SQRT_BITS)
 
-	invsqrt = ((u_int32_t)vars->rec_inv_sqrt) << REC_INV_SQRT_SHIFT;
-	invsqrt2 = ((u_int64_t)invsqrt * invsqrt) >> 32;
-	val = (3LL << 32) - ((u_int64_t)vars->count * invsqrt2);
+	invsqrt = ((uint32_t)vars->rec_inv_sqrt) << REC_INV_SQRT_SHIFT;
+	invsqrt2 = ((uint64_t)invsqrt * invsqrt) >> 32;
+	val = (3LL << 32) - ((uint64_t)vars->count * invsqrt2);
 	val >>= 2; /* avoid overflow in following multiply */
 	val = (val * invsqrt) >> (32 - 2 + 1);
 
 	vars->rec_inv_sqrt = val >> REC_INV_SQRT_SHIFT;
 }
 
-static u_int64_t
-codel_control_law(u_int64_t t, u_int64_t interval, u_int32_t rec_inv_sqrt)
+static uint64_t
+codel_control_law(uint64_t t, uint64_t interval, uint32_t rec_inv_sqrt)
 {
 
-	return (t + (u_int32_t)(((u_int64_t)interval *
+	return (t + (uint32_t)(((uint64_t)interval *
 	    (rec_inv_sqrt << REC_INV_SQRT_SHIFT)) >> 32));
 }
 
@@ -390,7 +390,7 @@ struct mbuf *
 codel_getq(struct codel *c, class_queue_t *q)
 {
 	struct mbuf	*m;
-	u_int64_t	 now;
+	uint64_t	 now;
 	int		 drop;
 
 	if ((m = _getq(q)) == NULL) {

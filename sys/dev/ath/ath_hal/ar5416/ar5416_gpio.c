@@ -93,7 +93,7 @@ ar5416GpioCfgOutput(struct ath_hal *ah, uint32_t gpio, HAL_GPIO_MUX_TYPE type)
 	 * This table maps the HAL GPIO pins to the actual hardware
 	 * values.
 	 */
-	static const u_int32_t MuxSignalConversionTable[] = {
+	static const uint32_t MuxSignalConversionTable[] = {
 		AR_GPIO_OUTPUT_MUX_AS_OUTPUT,
 		AR_GPIO_OUTPUT_MUX_AS_PCIE_ATTENTION_LED,
 		AR_GPIO_OUTPUT_MUX_AS_PCIE_POWER_LED,

@@ -258,18 +258,18 @@ ata_serverworks_tf_read(struct ata_request *request)
     struct ata_channel *ch = device_get_softc(request->parent);
 
     if (request->flags & ATA_R_48BIT) {
-	u_int16_t temp;
+	uint16_t temp;
 
 	request->u.ata.count = ATA_IDX_INW(ch, ATA_COUNT);
 	temp = ATA_IDX_INW(ch, ATA_SECTOR);
-	request->u.ata.lba = (u_int64_t)(temp & 0x00ff) |
-			     ((u_int64_t)(temp & 0xff00) << 24);
+	request->u.ata.lba = (uint64_t)(temp & 0x00ff) |
+			     ((uint64_t)(temp & 0xff00) << 24);
 	temp = ATA_IDX_INW(ch, ATA_CYL_LSB);
-	request->u.ata.lba |= ((u_int64_t)(temp & 0x00ff) << 8) |
-			      ((u_int64_t)(temp & 0xff00) << 32);
+	request->u.ata.lba |= ((uint64_t)(temp & 0x00ff) << 8) |
+			      ((uint64_t)(temp & 0xff00) << 32);
 	temp = ATA_IDX_INW(ch, ATA_CYL_MSB);
-	request->u.ata.lba |= ((u_int64_t)(temp & 0x00ff) << 16) |
-			      ((u_int64_t)(temp & 0xff00) << 40);
+	request->u.ata.lba |= ((uint64_t)(temp & 0x00ff) << 16) |
+			      ((uint64_t)(temp & 0xff00) << 40);
     }
     else {
 	request->u.ata.count = ATA_IDX_INW(ch, ATA_COUNT) & 0x00ff;

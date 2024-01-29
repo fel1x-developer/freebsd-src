@@ -278,17 +278,17 @@
 /* Define as token for inline if inlining supported */
 #define inline inline
 
-/* Define to `uint16_t' if u_int16_t not defined. */
-/* #undef u_int16_t */
+/* Define to `uint16_t' if uint16_t not defined. */
+/* #undef uint16_t */
 
-/* Define to `uint32_t' if u_int32_t not defined. */
-/* #undef u_int32_t */
+/* Define to `uint32_t' if uint32_t not defined. */
+/* #undef uint32_t */
 
-/* Define to `uint64_t' if u_int64_t not defined. */
-/* #undef u_int64_t */
+/* Define to `uint64_t' if uint64_t not defined. */
+/* #undef uint64_t */
 
-/* Define to `uint8_t' if u_int8_t not defined. */
-/* #undef u_int8_t */
+/* Define to `uint8_t' if uint8_t not defined. */
+/* #undef uint8_t */
 
 /* Define to the type of an unsigned integer type wide enough to hold a
    pointer, if such a type exists, and if the system does not define it. */

@@ -160,7 +160,7 @@ CTASSERT(offsetof(struct pcpu, pc_curthread) == 0);
 CTASSERT(PC_PTI_STACK_SZ * sizeof(register_t) >= 2 * sizeof(struct pti_frame) -
     offsetof(struct pti_frame, pti_rip));
 
-extern u_int64_t hammer_time(u_int64_t, u_int64_t);
+extern uint64_t hammer_time(uint64_t, uint64_t);
 
 static void cpu_startup(void *);
 SYSINIT(cpu, SI_SUB_CPU, SI_ORDER_FIRST, cpu_startup, NULL);
@@ -169,7 +169,7 @@ SYSINIT(cpu, SI_SUB_CPU, SI_ORDER_FIRST, cpu_startup, NULL);
 static void native_clock_source_init(void);
 
 /* Preload data parse function */
-static caddr_t native_parse_preload_data(u_int64_t);
+static caddr_t native_parse_preload_data(uint64_t);
 
 /* Native function to fetch and parse the e820 map */
 static void native_parse_memmap(caddr_t, vm_paddr_t *, int *);
@@ -693,7 +693,7 @@ add_physmap_entry(uint64_t base, uint64_t length, vm_paddr_t *physmap,
 }
 
 void
-bios_add_smap_entries(struct bios_smap *smapbase, u_int32_t smapsize,
+bios_add_smap_entries(struct bios_smap *smapbase, uint32_t smapsize,
                       vm_paddr_t *physmap, int *physmap_idx)
 {
 	struct bios_smap *smap, *smapend;
@@ -817,7 +817,7 @@ native_parse_memmap(caddr_t kmdp, vm_paddr_t *physmap, int *physmap_idx)
 {
 	struct bios_smap *smap;
 	struct efi_map_header *efihdr;
-	u_int32_t size;
+	uint32_t size;
 
 	/*
 	 * Memory map from INT 15:E820.
@@ -838,7 +838,7 @@ native_parse_memmap(caddr_t kmdp, vm_paddr_t *physmap, int *physmap_idx)
 		add_efi_map_entries(efihdr, physmap, physmap_idx);
 		strlcpy(bootmethod, "UEFI", sizeof(bootmethod));
 	} else {
-		size = *((u_int32_t *)smap - 1);
+		size = *((uint32_t *)smap - 1);
 		bios_add_smap_entries(smap, size, physmap, physmap_idx);
 		strlcpy(bootmethod, "BIOS", sizeof(bootmethod));
 	}
@@ -857,7 +857,7 @@ native_parse_memmap(caddr_t kmdp, vm_paddr_t *physmap, int *physmap_idx)
  * XXX first should be vm_paddr_t.
  */
 static void
-getmemsize(caddr_t kmdp, u_int64_t first)
+getmemsize(caddr_t kmdp, uint64_t first)
 {
 	int i, physmap_idx, pa_indx, da_indx;
 	vm_paddr_t pa, physmap[PHYS_AVAIL_ENTRIES];
@@ -1127,7 +1127,7 @@ do_next:
 }
 
 static caddr_t
-native_parse_preload_data(u_int64_t modulep)
+native_parse_preload_data(uint64_t modulep)
 {
 	caddr_t kmdp;
 	char *envp;
@@ -1180,11 +1180,11 @@ amd64_conf_fast_syscall(void)
 
 	msr = rdmsr(MSR_EFER) | EFER_SCE;
 	wrmsr(MSR_EFER, msr);
-	wrmsr(MSR_LSTAR, pti ? (u_int64_t)IDTVEC(fast_syscall_pti) :
-	    (u_int64_t)IDTVEC(fast_syscall));
-	wrmsr(MSR_CSTAR, (u_int64_t)IDTVEC(fast_syscall32));
-	msr = ((u_int64_t)GSEL(GCODE_SEL, SEL_KPL) << 32) |
-	    ((u_int64_t)GSEL(GUCODE32_SEL, SEL_UPL) << 48);
+	wrmsr(MSR_LSTAR, pti ? (uint64_t)IDTVEC(fast_syscall_pti) :
+	    (uint64_t)IDTVEC(fast_syscall));
+	wrmsr(MSR_CSTAR, (uint64_t)IDTVEC(fast_syscall32));
+	msr = ((uint64_t)GSEL(GCODE_SEL, SEL_KPL) << 32) |
+	    ((uint64_t)GSEL(GUCODE32_SEL, SEL_UPL) << 48);
 	wrmsr(MSR_STAR, msr);
 	wrmsr(MSR_SF_MASK, PSL_NT | PSL_T | PSL_I | PSL_C | PSL_D | PSL_AC);
 }
@@ -1283,8 +1283,8 @@ amd64_loadaddr(void)
 	return (*pde & PG_FRAME);
 }
 
-u_int64_t
-hammer_time(u_int64_t modulep, u_int64_t physfree)
+uint64_t
+hammer_time(uint64_t modulep, uint64_t physfree)
 {
 	caddr_t kmdp;
 	int gsel_tss, x;
@@ -1394,7 +1394,7 @@ hammer_time(u_int64_t modulep, u_int64_t physfree)
 	lgdt(&r_gdt);
 
 	wrmsr(MSR_FSBASE, 0);		/* User value */
-	wrmsr(MSR_GSBASE, (u_int64_t)pc);
+	wrmsr(MSR_GSBASE, (uint64_t)pc);
 	wrmsr(MSR_KGSBASE, 0);		/* User value while in the kernel */
 
 	dpcpu_init((void *)(physfree - kernphys + KERNSTART), 0);

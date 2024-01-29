@@ -658,8 +658,8 @@ ath_rate_pick_seed_rate_ht(struct ath_softc *sc, struct ath_node *an,
 void
 ath_rate_findrate(struct ath_softc *sc, struct ath_node *an,
 		  int shortPreamble, size_t frameLen, int tid,
-		  int is_aggr, u_int8_t *rix0, int *try0,
-		  u_int8_t *txrate, int *maxdur, int *maxpktlen)
+		  int is_aggr, uint8_t *rix0, int *try0,
+		  uint8_t *txrate, int *maxdur, int *maxpktlen)
 {
 #define	DOT11RATE(ix)	(rt->info[ix].dot11Rate & IEEE80211_RATE_VAL)
 #define	MCS(ix)		(rt->info[ix].dot11Rate | IEEE80211_RATE_MCS)
@@ -923,7 +923,7 @@ ath_rate_getxtxrates(struct ath_softc *sc, struct ath_node *an,
 
 void
 ath_rate_setupxtxdesc(struct ath_softc *sc, struct ath_node *an,
-		      struct ath_desc *ds, int shortPreamble, u_int8_t rix)
+		      struct ath_desc *ds, int shortPreamble, uint8_t rix)
 {
 	struct sample_node *sn = ATH_NODE_SAMPLE(an);
 	const struct txschedule *sched = &sn->sched[rix];

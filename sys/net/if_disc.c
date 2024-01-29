@@ -111,7 +111,7 @@ disc_clone_create(struct if_clone *ifc, int unit, caddr_t params)
 	ifp->if_addrlen = 0;
 	ifp->if_snd.ifq_maxlen = 20;
 	if_attach(ifp);
-	bpfattach(ifp, DLT_NULL, sizeof(u_int32_t));
+	bpfattach(ifp, DLT_NULL, sizeof(uint32_t));
 
 	return (0);
 }
@@ -175,7 +175,7 @@ static int
 discoutput(struct ifnet *ifp, struct mbuf *m, const struct sockaddr *dst,
     struct route *ro)
 {
-	u_int32_t af;
+	uint32_t af;
 
 	M_ASSERTPKTHDR(m);
 

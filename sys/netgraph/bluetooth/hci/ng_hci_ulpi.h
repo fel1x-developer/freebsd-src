@@ -42,7 +42,7 @@
 int  ng_hci_lp_con_req                   (ng_hci_unit_p, item_p, hook_p);
 int  ng_hci_lp_discon_req                (ng_hci_unit_p, item_p, hook_p);
 int  ng_hci_lp_con_cfm                   (ng_hci_unit_con_p, int);
-int  ng_hci_lp_con_ind                   (ng_hci_unit_con_p, u_int8_t *);
+int  ng_hci_lp_con_ind                   (ng_hci_unit_con_p, uint8_t *);
 int  ng_hci_lp_con_rsp                   (ng_hci_unit_p, item_p, hook_p);
 int  ng_hci_lp_discon_ind                (ng_hci_unit_con_p, int);
 int  ng_hci_lp_qos_req                   (ng_hci_unit_p, item_p, hook_p);

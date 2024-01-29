@@ -17,7 +17,7 @@
 #define print(msg, var) \
 	if (var) printf("\t" msg ": %lu\n", (u_long)var)
 
-static void identify_chipset(u_int32_t chipset);
+static void identify_chipset(uint32_t chipset);
 
 void
 print_1650(const void *xmd, size_t len)
@@ -100,7 +100,7 @@ static struct {
 };
 
 static void
-identify_chipset(u_int32_t chipset)
+identify_chipset(uint32_t chipset)
 {
 	enum dot3Vendors vendor = DOT3CHIPSET_VENDOR(chipset);
 	u_int part = DOT3CHIPSET_PART(chipset);

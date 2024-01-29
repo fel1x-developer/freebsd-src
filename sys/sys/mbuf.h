@@ -122,9 +122,9 @@ struct mb_args {
  */
 struct m_tag {
 	SLIST_ENTRY(m_tag)	m_tag_link;	/* List of packet tags */
-	u_int16_t		m_tag_id;	/* Tag ID */
-	u_int16_t		m_tag_len;	/* Length of data */
-	u_int32_t		m_tag_cookie;	/* ABI/Module ID */
+	uint16_t		m_tag_id;	/* Tag ID */
+	uint16_t		m_tag_len;	/* Length of data */
+	uint32_t		m_tag_cookie;	/* ABI/Module ID */
 	void			(*m_tag_free)(struct m_tag *);
 };
 

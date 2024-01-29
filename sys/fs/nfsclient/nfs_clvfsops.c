@@ -1518,7 +1518,7 @@ mountnfs(struct nfs_args *argp, struct mount *mp, struct sockaddr *nam,
 	uint32_t lease;
 	bool tryminvers;
 	char *fakefh;
-	static u_int64_t clval = 0;
+	static uint64_t clval = 0;
 #ifdef KERN_TLS
 	u_int maxlen;
 #endif
@@ -1555,7 +1555,7 @@ mountnfs(struct nfs_args *argp, struct mount *mp, struct sockaddr *nam,
 		TAILQ_INIT(&nmp->nm_bufq);
 		TAILQ_INIT(&nmp->nm_sess);
 		if (clval == 0)
-			clval = (u_int64_t)nfsboottime.tv_sec;
+			clval = (uint64_t)nfsboottime.tv_sec;
 		nmp->nm_clval = clval++;
 		nmp->nm_krbnamelen = krbnamelen;
 		nmp->nm_dirpathlen = dirlen;

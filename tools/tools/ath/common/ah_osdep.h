@@ -51,10 +51,10 @@ typedef uint32_t HAL_DMA_ADDR;
 	(bcmp((_a), (_b), IEEE80211_ADDR_LEN) == 0)
 
 struct ath_hal;
-extern 	u_int32_t OS_GETUPTIME(struct ath_hal *);
-extern	void OS_REG_WRITE(struct ath_hal *, u_int32_t, u_int32_t);
-extern	u_int32_t OS_REG_READ(struct ath_hal *, u_int32_t);
-extern	void OS_MARK(struct ath_hal *, u_int id, u_int32_t value);
+extern 	uint32_t OS_GETUPTIME(struct ath_hal *);
+extern	void OS_REG_WRITE(struct ath_hal *, uint32_t, uint32_t);
+extern	uint32_t OS_REG_READ(struct ath_hal *, uint32_t);
+extern	void OS_MARK(struct ath_hal *, u_int id, uint32_t value);
 #define	OS_GETUPTIME(_ah)	0
 #define	OS_REG_WRITE(_ah, _reg, _val)
 #define	OS_REG_READ(_ah, _reg)	0

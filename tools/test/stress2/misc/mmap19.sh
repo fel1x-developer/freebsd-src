@@ -76,10 +76,10 @@ EOF
 #include <unistd.h>
 
 #define LOOPS 50
-#define N (128 * 1024 / (int)sizeof(u_int32_t))
+#define N (128 * 1024 / (int)sizeof(uint32_t))
 #define PARALLEL 50
 
-u_int32_t r[N];
+uint32_t r[N];
 void *p;
 
 unsigned long

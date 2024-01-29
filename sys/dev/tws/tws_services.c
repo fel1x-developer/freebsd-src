@@ -40,16 +40,16 @@
 #include <sys/time.h>
 
 void tws_q_insert_tail(struct tws_softc *sc, struct tws_request *req, 
-                                u_int8_t q_type );
+                                uint8_t q_type );
 struct tws_request * tws_q_remove_request(struct tws_softc *sc, 
-                                struct tws_request *req, u_int8_t q_type );
-struct tws_request *tws_q_remove_head(struct tws_softc *sc, u_int8_t q_type );
+                                struct tws_request *req, uint8_t q_type );
+struct tws_request *tws_q_remove_head(struct tws_softc *sc, uint8_t q_type );
 void tws_q_insert_head(struct tws_softc *sc, struct tws_request *req,
-                                u_int8_t q_type );
-struct tws_request * tws_q_remove_tail(struct tws_softc *sc, u_int8_t q_type );
+                                uint8_t q_type );
+struct tws_request * tws_q_remove_tail(struct tws_softc *sc, uint8_t q_type );
 void tws_print_stats(void *arg);
 
-struct tws_sense *tws_find_sense_from_mfa(struct tws_softc *sc, u_int64_t mfa);
+struct tws_sense *tws_find_sense_from_mfa(struct tws_softc *sc, uint64_t mfa);
 
 static struct error_desc array[] = {
     { "Cannot add sysctl tree node", 0x2000, ERROR,
@@ -82,11 +82,11 @@ static struct error_desc array[] = {
 
 void
 tws_trace(const char *file, const char *fun, int linenum,
-          struct tws_softc *sc, char *desc, u_int64_t val1, u_int64_t val2)
+          struct tws_softc *sc, char *desc, uint64_t val1, uint64_t val2)
 { 
 
     struct tws_trace_rec *rec = (struct tws_trace_rec *)sc->trace_q.q;
-    volatile u_int16_t head, tail;
+    volatile uint16_t head, tail;
     char fmt[256];
 
     head = sc->trace_q.head;
@@ -137,31 +137,31 @@ tws_log(struct tws_softc *sc, int index)
 
 /* ----------- swap functions ----------- */
 
-u_int16_t 
-tws_swap16(u_int16_t val)
+uint16_t 
+tws_swap16(uint16_t val)
 {
     return((val << 8) | (val >> 8));
 }
 
-u_int32_t 
-tws_swap32(u_int32_t val)
+uint32_t 
+tws_swap32(uint32_t val)
 {
     return(((val << 24) | ((val << 8) & (0xFF0000)) | 
            ((val >> 8) & (0xFF00)) | (val >> 24)));
 }
 
-u_int64_t 
-tws_swap64(u_int64_t val)
+uint64_t 
+tws_swap64(uint64_t val)
 {
-    return((((u_int64_t)(tws_swap32(((u_int32_t *)(&(val)))[1]))) << 32) |
-           ((u_int32_t)(tws_swap32(((u_int32_t *)(&(val)))[0]))));
+    return((((uint64_t)(tws_swap32(((uint32_t *)(&(val)))[1]))) << 32) |
+           ((uint32_t)(tws_swap32(((uint32_t *)(&(val)))[0]))));
 }
 
 /* ----------- reg access ----------- */
 
 void
 tws_write_reg(struct tws_softc *sc, int offset, 
-                  u_int32_t value, int size)
+                  uint32_t value, int size)
 {
     bus_space_tag_t         bus_tag = sc->bus_tag;
     bus_space_handle_t      bus_handle = sc->bus_handle;
@@ -171,23 +171,23 @@ tws_write_reg(struct tws_softc *sc, int offset,
     else 
         if (size == 2)
             bus_space_write_2(bus_tag, bus_handle, offset, 
-                                     (u_int16_t)value);
+                                     (uint16_t)value);
         else
-            bus_space_write_1(bus_tag, bus_handle, offset, (u_int8_t)value);
+            bus_space_write_1(bus_tag, bus_handle, offset, (uint8_t)value);
 }
 
-u_int32_t
+uint32_t
 tws_read_reg(struct tws_softc *sc, int offset, int size)
 {
     bus_space_tag_t bus_tag = sc->bus_tag;
     bus_space_handle_t bus_handle = sc->bus_handle;
 
     if (size == 4)
-        return((u_int32_t)bus_space_read_4(bus_tag, bus_handle, offset));
+        return((uint32_t)bus_space_read_4(bus_tag, bus_handle, offset));
     else if (size == 2)
-            return((u_int32_t)bus_space_read_2(bus_tag, bus_handle, offset));
+            return((uint32_t)bus_space_read_2(bus_tag, bus_handle, offset));
          else
-            return((u_int32_t)bus_space_read_1(bus_tag, bus_handle, offset));
+            return((uint32_t)bus_space_read_1(bus_tag, bus_handle, offset));
 }
 
 /* --------------------- Q service --------------------- */
@@ -211,7 +211,7 @@ tws_init_qs(struct tws_softc *sc)
 /* called with lock held */
 static void
 tws_insert2_empty_q(struct tws_softc *sc, struct tws_request *req, 
-                                u_int8_t q_type )
+                                uint8_t q_type )
 {
 
     mtx_assert(&sc->q_lock, MA_OWNED);
@@ -223,7 +223,7 @@ tws_insert2_empty_q(struct tws_softc *sc, struct tws_request *req,
 /* called with lock held */
 void
 tws_q_insert_head(struct tws_softc *sc, struct tws_request *req, 
-                                u_int8_t q_type )
+                                uint8_t q_type )
 {
 
     mtx_assert(&sc->q_lock, MA_OWNED);
@@ -241,7 +241,7 @@ tws_q_insert_head(struct tws_softc *sc, struct tws_request *req,
 /* called with lock held */
 void
 tws_q_insert_tail(struct tws_softc *sc, struct tws_request *req, 
-                                u_int8_t q_type )
+                                uint8_t q_type )
 {
 
     mtx_assert(&sc->q_lock, MA_OWNED);
@@ -258,7 +258,7 @@ tws_q_insert_tail(struct tws_softc *sc, struct tws_request *req,
 
 /* called with lock held */
 struct tws_request *
-tws_q_remove_head(struct tws_softc *sc, u_int8_t q_type )
+tws_q_remove_head(struct tws_softc *sc, uint8_t q_type )
 {
 
     struct tws_request *r;
@@ -281,7 +281,7 @@ tws_q_remove_head(struct tws_softc *sc, u_int8_t q_type )
 
 /* called with lock held */
 struct tws_request *
-tws_q_remove_tail(struct tws_softc *sc, u_int8_t q_type )
+tws_q_remove_tail(struct tws_softc *sc, uint8_t q_type )
 {
 
     struct tws_request *r;
@@ -306,7 +306,7 @@ tws_q_remove_tail(struct tws_softc *sc, u_int8_t q_type )
 /* called with lock held */
 struct tws_request *
 tws_q_remove_request(struct tws_softc *sc, struct tws_request *req,
-                                 u_int8_t q_type )
+                                 uint8_t q_type )
 {
 
     struct tws_request *r;
@@ -354,7 +354,7 @@ tws_q_remove_request(struct tws_softc *sc, struct tws_request *req,
 }
 
 struct tws_sense *
-tws_find_sense_from_mfa(struct tws_softc *sc, u_int64_t mfa)
+tws_find_sense_from_mfa(struct tws_softc *sc, uint64_t mfa)
 {
     struct tws_sense *s;
     int i;

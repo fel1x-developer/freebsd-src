@@ -145,7 +145,7 @@ static struct cdevsw tpm_cdevsw = {
 };
 
 const struct {
-	u_int32_t devid;
+	uint32_t devid;
 	char name[32];
 	int flags;
 #define TPM_DEV_NOINTS	0x0001
@@ -170,12 +170,12 @@ int tpm_tis12_end(struct tpm_softc *, int, int);
 
 void tpm_intr(void *);
 
-int tpm_waitfor_poll(struct tpm_softc *, u_int8_t, int, void *);
-int tpm_waitfor_int(struct tpm_softc *, u_int8_t, int, void *, int);
-int tpm_waitfor(struct tpm_softc *, u_int8_t, int, void *);
+int tpm_waitfor_poll(struct tpm_softc *, uint8_t, int, void *);
+int tpm_waitfor_int(struct tpm_softc *, uint8_t, int, void *, int);
+int tpm_waitfor(struct tpm_softc *, uint8_t, int, void *);
 int tpm_request_locality(struct tpm_softc *, int);
 int tpm_getburst(struct tpm_softc *);
-u_int8_t tpm_status(struct tpm_softc *);
+uint8_t tpm_status(struct tpm_softc *);
 int tpm_tmotohz(int);
 
 int tpm_legacy_probe(bus_space_tag_t, bus_addr_t);
@@ -288,8 +288,8 @@ tpm_detach(device_t dev)
 int
 tpm_tis12_probe(bus_space_tag_t bt, bus_space_handle_t bh)
 {
-	u_int32_t r;
-	u_int8_t save, reg;
+	uint32_t r;
+	uint8_t save, reg;
 
 	r = bus_space_read_4(bt, bh, TPM_INTF_CAPABILITIES);
 	if (r == 0xffffffff)
@@ -324,7 +324,7 @@ tpm_tis12_probe(bus_space_tag_t bt, bus_space_handle_t bh)
 int
 tpm_tis12_irqinit(struct tpm_softc *sc, int irq, int idx)
 {
-	u_int32_t r;
+	uint32_t r;
 
 	if ((irq == IRQUNK) || (tpm_devs[idx].flags & TPM_DEV_NOINTS)) {
 		sc->sc_vector = IRQUNK;
@@ -358,7 +358,7 @@ tpm_tis12_irqinit(struct tpm_softc *sc, int irq, int idx)
 int
 tpm_tis12_init(struct tpm_softc *sc, int irq, const char *name)
 {
-	u_int32_t r;
+	uint32_t r;
 	int i;
 
 	r = bus_space_read_4(sc->sc_bt, sc->sc_bh, TPM_INTF_CAPABILITIES);
@@ -399,7 +399,7 @@ tpm_tis12_init(struct tpm_softc *sc, int irq, const char *name)
 int
 tpm_request_locality(struct tpm_softc *sc, int l)
 {
-	u_int32_t r;
+	uint32_t r;
 	int to, rv;
 
 	if (l != 0)
@@ -470,10 +470,10 @@ tpm_getburst(struct tpm_softc *sc)
 	return 0;
 }
 
-u_int8_t
+uint8_t
 tpm_status(struct tpm_softc *sc)
 {
-	u_int8_t status;
+	uint8_t status;
 
 	status = bus_space_read_1(sc->sc_bt, sc->sc_bh, TPM_STS) &
 	    TPM_STS_MASK;
@@ -498,7 +498,7 @@ tpm_suspend(device_t dev)
 {
 	struct tpm_softc *sc = device_get_softc(dev);
 	int why = 1;
-	u_int8_t command[] = {
+	uint8_t command[] = {
 	    0, 193,		/* TPM_TAG_RQU_COMMAND */
 	    0, 0, 0, 10,	/* Length in bytes */
 	    0, 0, 0, 156	/* TPM_ORD_SaveStates */
@@ -538,7 +538,7 @@ tpm_resume(device_t dev)
 
 /* Wait for given status bits using polling. */
 int
-tpm_waitfor_poll(struct tpm_softc *sc, u_int8_t mask, int tmo, void *c)
+tpm_waitfor_poll(struct tpm_softc *sc, uint8_t mask, int tmo, void *c)
 {
 	int rv;
 
@@ -561,7 +561,7 @@ tpm_waitfor_poll(struct tpm_softc *sc, u_int8_t mask, int tmo, void *c)
 
 /* Wait for given status bits using interrupts. */
 int
-tpm_waitfor_int(struct tpm_softc *sc, u_int8_t mask, int tmo, void *c,
+tpm_waitfor_int(struct tpm_softc *sc, uint8_t mask, int tmo, void *c,
     int inttype)
 {
 	int rv, to;
@@ -628,9 +628,9 @@ out:	bus_space_write_4(sc->sc_bt, sc->sc_bh, TPM_INTERRUPT_ENABLE,
  * Wait on given status bits, uses interrupts where possible, otherwise polls.
  */
 int
-tpm_waitfor(struct tpm_softc *sc, u_int8_t b0, int tmo, void *c)
+tpm_waitfor(struct tpm_softc *sc, uint8_t b0, int tmo, void *c)
 {
-	u_int8_t b;
+	uint8_t b;
 	int re, to, rv;
 
 #ifdef TPM_DEBUG
@@ -769,7 +769,7 @@ int
 tpm_tis12_read(struct tpm_softc *sc, void *buf, int len, size_t *count,
     int flags)
 {
-	u_int8_t *p = buf;
+	uint8_t *p = buf;
 	size_t cnt;
 	int rv, n, bcnt;
 
@@ -808,7 +808,7 @@ tpm_tis12_read(struct tpm_softc *sc, void *buf, int len, size_t *count,
 int
 tpm_tis12_write(struct tpm_softc *sc, void *buf, int len)
 {
-	u_int8_t *p = buf;
+	uint8_t *p = buf;
 	size_t cnt;
 	int rv, r;
 
@@ -914,7 +914,7 @@ void
 tpm_intr(void *v)
 {
 	struct tpm_softc *sc = v;
-	u_int32_t r;
+	uint32_t r;
 #ifdef TPM_DEBUG
 	static int cnt = 0;
 #endif
@@ -948,7 +948,7 @@ tpm_intr(void *v)
 }
 
 /* Read single byte using legacy interface. */
-static inline u_int8_t
+static inline uint8_t
 tpm_legacy_in(bus_space_tag_t iot, bus_space_handle_t ioh, int reg)
 {
 	bus_space_write_1(iot, ioh, 0, reg);
@@ -958,7 +958,7 @@ tpm_legacy_in(bus_space_tag_t iot, bus_space_handle_t ioh, int reg)
 #if 0
 /* Write single byte using legacy interface. */
 static inline void
-tpm_legacy_out(bus_space_tag_t iot, bus_space_handle_t ioh, int reg, u_int8_t v)
+tpm_legacy_out(bus_space_tag_t iot, bus_space_handle_t ioh, int reg, uint8_t v)
 {
 	bus_space_write_1(iot, ioh, 0, reg);
 	bus_space_write_1(iot, ioh, 1, v);
@@ -970,7 +970,7 @@ int
 tpm_legacy_probe(bus_space_tag_t iot, bus_addr_t iobase)
 {
 	bus_space_handle_t ioh;
-	u_int8_t r, v;
+	uint8_t r, v;
 	int i, rv = 0;
 	char id[8];
 
@@ -1037,7 +1037,7 @@ int
 tpm_legacy_start(struct tpm_softc *sc, int flag)
 {
 	struct timeval tv;
-	u_int8_t bits, r;
+	uint8_t bits, r;
 	int to, rv;
 
 	bits = flag == UIO_READ ? TPM_LEGACY_DA : 0;
@@ -1062,7 +1062,7 @@ int
 tpm_legacy_read(struct tpm_softc *sc, void *buf, int len, size_t *count,
     int flags)
 {
-	u_int8_t *p;
+	uint8_t *p;
 	size_t cnt;
 	int to, rv;
 
@@ -1086,7 +1086,7 @@ tpm_legacy_read(struct tpm_softc *sc, void *buf, int len, size_t *count,
 int
 tpm_legacy_write(struct tpm_softc *sc, void *buf, int len)
 {
-	u_int8_t *p;
+	uint8_t *p;
 	int n;
 
 	for (p = buf, n = len; n--; DELAY(TPM_LEGACY_DELAY)) {
@@ -1106,7 +1106,7 @@ int
 tpm_legacy_end(struct tpm_softc *sc, int flag, int rv)
 {
 	struct timeval tv;
-	u_int8_t r;
+	uint8_t r;
 	int to;
 
 	if (rv || flag == UIO_READ)
@@ -1169,7 +1169,7 @@ int
 tpmread(struct cdev *dev, struct uio *uio, int flags)
 {
 	struct tpm_softc *sc = TPMSOFTC(dev);
-	u_int8_t buf[TPM_BUFSIZ], *p;
+	uint8_t buf[TPM_BUFSIZ], *p;
 	size_t cnt;
 	int n, len, rv, s;
 
@@ -1241,7 +1241,7 @@ int
 tpmwrite(struct cdev *dev, struct uio *uio, int flags)
 {
 	struct tpm_softc *sc = TPMSOFTC(dev);
-	u_int8_t buf[TPM_BUFSIZ];
+	uint8_t buf[TPM_BUFSIZ];
 	int n, rv, s;
 
 	if (!sc)

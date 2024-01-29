@@ -57,14 +57,14 @@
 
 /* Frame statistics */
 struct ng_async_stat {
-	u_int32_t	syncOctets;
-	u_int32_t	syncFrames;
-	u_int32_t	syncOverflows;
-	u_int32_t	asyncOctets;
-	u_int32_t	asyncFrames;
-	u_int32_t	asyncRunts;
-	u_int32_t	asyncOverflows;
-	u_int32_t	asyncBadCheckSums;
+	uint32_t	syncOctets;
+	uint32_t	syncFrames;
+	uint32_t	syncOverflows;
+	uint32_t	asyncOctets;
+	uint32_t	asyncFrames;
+	uint32_t	asyncRunts;
+	uint32_t	asyncOverflows;
+	uint32_t	asyncBadCheckSums;
 };
 
 /* Keep this in sync with the above structure definition */
@@ -83,9 +83,9 @@ struct ng_async_stat {
 /* Configuration for this node */
 struct ng_async_cfg {
 	u_char		enabled;	/* Turn encoding on/off */
-	u_int16_t	amru;		/* Max receive async frame length */
-	u_int16_t	smru;		/* Max receive sync frame length */
-	u_int32_t	accm;		/* ACCM encoding */
+	uint16_t	amru;		/* Max receive async frame length */
+	uint16_t	smru;		/* Max receive sync frame length */
+	uint32_t	accm;		/* ACCM encoding */
 };
 
 /* Keep this in sync with the above structure definition */

@@ -207,7 +207,7 @@ me_clone_create(struct if_clone *ifc, int unit, caddr_t params)
 	ME2IFP(sc)->if_capabilities |= IFCAP_LINKSTATE;
 	ME2IFP(sc)->if_capenable |= IFCAP_LINKSTATE;
 	if_attach(ME2IFP(sc));
-	bpfattach(ME2IFP(sc), DLT_NULL, sizeof(u_int32_t));
+	bpfattach(ME2IFP(sc), DLT_NULL, sizeof(uint32_t));
 	return (0);
 }
 

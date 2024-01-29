@@ -45,9 +45,9 @@
 #define	BPF_RELEASE 199606
 
 typedef	int32_t	  bpf_int32;
-typedef	u_int32_t bpf_u_int32;
+typedef	uint32_t bpf_u_int32;
 typedef	int64_t	  bpf_int64;
-typedef	u_int64_t bpf_u_int64;
+typedef	uint64_t bpf_u_int64;
 struct ifnet;
 
 /*

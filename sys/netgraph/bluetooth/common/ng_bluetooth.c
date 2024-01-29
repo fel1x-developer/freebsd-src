@@ -45,12 +45,12 @@
  * Bluetooth stack sysctl globals
  */
 
-static u_int32_t	bluetooth_hci_command_timeout_value  = 5;   /* sec */
-static u_int32_t	bluetooth_hci_connect_timeout_value  = 60;  /* sec */
-static u_int32_t	bluetooth_hci_max_neighbor_age_value = 600; /* sec */
-static u_int32_t	bluetooth_l2cap_rtx_timeout_value    = 60;  /* sec */
-static u_int32_t	bluetooth_l2cap_ertx_timeout_value   = 300; /* sec */
-static u_int32_t	bluetooth_sco_rtx_timeout_value      = 60;  /* sec */
+static uint32_t	bluetooth_hci_command_timeout_value  = 5;   /* sec */
+static uint32_t	bluetooth_hci_connect_timeout_value  = 60;  /* sec */
+static uint32_t	bluetooth_hci_max_neighbor_age_value = 600; /* sec */
+static uint32_t	bluetooth_l2cap_rtx_timeout_value    = 60;  /* sec */
+static uint32_t	bluetooth_l2cap_ertx_timeout_value   = 300; /* sec */
+static uint32_t	bluetooth_sco_rtx_timeout_value      = 60;  /* sec */
 
 /*
  * Define sysctl tree that shared by other parts of Bluetooth stack
@@ -71,7 +71,7 @@ SYSCTL_NODE(_net_bluetooth, OID_AUTO, hci, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
 static int
 bluetooth_set_hci_command_timeout_value(SYSCTL_HANDLER_ARGS)
 {
-	u_int32_t	value;
+	uint32_t	value;
 	int		error;
 
 	value = bluetooth_hci_command_timeout_value;
@@ -95,7 +95,7 @@ SYSCTL_PROC(_net_bluetooth_hci, OID_AUTO, command_timeout,
 static int
 bluetooth_set_hci_connect_timeout_value(SYSCTL_HANDLER_ARGS)
 {
-	u_int32_t	value;
+	uint32_t	value;
 	int		error;
 
 	value = bluetooth_hci_connect_timeout_value;
@@ -130,7 +130,7 @@ SYSCTL_NODE(_net_bluetooth, OID_AUTO, l2cap, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
 static int
 bluetooth_set_l2cap_rtx_timeout_value(SYSCTL_HANDLER_ARGS)
 {
-	u_int32_t	value;
+	uint32_t	value;
 	int		error;
 
 	value = bluetooth_l2cap_rtx_timeout_value;
@@ -155,7 +155,7 @@ SYSCTL_PROC(_net_bluetooth_l2cap, OID_AUTO, rtx_timeout,
 static int
 bluetooth_set_l2cap_ertx_timeout_value(SYSCTL_HANDLER_ARGS)
 {
-	u_int32_t	value;
+	uint32_t	value;
 	int		error;
 
 	value = bluetooth_l2cap_ertx_timeout_value;
@@ -180,37 +180,37 @@ SYSCTL_PROC(_net_bluetooth_l2cap, OID_AUTO, ertx_timeout,
  * Return various sysctl values
  */
 
-u_int32_t
+uint32_t
 bluetooth_hci_command_timeout(void)
 {
 	return (bluetooth_hci_command_timeout_value * hz);
 } /* bluetooth_hci_command_timeout */
 
-u_int32_t
+uint32_t
 bluetooth_hci_connect_timeout(void)
 {
 	return (bluetooth_hci_connect_timeout_value * hz);
 } /* bluetooth_hci_connect_timeout */
 
-u_int32_t
+uint32_t
 bluetooth_hci_max_neighbor_age(void)
 {
 	return (bluetooth_hci_max_neighbor_age_value);
 } /* bluetooth_hci_max_neighbor_age */
 
-u_int32_t
+uint32_t
 bluetooth_l2cap_rtx_timeout(void)
 {
 	return (bluetooth_l2cap_rtx_timeout_value * hz);
 } /* bluetooth_l2cap_rtx_timeout */
 
-u_int32_t
+uint32_t
 bluetooth_l2cap_ertx_timeout(void)
 {
 	return (bluetooth_l2cap_ertx_timeout_value * hz);
 } /* bluetooth_l2cap_ertx_timeout */
 
-u_int32_t
+uint32_t
 bluetooth_sco_rtx_timeout(void)
 {
 	return (bluetooth_sco_rtx_timeout_value * hz);
@@ -233,7 +233,7 @@ SYSCTL_NODE(_net_bluetooth, OID_AUTO, sco, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
 static int
 bluetooth_set_sco_rtx_timeout_value(SYSCTL_HANDLER_ARGS)
 {
-	u_int32_t	value;
+	uint32_t	value;
 	int		error;
 
 	value = bluetooth_sco_rtx_timeout_value;

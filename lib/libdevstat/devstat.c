@@ -49,8 +49,8 @@
 
 int
 compute_stats(struct devstat *current, struct devstat *previous,
-	      long double etime, u_int64_t *total_bytes,
-	      u_int64_t *total_transfers, u_int64_t *total_blocks,
+	      long double etime, uint64_t *total_bytes,
+	      uint64_t *total_transfers, uint64_t *total_blocks,
 	      long double *kb_per_transfer, long double *transfers_per_second,
 	      long double *mb_per_second, long double *blocks_per_second,
 	      long double *ms_per_transaction);
@@ -370,7 +370,7 @@ devstat_getdevs(kvm_t *kd, struct statinfo *stats)
 			 */
 			dssize = (dinfo->numdevs * sizeof(struct devstat)) +
 				 sizeof(long);
-			dinfo->mem_ptr = (u_int8_t *)malloc(dssize);
+			dinfo->mem_ptr = (uint8_t *)malloc(dssize);
 			if (dinfo->mem_ptr == NULL) {
 				snprintf(devstat_errbuf, sizeof(devstat_errbuf),
 					 "%s: Cannot allocate memory for mem_ptr element",
@@ -412,7 +412,7 @@ devstat_getdevs(kvm_t *kd, struct statinfo *stats)
 
 				dssize = (dinfo->numdevs * 
 					sizeof(struct devstat)) + sizeof(long);
-				dinfo->mem_ptr = (u_int8_t *)
+				dinfo->mem_ptr = (uint8_t *)
 					realloc(dinfo->mem_ptr, dssize);
 				if ((error = sysctlbyname("kern.devstat.all", 
 				    dinfo->mem_ptr, &dssize, NULL, 0)) == -1) {
@@ -444,7 +444,7 @@ devstat_getdevs(kvm_t *kd, struct statinfo *stats)
 		 */
 		if ((dinfo->numdevs = devstat_getnumdevs(kd)) == -1)
 			return(-1);
-		if ((dinfo->mem_ptr = (u_int8_t *)get_devstat_kvm(kd)) == NULL)
+		if ((dinfo->mem_ptr = (uint8_t *)get_devstat_kvm(kd)) == NULL)
 			return(-1);
 	}
 	/*
@@ -474,7 +474,7 @@ devstat_getdevs(kvm_t *kd, struct statinfo *stats)
 				return(-1);
 			dssize = (dinfo->numdevs * sizeof(struct devstat)) +
 				sizeof(long);
-			dinfo->mem_ptr = (u_int8_t *)realloc(dinfo->mem_ptr,
+			dinfo->mem_ptr = (uint8_t *)realloc(dinfo->mem_ptr,
 							     dssize);
 		}
 		retval = 1;
@@ -1174,8 +1174,8 @@ devstat_buildmatch(char *match_str, struct devstat_match **matches,
  */
 int
 compute_stats(struct devstat *current, struct devstat *previous,
-	      long double etime, u_int64_t *total_bytes,
-	      u_int64_t *total_transfers, u_int64_t *total_blocks,
+	      long double etime, uint64_t *total_bytes,
+	      uint64_t *total_transfers, uint64_t *total_blocks,
 	      long double *kb_per_transfer, long double *transfers_per_second,
 	      long double *mb_per_second, long double *blocks_per_second,
 	      long double *ms_per_transaction)
@@ -1229,15 +1229,15 @@ int
 devstat_compute_statistics(struct devstat *current, struct devstat *previous,
 			   long double etime, ...)
 {
-	u_int64_t totalbytes, totalbytesread, totalbyteswrite, totalbytesfree;
-	u_int64_t totaltransfers, totaltransfersread, totaltransferswrite;
-	u_int64_t totaltransfersother, totalblocks, totalblocksread;
-	u_int64_t totalblockswrite, totaltransfersfree, totalblocksfree;
+	uint64_t totalbytes, totalbytesread, totalbyteswrite, totalbytesfree;
+	uint64_t totaltransfers, totaltransfersread, totaltransferswrite;
+	uint64_t totaltransfersother, totalblocks, totalblocksread;
+	uint64_t totalblockswrite, totaltransfersfree, totalblocksfree;
 	long double totalduration, totaldurationread, totaldurationwrite;
 	long double totaldurationfree, totaldurationother;
 	va_list ap;
 	devstat_metric metric;
-	u_int64_t *destu64;
+	uint64_t *destu64;
 	long double *destld;
 	int retval;
 
@@ -1305,7 +1305,7 @@ devstat_compute_statistics(struct devstat *current, struct devstat *previous,
 
 		switch (devstat_arg_list[metric].argtype) {
 		case DEVSTAT_ARG_UINT64:
-			destu64 = (u_int64_t *)va_arg(ap, u_int64_t *);
+			destu64 = (uint64_t *)va_arg(ap, uint64_t *);
 			break;
 		case DEVSTAT_ARG_LD:
 			destld = (long double *)va_arg(ap, long double *);

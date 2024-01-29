@@ -60,7 +60,7 @@ extern int innetgr( const char *, const char *, const char *, const char * );
 
 #define max(a, b)	((a > b) ? a : b)
 
-int __ivaliduser(FILE *, u_int32_t, const char *, const char *);
+int __ivaliduser(FILE *, uint32_t, const char *, const char *);
 int __ivaliduser_af(FILE *,const void *, const char *, const char *, int, int);
 int __ivaliduser_sa(FILE *, const struct sockaddr *, socklen_t, const char *,
     const char *);
@@ -499,7 +499,7 @@ again:
  * Returns 0 if ok, -1 if not ok.
  */
 int
-__ivaliduser(FILE *hostf, u_int32_t raddr, const char *luser, const char *ruser)
+__ivaliduser(FILE *hostf, uint32_t raddr, const char *luser, const char *ruser)
 {
 	struct sockaddr_in sin;
 

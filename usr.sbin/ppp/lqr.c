@@ -64,9 +64,9 @@
 #include "datalink.h"
 
 struct echolqr {
-  u_int32_t magic;
-  u_int32_t signature;
-  u_int32_t sequence;
+  uint32_t magic;
+  uint32_t signature;
+  uint32_t sequence;
 };
 
 #define	SIGNATURE  0x594e4f54
@@ -111,8 +111,8 @@ lqr_RecvEcho(struct fsm *fp, struct mbuf *bp)
     if (lqr.signature == SIGNATURE
 	|| lqr.signature == lcp->want_magic) {			/* some implementations return the wrong magic */
       /* careful not to update lqm.echo.seq_recv with older values */
-      if ((hdlc->lqm.echo.seq_recv > (u_int32_t)0 - 5 && lqr.sequence < 5) ||
-          (hdlc->lqm.echo.seq_recv <= (u_int32_t)0 - 5 &&
+      if ((hdlc->lqm.echo.seq_recv > (uint32_t)0 - 5 && lqr.sequence < 5) ||
+          (hdlc->lqm.echo.seq_recv <= (uint32_t)0 - 5 &&
            lqr.sequence > hdlc->lqm.echo.seq_recv))
         hdlc->lqm.echo.seq_recv = lqr.sequence;
     } else
@@ -127,12 +127,12 @@ lqr_RecvEcho(struct fsm *fp, struct mbuf *bp)
 void
 lqr_ChangeOrder(struct lqrdata *src, struct lqrdata *dst)
 {
-  u_int32_t *sp, *dp;
+  uint32_t *sp, *dp;
   unsigned n;
 
-  sp = (u_int32_t *) src;
-  dp = (u_int32_t *) dst;
-  for (n = 0; n < sizeof(struct lqrdata) / sizeof(u_int32_t); n++, sp++, dp++)
+  sp = (uint32_t *) src;
+  dp = (uint32_t *) dst;
+  for (n = 0; n < sizeof(struct lqrdata) / sizeof(uint32_t); n++, sp++, dp++)
     *dp = ntohl(*sp);
 }
 
@@ -372,7 +372,7 @@ void
 lqr_Analyse(const struct hdlc *hdlc, const struct lqrdata *oldlqr,
             const struct lqrdata *newlqr)
 {
-  u_int32_t LQRs, transitLQRs, pkts, octets, disc, err;
+  uint32_t LQRs, transitLQRs, pkts, octets, disc, err;
 
   if (!newlqr->PeerInLQRs)	/* No analysis possible yet! */
     return;

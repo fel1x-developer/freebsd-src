@@ -71,11 +71,11 @@ char	*DbgFile = _PATH_RBOOTDDBG;		/* debug output file */
 FILE	*DbgFp = NULL;				/* debug file pointer */
 char	*IntfName = NULL;			/* intf we are attached to */
 
-u_int16_t SessionID = 0;			/* generated session ID */
+uint16_t SessionID = 0;			/* generated session ID */
 
 char	*BootFiles[C_MAXFILE];			/* list of boot files */
 
 CLIENT	*Clients = NULL;			/* list of addrs we'll accept */
 RMPCONN	*RmpConns = NULL;			/* list of active connections */
 
-u_int8_t RmpMcastAddr[RMP_ADDRLEN] = RMP_ADDR;	/* RMP multicast address */
+uint8_t RmpMcastAddr[RMP_ADDRLEN] = RMP_ADDR;	/* RMP multicast address */

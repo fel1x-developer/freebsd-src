@@ -85,7 +85,7 @@ VNET_DECLARE(struct inpcbinfo, ripcbinfo);
 #define	V_ripcbinfo			VNET(ripcbinfo)
 
 static int get_rand_ifid(struct ifnet *, struct in6_addr *);
-static int generate_tmp_ifid(u_int8_t *, const u_int8_t *, u_int8_t *);
+static int generate_tmp_ifid(uint8_t *, const uint8_t *, uint8_t *);
 static int get_ifid(struct ifnet *, struct ifnet *, struct in6_addr *);
 static int in6_ifattach_linklocal(struct ifnet *, struct ifnet *);
 static int in6_ifattach_loopback(struct ifnet *);
@@ -116,7 +116,7 @@ get_rand_ifid(struct ifnet *ifp, struct in6_addr *in6)
 {
 	MD5_CTX ctxt;
 	struct prison *pr;
-	u_int8_t digest[16];
+	uint8_t digest[16];
 	int hostnamelen;
 
 	pr = curthread->td_ucred->cr_prison;
@@ -151,11 +151,11 @@ get_rand_ifid(struct ifnet *ifp, struct in6_addr *in6)
 }
 
 static int
-generate_tmp_ifid(u_int8_t *seed0, const u_int8_t *seed1, u_int8_t *ret)
+generate_tmp_ifid(uint8_t *seed0, const uint8_t *seed1, uint8_t *ret)
 {
 	MD5_CTX ctxt;
-	u_int8_t seed[16], digest[16], nullbuf[8];
-	u_int32_t val32;
+	uint8_t seed[16], digest[16], nullbuf[8];
+	uint32_t val32;
 
 	/* If there's no history, start with a random seed. */
 	bzero(nullbuf, sizeof(nullbuf));
@@ -240,10 +240,10 @@ in6_get_hw_ifid(struct ifnet *ifp, struct in6_addr *in6)
 {
 	struct ifaddr *ifa;
 	struct sockaddr_dl *sdl;
-	u_int8_t *addr;
+	uint8_t *addr;
 	size_t addrlen;
-	static u_int8_t allzero[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
-	static u_int8_t allone[8] =
+	static uint8_t allzero[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+	static uint8_t allone[8] =
 		{ 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
 
 	NET_EPOCH_ASSERT();
@@ -583,7 +583,7 @@ in6_nigroup0(struct ifnet *ifp, const char *name, int namelen,
 	const char *p;
 	u_char *q;
 	MD5_CTX ctxt;
-	u_int8_t digest[16];
+	uint8_t digest[16];
 	char l;
 	char n[64];	/* a single label must not exceed 63 chars */
 
@@ -798,10 +798,10 @@ in6_ifdetach_destroy(struct ifnet *ifp)
 }
 
 int
-in6_get_tmpifid(struct ifnet *ifp, u_int8_t *retbuf,
-    const u_int8_t *baseid, int generate)
+in6_get_tmpifid(struct ifnet *ifp, uint8_t *retbuf,
+    const uint8_t *baseid, int generate)
 {
-	u_int8_t nullbuf[8];
+	uint8_t nullbuf[8];
 	struct nd_ifinfo *ndi = ND_IFINFO(ifp);
 
 	bzero(nullbuf, sizeof(nullbuf));
@@ -828,7 +828,7 @@ in6_tmpaddrtimer(void *arg)
 	CURVNET_SET((struct vnet *) arg);
 	struct epoch_tracker et;
 	struct nd_ifinfo *ndi;
-	u_int8_t nullbuf[8];
+	uint8_t nullbuf[8];
 	struct ifnet *ifp;
 
 	callout_reset(&V_in6_tmpaddrtimer_ch,

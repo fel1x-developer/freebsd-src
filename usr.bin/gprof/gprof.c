@@ -406,25 +406,25 @@ readsamples(FILE *pfile)
 	    samples[i] += *(int8_t *)&sample;
 	    break;
 	case 8:
-	    samples[i] += *(u_int8_t *)&sample;
+	    samples[i] += *(uint8_t *)&sample;
 	    break;
 	case -16:
 	    samples[i] += *(int16_t *)&sample;
 	    break;
 	case 16:
-	    samples[i] += *(u_int16_t *)&sample;
+	    samples[i] += *(uint16_t *)&sample;
 	    break;
 	case -32:
 	    samples[i] += *(int32_t *)&sample;
 	    break;
 	case 32:
-	    samples[i] += *(u_int32_t *)&sample;
+	    samples[i] += *(uint32_t *)&sample;
 	    break;
 	case -64:
 	    samples[i] += *(int64_t *)&sample;
 	    break;
 	case 64:
-	    samples[i] += *(u_int64_t *)&sample;
+	    samples[i] += *(uint64_t *)&sample;
 	    break;
 	default:
 	    err(1, "unsupported histogram counter type %d", histcounter_type);

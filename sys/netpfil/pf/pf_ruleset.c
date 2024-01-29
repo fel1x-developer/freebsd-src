@@ -101,7 +101,7 @@ pf_keth_anchor_compare(struct pf_keth_anchor *a, struct pf_keth_anchor *b)
 }
 
 int
-pf_get_ruleset_number(u_int8_t action)
+pf_get_ruleset_number(uint8_t action)
 {
 	switch (action) {
 	case PF_SCRUB:

@@ -298,12 +298,12 @@ const char *pr_type(int);
 int	packet_ok(struct msghdr *, int, int, u_char *, u_char *, u_char *);
 void	print(struct msghdr *, int);
 const char *inetname(struct sockaddr *);
-u_int32_t sctp_crc32c(void *, u_int32_t);
-u_int16_t in_cksum(u_int16_t *addr, int);
-u_int16_t udp_cksum(struct sockaddr_in6 *, struct sockaddr_in6 *,
-    void *, u_int32_t);
-u_int16_t tcp_chksum(struct sockaddr_in6 *, struct sockaddr_in6 *,
-    void *, u_int32_t);
+uint32_t sctp_crc32c(void *, uint32_t);
+uint16_t in_cksum(uint16_t *addr, int);
+uint16_t udp_cksum(struct sockaddr_in6 *, struct sockaddr_in6 *,
+    void *, uint32_t);
+uint16_t tcp_chksum(struct sockaddr_in6 *, struct sockaddr_in6 *,
+    void *, uint32_t);
 void	usage(void);
 
 static int rcvsock;			/* receive (icmp) socket file descriptor */
@@ -330,9 +330,9 @@ static cap_channel_t *capdns;
 static u_long nprobes = 3;
 static u_long first_hop = 1;
 static u_long max_hops = 30;
-static u_int16_t srcport;
-static u_int16_t port = 32768 + 666;	/* start udp dest port # for probe packets */
-static u_int16_t ident;
+static uint16_t srcport;
+static uint16_t port = 32768 + 666;	/* start udp dest port # for probe packets */
+static uint16_t ident;
 static int tclass = -1;
 static int options;			/* socket options */
 static int verbose;
@@ -1163,7 +1163,7 @@ send_probe(int seq, u_long hops)
 			init = (struct sctp_init_chunk *)(sctp + 1);
 			init->ch.chunk_type = SCTP_INITIATION;
 			init->ch.chunk_flags = 0;
-			init->ch.chunk_length = htons((u_int16_t)(datalen -
+			init->ch.chunk_length = htons((uint16_t)(datalen -
 			    sizeof(struct sctphdr)));
 			init->init.initiate_tag = (sctp->src_port << 16) |
 			    sctp->dest_port;
@@ -1177,7 +1177,7 @@ send_probe(int seq, u_long hops)
 				param = (struct sctp_paramhdr *)(init + 1);
 				param->param_type = htons(SCTP_PAD);
 				param->param_length =
-				    htons((u_int16_t)(datalen -
+				    htons((uint16_t)(datalen -
 				    sizeof(struct sctphdr) -
 				    sizeof(struct sctp_init_chunk)));
 			}
@@ -1198,7 +1198,7 @@ send_probe(int seq, u_long hops)
 				chk = chk + 1;
 				chk->chunk_type = SCTP_PAD_CHUNK;
 				chk->chunk_flags = 0;
-				chk->chunk_length = htons((u_int16_t)(datalen -
+				chk->chunk_length = htons((uint16_t)(datalen -
 				    sizeof(struct sctphdr) -
 				    sizeof(struct sctp_chunkhdr)));
 			}
@@ -1437,13 +1437,13 @@ packet_ok(struct msghdr *mhdr, int cc, int seq, u_char *type, u_char *code,
 				if ((char *)&init->init.a_rwnd > buf + cc) {
 					return (1);
 				}
-				if (init->init.initiate_tag == (u_int32_t)
+				if (init->init.initiate_tag == (uint32_t)
 				    ((sctp->src_port << 16) | sctp->dest_port)) {
 					return (1);
 				}
 			} else {
 				if (sctp->v_tag ==
-				    (u_int32_t)((sctp->src_port << 16) |
+				    (uint32_t)((sctp->src_port << 16) |
 				    sctp->dest_port)) {
 					return (1);
 				}
@@ -1470,7 +1470,7 @@ packet_ok(struct msghdr *mhdr, int cc, int seq, u_char *type, u_char *code,
 	}
 	if (verbose) {
 		char sbuf[NI_MAXHOST + 1], dbuf[INET6_ADDRSTRLEN];
-		u_int8_t *p;
+		uint8_t *p;
 		int i;
 
 		if (cap_getnameinfo(capdns, (struct sockaddr *)from, from->sin6_len,
@@ -1481,7 +1481,7 @@ packet_ok(struct msghdr *mhdr, int cc, int seq, u_char *type, u_char *code,
 		    dbuf, sizeof(dbuf)) : "?");
 		printf(": icmp type %d (%s) code %d\n", *type, pr_type(*type),
 		    *code);
-		p = (u_int8_t *)(icp + 1);
+		p = (uint8_t *)(icp + 1);
 #define WIDTH	16
 		for (i = 0; i < cc; i++) {
 			if (i % WIDTH == 0)
@@ -1643,7 +1643,7 @@ inetname(struct sockaddr *sa)
 
 #define CRC32C(c, d) (c = (c >> 8) ^ crc_c[(c ^ (d)) & 0xFF])
 
-static u_int32_t crc_c[256] = {
+static uint32_t crc_c[256] = {
 	0x00000000, 0xF26B8303, 0xE13B70F7, 0x1350F3F4,
 	0xC79A971F, 0x35F1141C, 0x26A1E7E8, 0xD4CA64EB,
 	0x8AD958CF, 0x78B2DBCC, 0x6BE22838, 0x9989AB3B,
@@ -1710,12 +1710,12 @@ static u_int32_t crc_c[256] = {
 	0xBE2DA0A5, 0x4C4623A6, 0x5F16D052, 0xAD7D5351
 };
 
-u_int32_t
-sctp_crc32c(void *pack, u_int32_t len)
+uint32_t
+sctp_crc32c(void *pack, uint32_t len)
 {
-	u_int32_t i, crc32c;
-	u_int8_t byte0, byte1, byte2, byte3;
-	u_int8_t *buf = (u_int8_t *)pack;
+	uint32_t i, crc32c;
+	uint8_t byte0, byte1, byte2, byte3;
+	uint8_t *buf = (uint8_t *)pack;
 
 	crc32c = ~0;
 	for (i = 0; i < len; i++)
@@ -1729,12 +1729,12 @@ sctp_crc32c(void *pack, u_int32_t len)
 	return (htonl(crc32c));
 }
 
-u_int16_t
-in_cksum(u_int16_t *addr, int len)
+uint16_t
+in_cksum(uint16_t *addr, int len)
 {
 	int nleft = len;
-	u_int16_t *w = addr;
-	u_int16_t answer;
+	uint16_t *w = addr;
+	uint16_t answer;
 	int sum = 0;
 
 	/*
@@ -1761,18 +1761,18 @@ in_cksum(u_int16_t *addr, int len)
 	return (answer);
 }
 
-u_int16_t
+uint16_t
 udp_cksum(struct sockaddr_in6 *src, struct sockaddr_in6 *dst,
-    void *payload, u_int32_t len)
+    void *payload, uint32_t len)
 {
 	struct {
 		struct in6_addr src;
 		struct in6_addr dst;
-		u_int32_t len;
-		u_int8_t zero[3];
-		u_int8_t next;
+		uint32_t len;
+		uint8_t zero[3];
+		uint8_t next;
 	} pseudo_hdr;
-	u_int16_t sum[2];
+	uint16_t sum[2];
 
 	pseudo_hdr.src = src->sin6_addr;
 	pseudo_hdr.dst = dst->sin6_addr;
@@ -1782,24 +1782,24 @@ udp_cksum(struct sockaddr_in6 *src, struct sockaddr_in6 *dst,
 	pseudo_hdr.zero[2] = 0;
 	pseudo_hdr.next = IPPROTO_UDP;
 
-	sum[1] = in_cksum((u_int16_t *)&pseudo_hdr, sizeof(pseudo_hdr));
+	sum[1] = in_cksum((uint16_t *)&pseudo_hdr, sizeof(pseudo_hdr));
 	sum[0] = in_cksum(payload, len);
 
 	return (~in_cksum(sum, sizeof(sum)));
 }
 
-u_int16_t
+uint16_t
 tcp_chksum(struct sockaddr_in6 *src, struct sockaddr_in6 *dst,
-    void *payload, u_int32_t len)
+    void *payload, uint32_t len)
 {
 	struct {
 		struct in6_addr src;
 		struct in6_addr dst;
-		u_int32_t len;
-		u_int8_t zero[3];
-		u_int8_t next;
+		uint32_t len;
+		uint8_t zero[3];
+		uint8_t next;
 	} pseudo_hdr;
-	u_int16_t sum[2];
+	uint16_t sum[2];
 
 	pseudo_hdr.src = src->sin6_addr;
 	pseudo_hdr.dst = dst->sin6_addr;
@@ -1809,7 +1809,7 @@ tcp_chksum(struct sockaddr_in6 *src, struct sockaddr_in6 *dst,
 	pseudo_hdr.zero[2] = 0;
 	pseudo_hdr.next = IPPROTO_TCP;
 
-	sum[1] = in_cksum((u_int16_t *)&pseudo_hdr, sizeof(pseudo_hdr));
+	sum[1] = in_cksum((uint16_t *)&pseudo_hdr, sizeof(pseudo_hdr));
 	sum[0] = in_cksum(payload, len);
 
 	return (~in_cksum(sum, sizeof(sum)));

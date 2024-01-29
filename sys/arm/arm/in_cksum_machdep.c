@@ -69,19 +69,19 @@
     }
 
 union l_util {
-	u_int16_t s[2];
-	u_int32_t l;
+	uint16_t s[2];
+	uint32_t l;
 };
 union q_util {
-	u_int16_t s[4];
-	u_int32_t l[2];
-	u_int64_t q;
+	uint16_t s[4];
+	uint32_t l[2];
+	uint64_t q;
 };
 
 u_short
 in_addword(u_short a, u_short b)
 {
-	u_int64_t sum = a + b;
+	uint64_t sum = a + b;
 
 	ADDCARRY(sum);
 	return (sum);
@@ -101,7 +101,7 @@ uint64_t _do_cksum(void *addr, int len)
 u_short
 in_cksum_skip(struct mbuf *m, int len, int skip)
 {
-	u_int64_t sum = 0;
+	uint64_t sum = 0;
 	int mlen = 0;
 	int clen = 0;
 	caddr_t addr;
@@ -142,7 +142,7 @@ skip_start:
 
 u_int in_cksum_hdr(const struct ip *ip)
 {
-	u_int64_t sum = do_cksum(ip, sizeof(struct ip));
+	uint64_t sum = do_cksum(ip, sizeof(struct ip));
 	union q_util q_util;
     	union l_util l_util;
 	REDUCE16;

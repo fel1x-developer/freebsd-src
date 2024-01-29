@@ -184,7 +184,7 @@ init_secondary(void)
 	struct nmi_pcpu *np;
 	struct user_segment_descriptor *gdt;
 	struct region_descriptor ap_gdt;
-	u_int64_t cr0;
+	uint64_t cr0;
 	int cpu, gsel_tss, x;
 
 	/* Set by the startup code for us to use */
@@ -324,7 +324,7 @@ start_all_aps(void)
 	pdp_entry_t *v_pdp;
 	pd_entry_t *v_pd;
 	vm_paddr_t boot_address;
-	u_int32_t mpbioswarmvec;
+	uint32_t mpbioswarmvec;
 	int apic_id, cpu, domain, i;
 	u_char mpbiosreason;
 
@@ -390,7 +390,7 @@ start_all_aps(void)
 
 	/* save the current value of the warm-start vector */
 	if (!efi_boot)
-		mpbioswarmvec = *((u_int32_t *) WARMBOOT_OFF);
+		mpbioswarmvec = *((uint32_t *) WARMBOOT_OFF);
 	outb(CMOS_REG, BIOS_RESET);
 	mpbiosreason = inb(CMOS_DATA);
 
@@ -433,7 +433,7 @@ start_all_aps(void)
 		if (!start_ap(apic_id, boot_address)) {
 			/* restore the warmstart vector */
 			if (!efi_boot)
-				*(u_int32_t *)WARMBOOT_OFF = mpbioswarmvec;
+				*(uint32_t *)WARMBOOT_OFF = mpbioswarmvec;
 			panic("AP #%d (PHY# %d) failed!", cpu, apic_id);
 		}
 
@@ -442,7 +442,7 @@ start_all_aps(void)
 
 	/* restore the warmstart vector */
 	if (!efi_boot)
-		*(u_int32_t *)WARMBOOT_OFF = mpbioswarmvec;
+		*(uint32_t *)WARMBOOT_OFF = mpbioswarmvec;
 
 	outb(CMOS_REG, BIOS_RESET);
 	outb(CMOS_DATA, mpbiosreason);

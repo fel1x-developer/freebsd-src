@@ -49,7 +49,7 @@
 
 static int iotest;
 
-#define NO_DISK_SECTORS ((u_int32_t)-1)
+#define NO_DISK_SECTORS ((uint32_t)-1)
 #define NO_TRACK_CYLINDERS 1023
 #define NO_TRACK_HEADS 255
 #define NO_TRACK_SECTORS 63
@@ -74,7 +74,7 @@ static int secsize = 0;		/* the sensed sector size */
 static char *disk;
 
 static int cyls, sectors, heads, cylsecs;
-static u_int32_t disksecs;
+static uint32_t disksecs;
 
 struct mboot {
 	unsigned char *bootinst;  /* boot code */
@@ -473,7 +473,7 @@ static struct dos_partition mtpart;
 static void
 print_part(const struct dos_partition *partp)
 {
-	u_int64_t part_mb;
+	uint64_t part_mb;
 
 	if (!bcmp(partp, &mtpart, sizeof (struct dos_partition))) {
 		printf("<UNUSED>\n");
@@ -692,7 +692,7 @@ static void
 dos(struct dos_partition *partp)
 {
 	int cy, sec;
-	u_int32_t end;
+	uint32_t end;
 
 	if (partp->dp_typ == 0 && partp->dp_start == 0 && partp->dp_size == 0) {
 		memcpy(partp, &mtpart, sizeof(*partp));
@@ -1092,7 +1092,7 @@ process_geometry(CMD *command)
     return (status);
 }
 
-static u_int32_t
+static uint32_t
 str2sectors(const char *str)
 {
 	char *end;
@@ -1124,8 +1124,8 @@ static int
 process_partition(CMD *command)
 {
     int				status = 0, partition;
-    u_int32_t			prev_head_boundary, prev_cyl_boundary;
-    u_int32_t			adj_size, max_end;
+    uint32_t			prev_head_boundary, prev_cyl_boundary;
+    uint32_t			adj_size, max_end;
     struct dos_partition	*partp;
 
 	while (1) {
@@ -1386,8 +1386,8 @@ reset_boot(void)
 static int
 sanitize_partition(struct dos_partition *partp)
 {
-    u_int32_t			prev_head_boundary, prev_cyl_boundary;
-    u_int32_t			max_end, size, start;
+    uint32_t			prev_head_boundary, prev_cyl_boundary;
+    uint32_t			max_end, size, start;
 
     start = partp->dp_start;
     size = partp->dp_size;

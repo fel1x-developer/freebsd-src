@@ -970,7 +970,7 @@ tuncreate(struct cdev *dev)
 		IFQ_SET_READY(&ifp->if_snd);
 
 		if_attach(ifp);
-		bpfattach(ifp, DLT_NULL, sizeof(u_int32_t));
+		bpfattach(ifp, DLT_NULL, sizeof(uint32_t));
 	}
 
 	TUN_LOCK(tp);
@@ -1382,7 +1382,7 @@ tunoutput(struct ifnet *ifp, struct mbuf *m0, const struct sockaddr *dst,
 	struct tuntap_softc *tp = ifp->if_softc;
 	u_short cached_tun_flags;
 	int error;
-	u_int32_t af;
+	uint32_t af;
 
 	TUNDEBUG (ifp, "tunoutput\n");
 
@@ -1442,7 +1442,7 @@ tunoutput(struct ifnet *ifp, struct mbuf *m0, const struct sockaddr *dst,
 			if_inc_counter(ifp, IFCOUNTER_OERRORS, 1);
 			return (ENOBUFS);
 		} else
-			*(u_int32_t *)m0->m_data = htonl(af);
+			*(uint32_t *)m0->m_data = htonl(af);
 	} else {
 #ifdef INET
 		if (af != AF_INET)
@@ -1837,7 +1837,7 @@ tunwrite_l3(struct tuntap_softc *tp, struct mbuf *m)
 		if (m->m_len < sizeof(family) &&
 		(m = m_pullup(m, sizeof(family))) == NULL)
 			return (ENOBUFS);
-		family = ntohl(*mtod(m, u_int32_t *));
+		family = ntohl(*mtod(m, uint32_t *));
 		m_adj(m, sizeof(family));
 	} else {
 		TUN_UNLOCK(tp);

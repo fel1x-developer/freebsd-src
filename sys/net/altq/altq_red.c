@@ -462,7 +462,7 @@ mark_ecn(struct mbuf *m, struct altq_pktattr *pktattr, int flags)
 	case IPVERSION:
 		if (flags & REDF_ECN4) {
 			struct ip *ip = hdr;
-			u_int8_t otos;
+			uint8_t otos;
 			int sum;
 
 			if (ip->ip_v != 4)
@@ -495,7 +495,7 @@ mark_ecn(struct mbuf *m, struct altq_pktattr *pktattr, int flags)
 	case (IPV6_VERSION >> 4):
 		if (flags & REDF_ECN6) {
 			struct ip6_hdr *ip6 = hdr;
-			u_int32_t flowlabel;
+			uint32_t flowlabel;
 
 			flowlabel = ntohl(ip6->ip6_flow);
 			if ((flowlabel >> 28) != 6)

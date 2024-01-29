@@ -50,7 +50,7 @@ static int tws_ioctl_aen(struct tws_softc *sc, u_long cmd, void *buf);
 
 extern int tws_bus_scan(struct tws_softc *sc);
 extern struct tws_request *tws_get_request(struct tws_softc *sc, 
-                                           u_int16_t type);
+                                           uint16_t type);
 extern int32_t tws_map_request(struct tws_softc *sc, struct tws_request *req);
 extern void tws_unmap_request(struct tws_softc *sc, struct tws_request *req);
 extern uint8_t tws_get_state(struct tws_softc *sc);
@@ -87,8 +87,8 @@ tws_passthru(struct tws_softc *sc, void *buf)
     struct tws_request *req;
     struct tws_ioctl_no_data_buf *ubuf = (struct tws_ioctl_no_data_buf *)buf;
     int error;
-    u_int32_t buffer_length;
-    u_int16_t lun4;
+    uint32_t buffer_length;
+    uint16_t lun4;
 
     buffer_length = roundup2(ubuf->driver_pkt.buffer_length, 512);
     if ( buffer_length > TWS_MAX_IO_SIZE ) {
@@ -143,7 +143,7 @@ tws_passthru(struct tws_softc *sc, void *buf)
         lun4 = req->cmd_pkt->cmd.pkt_a.lun_l4__req_id & 0xF000;
         req->cmd_pkt->cmd.pkt_a.lun_l4__req_id = lun4 | req->request_id;
     } else {
-        req->cmd_pkt->cmd.pkt_g.generic.request_id = (u_int8_t) req->request_id;
+        req->cmd_pkt->cmd.pkt_g.generic.request_id = (uint8_t) req->request_id;
     }
 
     //==============================================================================================
@@ -220,7 +220,7 @@ static void
 tws_retrive_aen(struct tws_softc *sc, u_long cmd, 
                             struct tws_ioctl_packet *ubuf)
 {
-    u_int16_t index=0;
+    uint16_t index=0;
     struct tws_event_packet eventp, *qp;
 
     if ( sc->aen_q.head == sc->aen_q.tail ) {
@@ -319,7 +319,7 @@ tws_ioctl_aen(struct tws_softc *sc, u_long cmd, void *buf)
                 sc->ioctl_lock.timeout = ctime + (lpkt.timeout_msec / 1000);
                 lpkt.time_remaining_msec = lpkt.timeout_msec;
             }  else {
-                lpkt.time_remaining_msec = (u_int32_t)
+                lpkt.time_remaining_msec = (uint32_t)
                           ((sc->ioctl_lock.timeout - ctime) * 1000);
                 ubuf->driver_pkt.status = TWS_IOCTL_LOCK_ALREADY_HELD;
             }
@@ -372,8 +372,8 @@ struct tws_event_packet *aen)
 {
 
     struct tws_event_packet *q = (struct tws_event_packet *)cq->q;
-    volatile u_int16_t head, tail;
-    u_int8_t retr;
+    volatile uint16_t head, tail;
+    uint8_t retr;
     mtx_assert(&sc->gen_lock, MA_OWNED);
 
     head = cq->head;

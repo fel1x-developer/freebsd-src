@@ -39,7 +39,7 @@
 fp_except_t
 fpsetmask(fp_except_t mask)
 {
-	u_int64_t fpscr;
+	uint64_t fpscr;
 	fp_except_t old;
 
 	__asm__("mffs %0" : "=f"(fpscr));

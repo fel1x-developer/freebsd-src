@@ -73,7 +73,7 @@ METHOD int maxfuncs {
 # device. The width argument (which should be 1, 2 or 4) specifies how
 # many byte of configuration space to read from that offset.
 #
-METHOD u_int32_t read_config {
+METHOD uint32_t read_config {
 	device_t	dev;
 	u_int		bus;
 	u_int		slot;
@@ -95,7 +95,7 @@ METHOD void write_config {
 	u_int		slot;
 	u_int		func;
 	u_int		reg;
-	u_int32_t	value;
+	uint32_t	value;
 	int		width;
 };
 

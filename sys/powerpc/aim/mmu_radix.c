@@ -416,7 +416,7 @@ SYSCTL_INT(_vm_pmap, OID_AUTO, pmap_logging, CTLFLAG_RWTUN,
     &pmap_logging, 0, "verbose debug logging");
 #endif
 
-static u_int64_t	KPTphys;	/* phys addr of kernel level 1 */
+static uint64_t	KPTphys;	/* phys addr of kernel level 1 */
 
 //static vm_paddr_t	KERNend;	/* phys addr of end of bootstrap data */
 
@@ -894,7 +894,7 @@ pagezero(vm_offset_t va)
 static uint64_t
 allocpages(int n)
 {
-	u_int64_t ret;
+	uint64_t ret;
 
 	ret = moea64_bootstrap_alloc(n * PAGE_SIZE, PAGE_SIZE);
 	for (int i = 0; i < n; i++)

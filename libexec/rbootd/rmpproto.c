@@ -167,7 +167,7 @@ SendServerID(RMPCONN *rconn)
 {
 	struct rmp_packet *rpl;
 	char *src, *dst;
-	u_int8_t *size;
+	uint8_t *size;
 
 	rpl = &rconn->rmp;			/* cache ptr to RMP packet */
 
@@ -218,7 +218,7 @@ SendFileNo(struct rmp_packet *req, RMPCONN *rconn, char *filelist[])
 {
 	struct rmp_packet *rpl;
 	char *src, *dst;
-	u_int8_t *size;
+	uint8_t *size;
 	int i;
 
 	GETWORD(req->r_brpl.rmp_seqno, i);	/* SeqNo is really FileNo */
@@ -281,7 +281,7 @@ SendBootRepl(struct rmp_packet *req, RMPCONN *rconn, char *filelist[])
 	RMPCONN *oldconn;
 	struct rmp_packet *rpl;
 	char *src, *dst1, *dst2;
-	u_int8_t i;
+	uint8_t i;
 
 	/*
 	 *  If another connection already exists, delete it since we

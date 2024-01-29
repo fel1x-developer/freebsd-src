@@ -338,7 +338,7 @@ static int
 ath_sysctl_diag(SYSCTL_HANDLER_ARGS)
 {
 	struct ath_softc *sc = arg1;
-	u_int32_t diag;
+	uint32_t diag;
 	int error;
 
 	ATH_LOCK(sc);
@@ -367,7 +367,7 @@ static int
 ath_sysctl_tpscale(SYSCTL_HANDLER_ARGS)
 {
 	struct ath_softc *sc = arg1;
-	u_int32_t scale;
+	uint32_t scale;
 	int error;
 
 	ATH_LOCK(sc);
@@ -595,7 +595,7 @@ static int
 ath_sysctl_tpack(SYSCTL_HANDLER_ARGS)
 {
 	struct ath_softc *sc = arg1;
-	u_int32_t tpack;
+	uint32_t tpack;
 	int error;
 
 	ATH_LOCK(sc);
@@ -620,7 +620,7 @@ static int
 ath_sysctl_tpcts(SYSCTL_HANDLER_ARGS)
 {
 	struct ath_softc *sc = arg1;
-	u_int32_t tpcts;
+	uint32_t tpcts;
 	int error;
 
 	ATH_LOCK(sc);

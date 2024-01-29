@@ -439,15 +439,15 @@ fill_ip6(ipfw_insn_ip6 *cmd, char *av, int cblen, struct tidx *tstate)
 
 /*
  * fills command for ipv6 flow-id filtering
- * note that the 20 bit flow number is stored in a array of u_int32_t
+ * note that the 20 bit flow number is stored in a array of uint32_t
  * it's supported lists of flow-id, so in the o.arg1 we store how many
  * additional flow-id we want to filter, the basic is 1
  */
 void
 fill_flow6( ipfw_insn_u32 *cmd, char *av, int cblen)
 {
-	u_int32_t type;	 /* Current flow number */
-	u_int16_t nflow = 0;    /* Current flow index */
+	uint32_t type;	 /* Current flow number */
+	uint16_t nflow = 0;    /* Current flow index */
 	char *s = av;
 	cmd->d[0] = 0;	  /* Initializing the base number*/
 

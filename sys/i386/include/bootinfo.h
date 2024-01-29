@@ -46,23 +46,23 @@
  * that bi_size is always valid when bi_version == 1.
  */
 struct bootinfo {
-	u_int32_t	bi_version;		/* Must be 1 */
-	u_int32_t	bi_kernelname;		/* represents a char * */
-	u_int32_t	bi_nfs_diskless;	/* struct nfs_diskless * */
-	u_int32_t	_was_bi_n_bios_used;
-	u_int32_t	_was_bi_bios_geom[_WAS_N_BIOS_GEOM];
-	u_int32_t	bi_size;
-	u_int8_t	bi_memsizes_valid;
-	u_int8_t	bi_bios_dev;	/* bootdev BIOS unit number (bootX -> loader only) */
-	u_int8_t	bi_pad[2];
-	u_int32_t	bi_basemem;
-	u_int32_t	bi_extmem;
-	u_int32_t	bi_symtab;		/* struct symtab * */
-	u_int32_t	bi_esymtab;		/* struct symtab * */
+	uint32_t	bi_version;		/* Must be 1 */
+	uint32_t	bi_kernelname;		/* represents a char * */
+	uint32_t	bi_nfs_diskless;	/* struct nfs_diskless * */
+	uint32_t	_was_bi_n_bios_used;
+	uint32_t	_was_bi_bios_geom[_WAS_N_BIOS_GEOM];
+	uint32_t	bi_size;
+	uint8_t	bi_memsizes_valid;
+	uint8_t	bi_bios_dev;	/* bootdev BIOS unit number (bootX -> loader only) */
+	uint8_t	bi_pad[2];
+	uint32_t	bi_basemem;
+	uint32_t	bi_extmem;
+	uint32_t	bi_symtab;		/* struct symtab * */
+	uint32_t	bi_esymtab;		/* struct symtab * */
 				/* Items below only from advanced bootloader */
-	u_int32_t	bi_kernend;		/* end of kernel space */
-	u_int32_t	bi_envp;		/* environment */
-	u_int32_t	bi_modulep;		/* preloaded modules */
+	uint32_t	bi_kernend;		/* end of kernel space */
+	uint32_t	bi_envp;		/* environment */
+	uint32_t	bi_modulep;		/* preloaded modules */
 };
 
 #ifdef _KERNEL

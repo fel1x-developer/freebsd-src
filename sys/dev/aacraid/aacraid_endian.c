@@ -82,7 +82,7 @@ aac_adapter_info_toh(struct aac_adapter_info *ptr)
 void
 aac_container_creation_toh(struct aac_container_creation *ptr)
 {
-	u_int32_t *date = (u_int32_t *)ptr + 1;
+	uint32_t *date = (uint32_t *)ptr + 1;
 
 	*date = le32toh(*date);
 	TOH(ptr->ViaAdapterSerialNumber, 64);

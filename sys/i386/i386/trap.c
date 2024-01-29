@@ -1049,7 +1049,7 @@ cpu_fetch_syscall_args(struct thread *td)
 	long tmp;
 	int error;
 #ifdef COMPAT_43
-	u_int32_t eip;
+	uint32_t eip;
 	int cs;
 #endif
 
@@ -1067,7 +1067,7 @@ cpu_fetch_syscall_args(struct thread *td)
 		error = fueword32((void *)frame->tf_esp, &eip);
 		if (error == -1)
 			return (EFAULT);
-		cs = fuword16((void *)(frame->tf_esp + sizeof(u_int32_t)));
+		cs = fuword16((void *)(frame->tf_esp + sizeof(uint32_t)));
 		if (cs == -1)
 			return (EFAULT);
 
@@ -1077,7 +1077,7 @@ cpu_fetch_syscall_args(struct thread *td)
 		 */
 		frame->tf_eip = eip;
 		frame->tf_cs = cs;
-		frame->tf_esp += 2 * sizeof(u_int32_t);
+		frame->tf_esp += 2 * sizeof(uint32_t);
 		frame->tf_err = 7;	/* size of lcall $7,$0 */
 	}
 #endif

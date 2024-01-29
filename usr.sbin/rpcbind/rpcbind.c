@@ -266,7 +266,7 @@ init_transport(struct netconfig *nconf)
 	int nhostsbak;
 	int bound;
 	struct sockaddr *sa;
-	u_int32_t host_addr[4];  /* IPv4 or IPv6 */
+	uint32_t host_addr[4];  /* IPv4 or IPv6 */
 	struct sockaddr_un sun;
 	mode_t oldmask;
 

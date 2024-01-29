@@ -44,7 +44,7 @@ struct componentname {
 	/*
 	 * Arguments to lookup.
 	 */
-	u_int64_t cn_flags;	/* flags to namei */
+	uint64_t cn_flags;	/* flags to namei */
 	struct	ucred *cn_cred;	/* credentials */
 	enum nameiop cn_nameiop;	/* namei operation */
 	int	cn_lkflags;	/* Lock flags LK_EXCLUSIVE or LK_SHARED */

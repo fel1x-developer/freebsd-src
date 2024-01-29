@@ -465,18 +465,18 @@ struct bfe_tx_data {
 struct bfe_rx_data {
     struct mbuf     *bfe_mbuf;
     bus_dmamap_t     bfe_map;
-    u_int32_t        bfe_ctrl;
+    uint32_t        bfe_ctrl;
 };
 
 struct bfe_desc {
-    u_int32_t         bfe_ctrl;
-    u_int32_t         bfe_addr;
+    uint32_t         bfe_ctrl;
+    uint32_t         bfe_addr;
 };
 
 struct bfe_rxheader {
-    u_int16_t    len;
-    u_int16_t    flags;
-    u_int16_t    pad[12];
+    uint16_t    len;
+    uint16_t    flags;
+    uint16_t    pad[12];
 };
 
 #define MIB_TX_GOOD_O		0
@@ -600,26 +600,26 @@ struct bfe_softc
     struct bfe_tx_data      bfe_tx_ring[BFE_TX_LIST_CNT]; /* XXX */
     struct bfe_rx_data      bfe_rx_ring[BFE_RX_LIST_CNT]; /* XXX */
     struct mtx              bfe_mtx;
-    u_int32_t               bfe_flags;
+    uint32_t               bfe_flags;
 #define	BFE_FLAG_DETACH		0x4000
 #define	BFE_FLAG_LINK		0x8000
-    u_int32_t               bfe_imask;
-    u_int32_t               bfe_dma_offset;
-    u_int32_t               bfe_tx_cnt, bfe_tx_cons, bfe_tx_prod;
-    u_int32_t               bfe_rx_prod, bfe_rx_cons;
-    u_int32_t               bfe_tx_dma, bfe_rx_dma;
+    uint32_t               bfe_imask;
+    uint32_t               bfe_dma_offset;
+    uint32_t               bfe_tx_cnt, bfe_tx_cons, bfe_tx_prod;
+    uint32_t               bfe_rx_prod, bfe_rx_cons;
+    uint32_t               bfe_tx_dma, bfe_rx_dma;
     int                     bfe_watchdog_timer;
-    u_int8_t                bfe_phyaddr; /* Address of the card's PHY */
-    u_int8_t                bfe_mdc_port;
-    u_int8_t                bfe_core_unit;
+    uint8_t                bfe_phyaddr; /* Address of the card's PHY */
+    uint8_t                bfe_mdc_port;
+    uint8_t                bfe_core_unit;
     u_char                  bfe_enaddr[6];
     int                     bfe_if_flags;
 };
 
 struct bfe_type
 {
-    u_int16_t   bfe_vid;
-    u_int16_t   bfe_did;
+    uint16_t   bfe_vid;
+    uint16_t   bfe_did;
     char        *bfe_name;
 };
 

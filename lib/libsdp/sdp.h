@@ -559,7 +559,7 @@ void               sdp_print      (uint32_t level, uint8_t const *start,
  *
  * SDP_PDU_SERVICE_REGISTER_REQUEST
  * 	pdu_header_t	hdr;
- *	u_int16_t	uuid;	service class UUID (network byte order)
+ *	uint16_t	uuid;	service class UUID (network byte order)
  *	bdaddr_t	bdaddr;	local BD_ADDR (or ANY)
  *	profile data[pdu->len - sizeof(uuid) - sizeof(bdaddr)]
  *
@@ -568,14 +568,14 @@ void               sdp_print      (uint32_t level, uint8_t const *start,
  *
  * SDP_PDU_SERVICE_UNREGISTER_REQUEST
  *	pdu_header_t	hdr;
- *	u_int32_t	record_handle;	(network byte order)
+ *	uint32_t	record_handle;	(network byte order)
  * 
  * no additional data in response.
  *
  *
  * SDP_PDU_SERVICE_CHANGE_REQUEST
  * 	pdu_header_t	hdr;
- *	u_int32_t	record_handle;	(network byte order)
+ *	uint32_t	record_handle;	(network byte order)
  *	profile data[pdu->len - sizeof(record_handle)]
  *
  * no additional data in response.

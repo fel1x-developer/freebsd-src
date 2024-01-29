@@ -89,7 +89,7 @@ struct etherip_header {
 	u_int	eip_ver:4,	/* version */
 		eip_resvl:4;	/* reserved */
 #endif
-	u_int8_t eip_resvh;	/* reserved */
+	uint8_t eip_resvh;	/* reserved */
 } __packed;
 
 #define ETHERIP_VERSION			0x3

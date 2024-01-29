@@ -42,7 +42,7 @@
 #define	_ALTQ_ALTQ_CODEL_H_
 
 struct codel_stats {
-	u_int32_t	maxpacket;
+	uint32_t	maxpacket;
 	struct pktcntr	drop_cnt;
 	u_int		marked_packets;
 };
@@ -71,8 +71,8 @@ struct codel_ifstats {
  *  <at> ecn:	is Explicit Congestion Notification enabled
  */
 struct codel_params {
-	u_int64_t	target;
-	u_int64_t	interval;
+	uint64_t	target;
+	uint64_t	interval;
 	int		ecn;
 };
 
@@ -89,13 +89,13 @@ struct codel_params {
  *  <at> ldelay:	sojourn time of last dequeued packet
  */
 struct codel_vars {
-	u_int32_t	count;
-	u_int32_t	lastcount;
+	uint32_t	count;
+	uint32_t	lastcount;
 	int		dropping;
-	u_int16_t	rec_inv_sqrt;
-	u_int64_t	first_above_time;
-	u_int64_t	drop_next;
-	u_int64_t	ldelay;
+	uint16_t	rec_inv_sqrt;
+	uint64_t	first_above_time;
+	uint64_t	drop_next;
+	uint64_t	ldelay;
 };
         
 struct codel {
@@ -104,7 +104,7 @@ struct codel {
 	struct codel_vars	vars;
 	struct codel_stats	stats;
 	struct timeval		last_log;
-	u_int32_t		drop_overlimit;
+	uint32_t		drop_overlimit;
 };
 
 /*

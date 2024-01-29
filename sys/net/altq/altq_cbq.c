@@ -59,7 +59,7 @@
  * Forward Declarations.
  */
 static int		 cbq_class_destroy(cbq_state_t *, struct rm_class *);
-static struct rm_class  *clh_to_clp(cbq_state_t *, u_int32_t);
+static struct rm_class  *clh_to_clp(cbq_state_t *, uint32_t);
 static int		 cbq_clear_interface(cbq_state_t *);
 static int		 cbq_request(struct ifaltq *, int, void *);
 static int		 cbq_enqueue(struct ifaltq *, struct mbuf *,
@@ -99,7 +99,7 @@ cbq_class_destroy(cbq_state_t *cbqp, struct rm_class *cl)
 
 /* convert class handle to class pointer */
 static struct rm_class *
-clh_to_clp(cbq_state_t *cbqp, u_int32_t chandle)
+clh_to_clp(cbq_state_t *cbqp, uint32_t chandle)
 {
 	int i;
 	struct rm_class *cl;

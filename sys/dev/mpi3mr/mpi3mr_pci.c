@@ -224,7 +224,7 @@ mpi3mr_find_ident(device_t dev)
 static int
 mpi3mr_pci_probe(device_t dev)
 {
-	static u_int8_t first_ctrl = 1;
+	static uint8_t first_ctrl = 1;
 	struct mpi3mr_ident *id;
 	char raw_os_ver[16];
 

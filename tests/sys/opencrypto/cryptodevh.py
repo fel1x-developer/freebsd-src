@@ -228,7 +228,7 @@ def CRYPTO_SESID2HID(_sid): return (((_sid) >> 32) & 0x00ffffff)
 
 def CRYPTO_SESID2CAPS(_sid): return (((_sid) >> 32) & 0xff000000)
 
-def CRYPTO_SESID2LID(_sid): return (((u_int32_t) (_sid)) & 0xffffffff)
+def CRYPTO_SESID2LID(_sid): return (((uint32_t) (_sid)) & 0xffffffff)
 
 CRYPTOCAP_F_HARDWARE = CRYPTO_FLAG_HARDWARE
 CRYPTOCAP_F_SOFTWARE = CRYPTO_FLAG_SOFTWARE

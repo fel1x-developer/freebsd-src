@@ -550,7 +550,7 @@ tcp_fastopen_make_cookie(uint8_t key[SIPHASH_KEY_LENGTH], struct in_conninfo *in
 		break;
 #endif
 	}
-	SipHash_Final((u_int8_t *)&siphash, &ctx);
+	SipHash_Final((uint8_t *)&siphash, &ctx);
 
 	return (siphash);
 }
@@ -564,7 +564,7 @@ tcp_fastopen_make_psk_cookie(uint8_t *psk, uint8_t *cookie, uint8_t cookie_len)
 	SipHash24_Init(&ctx);
 	SipHash_SetKey(&ctx, psk);
 	SipHash_Update(&ctx, cookie, cookie_len);
-	SipHash_Final((u_int8_t *)&psk_cookie, &ctx);
+	SipHash_Final((uint8_t *)&psk_cookie, &ctx);
 
 	return (psk_cookie);
 }

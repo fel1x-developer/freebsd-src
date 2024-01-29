@@ -73,7 +73,7 @@ struct	nfsmount {
 	short	nm_bufqlen;		/* number of buffers in queue */
 	short	nm_bufqwant;		/* process wants to add to the queue */
 	int	nm_bufqiods;		/* number of iods processing queue */
-	u_int64_t nm_maxfilesize;	/* maximum file size */
+	uint64_t nm_maxfilesize;	/* maximum file size */
 	struct nfs_rpcops *nm_rpcops;
 	int	nm_tprintf_initial_delay;	/* initial delay */
 	int	nm_tprintf_delay;		/* interval for messages */

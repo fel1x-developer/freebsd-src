@@ -88,10 +88,10 @@ static struct mem_range_ops x86_mrops = {
 };
 
 /* XXX for AP startup hook */
-static u_int64_t mtrrcap, mtrrdef;
+static uint64_t mtrrcap, mtrrdef;
 
 /* The bitmask for the PhysBase and PhysMask fields of the variable MTRRs. */
-static u_int64_t mtrr_physmask;
+static uint64_t mtrr_physmask;
 
 static struct mem_range_desc *mem_range_match(struct mem_range_softc *sc,
 		    struct mem_range_desc *mrd);
@@ -102,7 +102,7 @@ static int	x86_mtrrconflict(int flag1, int flag2);
 static void	x86_mrstore(struct mem_range_softc *sc);
 static void	x86_mrstoreone(void *arg);
 static struct mem_range_desc *x86_mtrrfixsearch(struct mem_range_softc *sc,
-		    u_int64_t addr);
+		    uint64_t addr);
 static int	x86_mrsetlow(struct mem_range_softc *sc,
 		    struct mem_range_desc *mrd, int *arg);
 static int	x86_mrsetvariable(struct mem_range_softc *sc,
@@ -198,7 +198,7 @@ static void
 x86_mrfetch(struct mem_range_softc *sc)
 {
 	struct mem_range_desc *mrd;
-	u_int64_t msrv;
+	uint64_t msrv;
 	int i, j, msr;
 
 	mrd = sc->mr_desc;
@@ -319,7 +319,7 @@ x86_mrstoreone(void *arg)
 {
 	struct mem_range_softc *sc = arg;
 	struct mem_range_desc *mrd;
-	u_int64_t omsrv, msrv;
+	uint64_t omsrv, msrv;
 	int i, j, msr;
 	u_long cr0, cr4;
 
@@ -423,7 +423,7 @@ x86_mrstoreone(void *arg)
  * Hunt for the fixed MTRR referencing (addr)
  */
 static struct mem_range_desc *
-x86_mtrrfixsearch(struct mem_range_softc *sc, u_int64_t addr)
+x86_mtrrfixsearch(struct mem_range_softc *sc, uint64_t addr)
 {
 	struct mem_range_desc *mrd;
 	int i;

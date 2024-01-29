@@ -49,10 +49,10 @@
 
 struct agp_intel_softc {
 	struct agp_softc agp;
-	u_int32_t	initial_aperture; /* aperture size at startup */
+	uint32_t	initial_aperture; /* aperture size at startup */
 	struct agp_gatt *gatt;
 	u_int		aperture_mask;
-	u_int32_t	current_aperture; /* current aperture size */
+	uint32_t	current_aperture; /* current aperture size */
 };
 
 static const char*
@@ -129,8 +129,8 @@ static void
 agp_intel_commit_gatt(device_t dev)
 {
 	struct agp_intel_softc *sc;
-	u_int32_t type;
-	u_int32_t value;
+	uint32_t type;
+	uint32_t value;
 
 	sc = device_get_softc(dev);
 	type = pci_get_devid(dev);
@@ -216,7 +216,7 @@ agp_intel_attach(device_t dev)
 {
 	struct agp_intel_softc *sc;
 	struct agp_gatt *gatt;
-	u_int32_t value;
+	uint32_t value;
 	int error;
 
 	sc = device_get_softc(dev);
@@ -258,7 +258,7 @@ static int
 agp_intel_detach(device_t dev)
 {
 	struct agp_intel_softc *sc;
-	u_int32_t reg;
+	uint32_t reg;
 
 	sc = device_get_softc(dev);
 
@@ -315,11 +315,11 @@ agp_intel_resume(device_t dev)
 	return (bus_generic_resume(dev));
 }
 
-static u_int32_t
+static uint32_t
 agp_intel_get_aperture(device_t dev)
 {
 	struct agp_intel_softc *sc;
-	u_int32_t apsize;
+	uint32_t apsize;
 
 	sc = device_get_softc(dev);
 
@@ -336,10 +336,10 @@ agp_intel_get_aperture(device_t dev)
 }
 
 static int
-agp_intel_set_aperture(device_t dev, u_int32_t aperture)
+agp_intel_set_aperture(device_t dev, uint32_t aperture)
 {
 	struct agp_intel_softc *sc;
-	u_int32_t apsize;
+	uint32_t apsize;
 
 	sc = device_get_softc(dev);
 
@@ -392,7 +392,7 @@ agp_intel_unbind_page(device_t dev, vm_offset_t offset)
 static void
 agp_intel_flush_tlb(device_t dev)
 {
-	u_int32_t val;
+	uint32_t val;
 
 	val = pci_read_config(dev, AGP_INTEL_AGPCTRL, 4);
 	pci_write_config(dev, AGP_INTEL_AGPCTRL, val & ~(1 << 7), 4);

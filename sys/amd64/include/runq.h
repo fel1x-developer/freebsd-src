@@ -41,6 +41,6 @@
 /*
  * Type of run queue status word.
  */
-typedef	u_int64_t	rqb_word_t;
+typedef	uint64_t	rqb_word_t;
 
 #endif

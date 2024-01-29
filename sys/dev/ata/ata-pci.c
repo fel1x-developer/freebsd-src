@@ -83,7 +83,7 @@ ata_pci_attach(device_t dev)
 {
     struct ata_pci_controller *ctlr = device_get_softc(dev);
     device_t child;
-    u_int32_t cmd;
+    uint32_t cmd;
     int unit;
 
     /* do chipset specific setups only needed once */

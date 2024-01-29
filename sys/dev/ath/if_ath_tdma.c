@@ -123,15 +123,15 @@
 #ifdef IEEE80211_SUPPORT_TDMA
 #include <dev/ath/if_ath_tdma.h>
 
-static void	ath_tdma_settimers(struct ath_softc *sc, u_int32_t nexttbtt,
-		    u_int32_t bintval);
+static void	ath_tdma_settimers(struct ath_softc *sc, uint32_t nexttbtt,
+		    uint32_t bintval);
 static void	ath_tdma_bintvalsetup(struct ath_softc *sc,
 		    const struct ieee80211_tdma_state *tdma);
 #endif /* IEEE80211_SUPPORT_TDMA */
 
 #ifdef IEEE80211_SUPPORT_TDMA
 static void
-ath_tdma_settimers(struct ath_softc *sc, u_int32_t nexttbtt, u_int32_t bintval)
+ath_tdma_settimers(struct ath_softc *sc, uint32_t nexttbtt, uint32_t bintval)
 {
 	struct ath_hal *ah = sc->sc_ah;
 	HAL_BEACON_TIMERS bt;
@@ -180,8 +180,8 @@ ath_tdma_settimers(struct ath_softc *sc, u_int32_t nexttbtt, u_int32_t bintval)
 	    __func__,
 	    bt.bt_nexttbtt,
 	    bt.bt_nexttbtt,
-	    (long long) ( ((u_int64_t) (bt.bt_nexttbtt)) << 10),
-	    (long long) ( ((u_int64_t) (bt.bt_nexttbtt)) << 10));
+	    (long long) ( ((uint64_t) (bt.bt_nexttbtt)) << 10),
+	    (long long) ( ((uint64_t) (bt.bt_nexttbtt)) << 10));
 	ath_hal_beaconsettimers(ah, &bt);
 }
 
@@ -355,15 +355,15 @@ ath_tdma_update(struct ieee80211_node *ni,
 	const struct ieee80211_tdma_param *tdma, int changed)
 {
 #define	TSF_TO_TU(_h,_l) \
-	((((u_int32_t)(_h)) << 22) | (((u_int32_t)(_l)) >> 10))
-#define	TU_TO_TSF(_tu)	(((u_int64_t)(_tu)) << 10)
+	((((uint32_t)(_h)) << 22) | (((uint32_t)(_l)) >> 10))
+#define	TU_TO_TSF(_tu)	(((uint64_t)(_tu)) << 10)
 	struct ieee80211vap *vap = ni->ni_vap;
 	struct ieee80211com *ic = ni->ni_ic;
 	struct ath_softc *sc = ic->ic_softc;
 	struct ath_hal *ah = sc->sc_ah;
 	const HAL_RATE_TABLE *rt = sc->sc_currates;
-	u_int64_t tsf, rstamp, nextslot, nexttbtt, nexttbtt_full;
-	u_int32_t txtime, nextslottu;
+	uint64_t tsf, rstamp, nextslot, nexttbtt, nexttbtt_full;
+	uint32_t txtime, nextslottu;
 	int32_t tudelta, tsfdelta;
 	const struct ath_rx_status *rs;
 	int rix;

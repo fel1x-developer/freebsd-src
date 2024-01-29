@@ -185,7 +185,7 @@ static struct {
 
 #define	TODO	printf("%s: unimplemented\n", __func__)
 
-static u_int16_t ofwfb_static_window[ROW*COL];
+static uint16_t ofwfb_static_window[ROW*COL];
 
 static struct ofwfb_softc ofwfb_softc;
 
@@ -818,7 +818,7 @@ ofwfb_putc8(video_adapter_t *adp, vm_offset_t off, uint8_t c, uint8_t a)
         row = (off / adp->va_info.vi_width) * adp->va_info.vi_cheight;
         col = (off % adp->va_info.vi_width) * adp->va_info.vi_cwidth;
 	p = sc->sc_font + c*sc->sc_font_height;
-	addr = (u_int32_t *)((uintptr_t)sc->sc_addr
+	addr = (uint32_t *)((uintptr_t)sc->sc_addr
 		+ (row + sc->sc_ymargin)*sc->sc_stride
 		+ col + sc->sc_xmargin);
 
@@ -850,7 +850,7 @@ ofwfb_putc8(video_adapter_t *adp, vm_offset_t off, uint8_t c, uint8_t a)
 
 		addr[0] = ch1.l;
 		addr[1] = ch2.l;
-		addr += (sc->sc_stride / sizeof(u_int32_t));
+		addr += (sc->sc_stride / sizeof(uint32_t));
 	}
 
 	return (0);
@@ -901,7 +901,7 @@ ofwfb_putc(video_adapter_t *adp, vm_offset_t off, uint8_t c, uint8_t a)
 }
 
 static int
-ofwfb_puts(video_adapter_t *adp, vm_offset_t off, u_int16_t *s, int len)
+ofwfb_puts(video_adapter_t *adp, vm_offset_t off, uint16_t *s, int len)
 {
 	int i;
 
@@ -933,7 +933,7 @@ ofwfb_putm8(video_adapter_t *adp, int x, int y, uint8_t *pixel_image,
 	u_char fg, bg;
 
 	sc = (struct ofwfb_softc *)adp;
-	addr = (u_int8_t *)((uintptr_t)sc->sc_addr
+	addr = (uint8_t *)((uintptr_t)sc->sc_addr
 		+ (y + sc->sc_ymargin)*sc->sc_stride
 		+ x + sc->sc_xmargin);
 
@@ -953,7 +953,7 @@ ofwfb_putm8(video_adapter_t *adp, int x, int y, uint8_t *pixel_image,
 				addr[j] = (addr[j] == fg) ? bg : fg;
 		}
 
-		addr += (sc->sc_stride / sizeof(u_int8_t));
+		addr += (sc->sc_stride / sizeof(uint8_t));
 	}
 
 	return (0);
@@ -1061,20 +1061,20 @@ ofwfb_bzero(void *d, size_t c)
 void
 ofwfb_fillw(int pat, void *base, size_t cnt)
 {
-	u_int16_t *bptr = base;
+	uint16_t *bptr = base;
 
 	while (cnt--)
 		*bptr++ = pat;
 }
 
-u_int16_t
-ofwfb_readw(u_int16_t *addr)
+uint16_t
+ofwfb_readw(uint16_t *addr)
 {
 	return (*addr);
 }
 
 void
-ofwfb_writew(u_int16_t *addr, u_int16_t val)
+ofwfb_writew(uint16_t *addr, uint16_t val)
 {
 	*addr = val;
 }

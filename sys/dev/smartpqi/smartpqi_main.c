@@ -37,10 +37,10 @@ CTASSERT(BSD_SUCCESS == PQI_STATUS_SUCCESS);
  */
 struct pqi_ident
 {
-	u_int16_t		vendor;
-	u_int16_t		device;
-	u_int16_t		subvendor;
-	u_int16_t		subdevice;
+	uint16_t		vendor;
+	uint16_t		device;
+	uint16_t		subvendor;
+	uint16_t		subdevice;
 	int			hwif;
 	char			*desc;
 } pqi_identifiers[] = {
@@ -321,7 +321,7 @@ static struct pqi_ident *
 pqi_find_ident(device_t dev)
 {
 	struct pqi_ident *m;
-	u_int16_t vendid, devid, sub_vendid, sub_devid;
+	uint16_t vendid, devid, sub_vendid, sub_devid;
 	static long AllowWildcards = 0xffffffff;
 	int result;
 
@@ -501,7 +501,7 @@ smartpqi_attach(device_t dev)
 	struct pqisrc_softstate *softs;
 	struct pqi_ident *id = NULL;
 	int error = BSD_SUCCESS;
-	u_int32_t command = 0, i = 0;
+	uint32_t command = 0, i = 0;
 	int card_index = device_get_unit(dev);
 	rcb_t *rcbp = NULL;
 

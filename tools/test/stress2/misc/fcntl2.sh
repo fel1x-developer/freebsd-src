@@ -91,8 +91,8 @@ static volatile u_int *share;
 #define RUNTIME (3 * 60)
 #define SYNC 0
 
-#define N (128 * 1024 / (int)sizeof(u_int32_t))
-static u_int32_t r[N];
+#define N (128 * 1024 / (int)sizeof(uint32_t))
+static uint32_t r[N];
 
 static unsigned long
 makearg(void)

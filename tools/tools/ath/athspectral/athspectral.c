@@ -76,7 +76,7 @@ spectral_closedev(struct spectralhandler *spectral)
 }
 
 void
-spectralset(struct spectralhandler *spectral, int op, u_int32_t param)
+spectralset(struct spectralhandler *spectral, int op, uint32_t param)
 {
 	HAL_SPECTRAL_PARAM pe;
 

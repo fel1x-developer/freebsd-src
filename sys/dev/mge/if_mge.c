@@ -508,7 +508,7 @@ mge_set_prom_mode(struct mge_softc *sc, uint8_t queue)
 static void
 mge_get_dma_addr(void *arg, bus_dma_segment_t *segs, int nseg, int error)
 {
-	u_int32_t *paddr;
+	uint32_t *paddr;
 
 	KASSERT(nseg == 1, ("wrong number of segments, should be 1"));
 	paddr = arg;

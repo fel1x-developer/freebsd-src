@@ -93,11 +93,11 @@ _in6_cksum_pseudo(struct ip6_hdr *ip6, uint32_t len, uint8_t nxt, uint16_t csum)
 	int sum;
 	uint16_t scope, *w;
 	union {
-		u_int16_t phs[4];
+		uint16_t phs[4];
 		struct {
-			u_int32_t	ph_len;
-			u_int8_t	ph_zero[3];
-			u_int8_t	ph_nxt;
+			uint32_t	ph_len;
+			uint8_t	ph_zero[3];
+			uint8_t	ph_nxt;
 		} __packed ph;
 	} uph;
 
@@ -116,7 +116,7 @@ _in6_cksum_pseudo(struct ip6_hdr *ip6, uint32_t len, uint8_t nxt, uint16_t csum)
 
 	/* IPv6 source address. */
 	scope = in6_getscope(&ip6->ip6_src);
-	w = (u_int16_t *)&ip6->ip6_src;
+	w = (uint16_t *)&ip6->ip6_src;
 	sum += w[0]; sum += w[1]; sum += w[2]; sum += w[3];
 	sum += w[4]; sum += w[5]; sum += w[6]; sum += w[7];
 	if (scope != 0)
@@ -124,7 +124,7 @@ _in6_cksum_pseudo(struct ip6_hdr *ip6, uint32_t len, uint8_t nxt, uint16_t csum)
 
 	/* IPv6 destination address. */
 	scope = in6_getscope(&ip6->ip6_dst);
-	w = (u_int16_t *)&ip6->ip6_dst;
+	w = (uint16_t *)&ip6->ip6_dst;
 	sum += w[0]; sum += w[1]; sum += w[2]; sum += w[3];
 	sum += w[4]; sum += w[5]; sum += w[6]; sum += w[7];
 	if (scope != 0)

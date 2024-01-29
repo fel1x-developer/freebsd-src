@@ -398,10 +398,10 @@ downgrade:
 
 static int
 nfs34_access_otw(struct vnode *vp, int wmode, struct thread *td,
-    struct ucred *cred, u_int32_t *retmode)
+    struct ucred *cred, uint32_t *retmode)
 {
 	int error = 0, attrflag, i, lrupos;
-	u_int32_t rmode;
+	uint32_t rmode;
 	struct nfsnode *np = VTONFS(vp);
 	struct nfsvattr nfsva;
 
@@ -453,7 +453,7 @@ nfs_access(struct vop_access_args *ap)
 {
 	struct vnode *vp = ap->a_vp;
 	int error = 0, i, gotahit;
-	u_int32_t mode, wmode, rmode;
+	uint32_t mode, wmode, rmode;
 	int v34 = NFS_ISV34(vp);
 	struct nfsnode *np = VTONFS(vp);
 
@@ -1649,7 +1649,7 @@ nfs_mknodrpc(struct vnode *dvp, struct vnode **vpp, struct componentname *cnp,
 	struct nfsfh *nfhp;
 	struct vattr vattr;
 	int error = 0, attrflag, dattrflag;
-	u_int32_t rdev;
+	uint32_t rdev;
 
 	if (vap->va_type == VCHR || vap->va_type == VBLK)
 		rdev = vap->va_rdev;

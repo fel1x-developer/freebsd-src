@@ -47,7 +47,7 @@
 typedef struct ips_user_request{
 	void *	command_buffer;
 	void *	data_buffer;
-	u_int32_t	status;
+	uint32_t	status;
 }ips_user_request;
 
 #ifdef _KERNEL

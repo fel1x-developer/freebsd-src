@@ -120,63 +120,63 @@
 /* RFCOMM frame header */
 struct rfcomm_frame_hdr 
 {
-	u_int8_t	address;
-	u_int8_t	control;
-	u_int8_t	length;	/* Actual size could be 2 bytes */
+	uint8_t	address;
+	uint8_t	control;
+	uint8_t	length;	/* Actual size could be 2 bytes */
 } __attribute__ ((packed));
 
 /* RFCOMM command frame header */
 struct rfcomm_cmd_hdr
 {
-	u_int8_t	address;
-	u_int8_t	control;
-	u_int8_t	length;
-	u_int8_t	fcs;
+	uint8_t	address;
+	uint8_t	control;
+	uint8_t	length;
+	uint8_t	fcs;
 } __attribute__ ((packed));
                 
 /* RFCOMM MCC command header */
 struct rfcomm_mcc_hdr
 {
-	u_int8_t	type;
-	u_int8_t	length; /* XXX FIXME Can actual size be 2 bytes?? */
+	uint8_t	type;
+	uint8_t	length; /* XXX FIXME Can actual size be 2 bytes?? */
 } __attribute__ ((packed));
 
 /* RFCOMM MSC command */
 struct rfcomm_mcc_msc
 {
-	u_int8_t	address;
-	u_int8_t	modem;
+	uint8_t	address;
+	uint8_t	modem;
 } __attribute__ ((packed));
 
 /* RFCOMM RPN command */
 struct rfcomm_mcc_rpn
 {
-	u_int8_t	dlci;
-	u_int8_t	bit_rate;
-	u_int8_t	line_settings;
-	u_int8_t	flow_control;
-	u_int8_t	xon_char;
-	u_int8_t	xoff_char;
-	u_int16_t	param_mask;
+	uint8_t	dlci;
+	uint8_t	bit_rate;
+	uint8_t	line_settings;
+	uint8_t	flow_control;
+	uint8_t	xon_char;
+	uint8_t	xoff_char;
+	uint16_t	param_mask;
 } __attribute__ ((packed));
 
 /* RFCOMM RLS command */
 struct rfcomm_mcc_rls
 {
-	u_int8_t	address;
-	u_int8_t	status;
+	uint8_t	address;
+	uint8_t	status;
 } __attribute__ ((packed));
 
 /* RFCOMM PN command */
 struct rfcomm_mcc_pn
 {
-	u_int8_t	dlci;
-	u_int8_t	flow_control;
-	u_int8_t	priority;
-	u_int8_t	ack_timer;
-	u_int16_t	mtu;
-	u_int8_t	max_retrans;
-	u_int8_t	credits;
+	uint8_t	dlci;
+	uint8_t	flow_control;
+	uint8_t	priority;
+	uint8_t	ack_timer;
+	uint16_t	mtu;
+	uint8_t	max_retrans;
+	uint8_t	credits;
 } __attribute__ ((packed));
 
 /* RFCOMM frame parsing macros */
@@ -233,7 +233,7 @@ struct ng_btsocket_rfcomm_session;
 struct ng_btsocket_rfcomm_session {
 	struct socket				*l2so;	 /* L2CAP socket */
 
-	u_int16_t				 state;  /* session state */
+	uint16_t				 state;  /* session state */
 #define NG_BTSOCKET_RFCOMM_SESSION_CLOSED	 0
 #define NG_BTSOCKET_RFCOMM_SESSION_LISTENING	 1
 #define NG_BTSOCKET_RFCOMM_SESSION_CONNECTING	 2 
@@ -241,7 +241,7 @@ struct ng_btsocket_rfcomm_session {
 #define NG_BTSOCKET_RFCOMM_SESSION_OPEN		 4
 #define NG_BTSOCKET_RFCOMM_SESSION_DISCONNECTING 5
 
-	u_int16_t				 flags;  /* session flags */
+	uint16_t				 flags;  /* session flags */
 #define NG_BTSOCKET_RFCOMM_SESSION_INITIATOR	(1 << 0) /* initiator */
 #define NG_BTSOCKET_RFCOMM_SESSION_LFC		(1 << 1) /* local flow */
 #define NG_BTSOCKET_RFCOMM_SESSION_RFC		(1 << 2) /* remote flow */
@@ -249,7 +249,7 @@ struct ng_btsocket_rfcomm_session {
 #define INITIATOR(s) \
 	(((s)->flags & NG_BTSOCKET_RFCOMM_SESSION_INITIATOR)? 1 : 0)
 
-	u_int16_t				 mtu;    /* default MTU */
+	uint16_t				 mtu;    /* default MTU */
 	struct ng_bt_mbufq			 outq;   /* outgoing queue */
 
 	struct mtx				 session_mtx; /* session lock */
@@ -268,14 +268,14 @@ struct ng_btsocket_rfcomm_pcb {
 	struct socket				*so;	  /* RFCOMM socket */
 	struct ng_btsocket_rfcomm_session	*session; /* RFCOMM session */
 
-	u_int16_t				 flags;   /* DLC flags */
+	uint16_t				 flags;   /* DLC flags */
 #define NG_BTSOCKET_RFCOMM_DLC_TIMO		(1 << 0)  /* timeout pending */
 #define NG_BTSOCKET_RFCOMM_DLC_CFC		(1 << 1)  /* credit flow ctrl */
 #define	NG_BTSOCKET_RFCOMM_DLC_TIMEDOUT		(1 << 2)  /* timeout happened */
 #define NG_BTSOCKET_RFCOMM_DLC_DETACHED		(1 << 3)  /* DLC detached */
 #define NG_BTSOCKET_RFCOMM_DLC_SENDING		(1 << 4)  /* send pending */
 
-	u_int16_t				 state;   /* DLC state */
+	uint16_t				 state;   /* DLC state */
 #define NG_BTSOCKET_RFCOMM_DLC_CLOSED		0
 #define NG_BTSOCKET_RFCOMM_DLC_W4_CONNECT	1
 #define NG_BTSOCKET_RFCOMM_DLC_CONFIGURING	2
@@ -286,13 +286,13 @@ struct ng_btsocket_rfcomm_pcb {
 	bdaddr_t				 src;     /* source address */
 	bdaddr_t				 dst;     /* dest. address */
 
-	u_int8_t				 channel; /* RFCOMM channel */
-	u_int8_t				 dlci;    /* RFCOMM DLCI */
+	uint8_t				 channel; /* RFCOMM channel */
+	uint8_t				 dlci;    /* RFCOMM DLCI */
 
-	u_int8_t				 lmodem;  /* local mdm signls */
-	u_int8_t				 rmodem;  /* remote -/- */
+	uint8_t				 lmodem;  /* local mdm signls */
+	uint8_t				 rmodem;  /* remote -/- */
 
-	u_int16_t				 mtu;	  /* MTU */
+	uint16_t				 mtu;	  /* MTU */
 	int16_t					 rx_cred; /* RX credits */
 	int16_t					 tx_cred; /* TX credits */
 

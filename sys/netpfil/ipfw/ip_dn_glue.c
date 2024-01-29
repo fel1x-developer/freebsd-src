@@ -104,7 +104,7 @@ struct dn_flow_set {
 	int rq_elements ;		/* active elements */
 	struct dn_flow_queue7 **rq ;	/* array of rq_size entries */
 
-	u_int32_t last_expired ;	/* do not expire too frequently */
+	uint32_t last_expired ;	/* do not expire too frequently */
 	int backlogged ;		/* #active queues for this flowset */
 
         /* RED parameters */
@@ -141,9 +141,9 @@ struct dn_flow_queue7 {
 
 	u_long numbytes;
 
-	u_int64_t tot_pkts ;    /* statistics counters  */
-	u_int64_t tot_bytes ;
-	u_int32_t drops ;
+	uint64_t tot_pkts ;    /* statistics counters  */
+	uint64_t tot_bytes ;
+	uint32_t drops ;
 
 	int hash_slot ;     /* debugging/diagnostic */
 
@@ -151,7 +151,7 @@ struct dn_flow_queue7 {
 	int avg ;                   /* average queue length est. (scaled) */
 	int count ;                 /* arrivals since last RED drop */
 	int random ;                /* random value (scaled) */
-	u_int32_t q_time;      /* start of queue idle time */
+	uint32_t q_time;      /* start of queue idle time */
 
 	/* WF2Q+ support */
 	struct dn_flow_set *fs ;    /* parent flow set */
@@ -206,9 +206,9 @@ struct dn_flow_queue8 {
 	uint64_t numbytes ;     /* credit for transmission (dynamic queues) */
 	int64_t extra_bits;     /* extra bits simulating unavailable channel */
 
-	u_int64_t tot_pkts ;    /* statistics counters  */
-	u_int64_t tot_bytes ;
-	u_int32_t drops ;
+	uint64_t tot_pkts ;    /* statistics counters  */
+	uint64_t tot_bytes ;
+	uint32_t drops ;
 
 	int hash_slot ;     /* debugging/diagnostic */
 
@@ -284,7 +284,7 @@ SLIST_HEAD(dn_pipe_head8, dn_pipe8);
  * dn_flow_queue
  *      numbytes from u_long to int64_t
  *      add extra_bits (int64_t)
- *      q_time from u_int32_t to int64_t and name idle_time
+ *      q_time from uint32_t to int64_t and name idle_time
  *
  * dn_flow_set unchanged
  *

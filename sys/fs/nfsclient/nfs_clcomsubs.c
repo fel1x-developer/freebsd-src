@@ -310,7 +310,7 @@ nfsm_loadattr(struct nfsrv_descript *nd, struct nfsvattr *nap)
 		nap->na_nlink = fxdr_unsigned(u_short, fp->fa_nlink);
 		nap->na_uid = fxdr_unsigned(uid_t, fp->fa_uid);
 		nap->na_gid = fxdr_unsigned(gid_t, fp->fa_gid);
-		nap->na_size = fxdr_unsigned(u_int32_t, fp->fa2_size);
+		nap->na_size = fxdr_unsigned(uint32_t, fp->fa2_size);
 		nap->na_blocksize = fxdr_unsigned(int32_t, fp->fa2_blocksize);
 		nap->na_bytes =
 		    (u_quad_t)fxdr_unsigned(int32_t, fp->fa2_blocks) *
@@ -319,12 +319,12 @@ nfsm_loadattr(struct nfsrv_descript *nd, struct nfsvattr *nap)
 		fxdr_nfsv2time(&fp->fa2_atime, &nap->na_atime);
 		fxdr_nfsv2time(&fp->fa2_mtime, &nap->na_mtime);
 		nap->na_flags = 0;
-		nap->na_ctime.tv_sec = fxdr_unsigned(u_int32_t,
+		nap->na_ctime.tv_sec = fxdr_unsigned(uint32_t,
 		    fp->fa2_ctime.nfsv2_sec);
 		nap->na_ctime.tv_nsec = 0;
 		nap->na_btime.tv_sec = -1;
 		nap->na_btime.tv_nsec = 0;
-		nap->na_gen = fxdr_unsigned(u_int32_t,fp->fa2_ctime.nfsv2_usec);
+		nap->na_gen = fxdr_unsigned(uint32_t,fp->fa2_ctime.nfsv2_usec);
 		nap->na_filerev = 0;
 	}
 nfsmout:
@@ -340,7 +340,7 @@ int
 nfscl_mtofh(struct nfsrv_descript *nd, struct nfsfh **nfhpp,
     struct nfsvattr *nap, int *attrflagp)
 {
-	u_int32_t *tl;
+	uint32_t *tl;
 	int error = 0, flag = 1;
 
 	*nfhpp = NULL;
@@ -349,10 +349,10 @@ nfscl_mtofh(struct nfsrv_descript *nd, struct nfsfh **nfhpp,
 	 * First get the file handle and vnode.
 	 */
 	if (nd->nd_flag & ND_NFSV3) {
-		NFSM_DISSECT(tl, u_int32_t *, NFSX_UNSIGNED);
+		NFSM_DISSECT(tl, uint32_t *, NFSX_UNSIGNED);
 		flag = fxdr_unsigned(int, *tl);
 	} else if (nd->nd_flag & ND_NFSV4) {
-		NFSM_DISSECT(tl, u_int32_t *, 2 * NFSX_UNSIGNED);
+		NFSM_DISSECT(tl, uint32_t *, 2 * NFSX_UNSIGNED);
 		/* If the GetFH failed, clear flag. */
 		if (*++tl != 0) {
 			nd->nd_flag |= ND_NOMOREDATA;
@@ -370,13 +370,13 @@ nfscl_mtofh(struct nfsrv_descript *nd, struct nfsfh **nfhpp,
 	 * Now, get the attributes.
 	 */
 	if (flag != 0 && (nd->nd_flag & ND_NFSV4) != 0) {
-		NFSM_DISSECT(tl, u_int32_t *, 2 * NFSX_UNSIGNED);
+		NFSM_DISSECT(tl, uint32_t *, 2 * NFSX_UNSIGNED);
 		if (*++tl != 0) {
 			nd->nd_flag |= ND_NOMOREDATA;
 			flag = 0;
 		}
 	} else if (nd->nd_flag & ND_NFSV3) {
-		NFSM_DISSECT(tl, u_int32_t *, NFSX_UNSIGNED);
+		NFSM_DISSECT(tl, uint32_t *, NFSX_UNSIGNED);
 		if (flag) {
 			flag = fxdr_unsigned(int, *tl);
 		} else if (fxdr_unsigned(int, *tl)) {

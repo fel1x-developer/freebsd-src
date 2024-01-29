@@ -39,7 +39,7 @@
 fp_rnd_t
 fpgetround()
 {
-	u_int64_t fpscr;
+	uint64_t fpscr;
 
 	__asm__("mffs %0" : "=f"(fpscr));
 	return ((fp_rnd_t)(fpscr & 0x3));

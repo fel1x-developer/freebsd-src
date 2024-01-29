@@ -3222,8 +3222,8 @@ tcp_new_ts_offset(struct in_conninfo *inc)
 VNET_DEFINE_STATIC(u_char, isn_secret[ISN_SECRET_LENGTH]);
 VNET_DEFINE_STATIC(int, isn_last);
 VNET_DEFINE_STATIC(int, isn_last_reseed);
-VNET_DEFINE_STATIC(u_int32_t, isn_offset);
-VNET_DEFINE_STATIC(u_int32_t, isn_offset_old);
+VNET_DEFINE_STATIC(uint32_t, isn_offset);
+VNET_DEFINE_STATIC(uint32_t, isn_offset_old);
 
 #define	V_isn_secret			VNET(isn_secret)
 #define	V_isn_last			VNET(isn_last)
@@ -3235,7 +3235,7 @@ tcp_seq
 tcp_new_isn(struct in_conninfo *inc)
 {
 	tcp_seq new_isn;
-	u_int32_t projected_offset;
+	uint32_t projected_offset;
 
 	ISN_LOCK();
 	/* Seed if this is the first use, reseed if requested. */

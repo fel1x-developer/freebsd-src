@@ -198,7 +198,7 @@ ata_highpoint_check_80pin(device_t dev, int mode)
     device_t parent = device_get_parent(dev);
     struct ata_pci_controller *ctlr = device_get_softc(parent);
     struct ata_channel *ch = device_get_softc(dev);
-    u_int8_t reg, val, res;
+    uint8_t reg, val, res;
 
     if (ctlr->chip->cfg1 == HPT_374 && pci_get_function(parent) == 1) {
 	reg = ch->unit ? 0x57 : 0x53;

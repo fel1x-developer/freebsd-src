@@ -31,7 +31,7 @@
 #ifndef	__IF_ATH_RX_H__
 #define	__IF_ATH_RX_H__
 
-extern	u_int32_t ath_calcrxfilter(struct ath_softc *sc);
+extern	uint32_t ath_calcrxfilter(struct ath_softc *sc);
 extern	void ath_recv_mgmt(struct ieee80211_node *ni, struct mbuf *m,
 	    int subtype, const struct ieee80211_rx_stats *rxs,
 	    int rssi, int nf);

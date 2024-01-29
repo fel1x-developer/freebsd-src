@@ -1037,7 +1037,7 @@ update_ip_size(struct pkt *pkt, int size)
 		nudplen - sizeof(udp),
 		checksum(&ip.ip_src, /* pseudo header */
 		2 * sizeof(ip.ip_src),
-		IPPROTO_UDP + (u_int32_t)ntohs(udp.uh_ulen)))));
+		IPPROTO_UDP + (uint32_t)ntohs(udp.uh_ulen)))));
 
 	memcpy(&pkt->ipv4.ip, &ip, sizeof(ip));
 	memcpy(&pkt->ipv4.udp, &udp, sizeof(udp));
@@ -1185,7 +1185,7 @@ initialize_packet(struct targ *targ)
 		    paylen - sizeof(udp),
 		    checksum(&pkt->ipv4.ip.ip_src, /* pseudo header */
 			2 * sizeof(pkt->ipv4.ip.ip_src),
-			IPPROTO_UDP + (u_int32_t)ntohs(udp.uh_ulen)))));
+			IPPROTO_UDP + (uint32_t)ntohs(udp.uh_ulen)))));
 		memcpy(&pkt->ipv4.ip, &ip, sizeof(ip));
 	} else {
 		/* Save part of pseudo header checksum into csum */

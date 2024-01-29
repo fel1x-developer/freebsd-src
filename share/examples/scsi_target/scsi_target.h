@@ -57,7 +57,7 @@ struct atio_descr {
 	uint	  targ_req;	/* Transfer count requested to/from target */
 	uint	  targ_ack;	/* Data transferred ok to/from target */
 	int	  flags;	/* Flags for CTIOs */
-	u_int8_t *cdb;		/* Pointer to received CDB */
+	uint8_t *cdb;		/* Pointer to received CDB */
 		  		/* List of completed AIO/CTIOs */
 	struct	  io_queue cmplt_io;
 };
@@ -101,13 +101,13 @@ struct initiator_state {
 };
 
 /* Global functions */
-extern cam_status	tcmd_init(u_int16_t req_inq_flags,
-				  u_int16_t sim_inq_flags);
+extern cam_status	tcmd_init(uint16_t req_inq_flags,
+				  uint16_t sim_inq_flags);
 extern int		tcmd_handle(struct ccb_accept_tio *atio,
 				    struct ccb_scsiio *ctio, io_ops event);
 extern void		tcmd_sense(u_int init_id, struct ccb_scsiio *ctio,
-				   u_int8_t flags,
-				   u_int8_t asc, u_int8_t ascq);
+				   uint8_t flags,
+				   uint8_t asc, uint8_t ascq);
 extern void		tcmd_ua(u_int init_id, ua_types new_ua);
 extern int		work_atio(struct ccb_accept_tio *atio);
 extern void		send_ccb(union ccb *ccb, int priority);

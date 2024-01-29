@@ -280,10 +280,10 @@ pfkey_sadump(struct sadb_msg *m)
 	GETMSGSTR(str_mode, m_sa2->sadb_x_sa2_mode);
 
 	printf("spi=%u(0x%08x) reqid=%u(0x%08x)\n",
-		(u_int32_t)ntohl(m_sa->sadb_sa_spi),
-		(u_int32_t)ntohl(m_sa->sadb_sa_spi),
-		(u_int32_t)m_sa2->sadb_x_sa2_reqid,
-		(u_int32_t)m_sa2->sadb_x_sa2_reqid);
+		(uint32_t)ntohl(m_sa->sadb_sa_spi),
+		(uint32_t)ntohl(m_sa->sadb_sa_spi),
+		(uint32_t)m_sa2->sadb_x_sa2_reqid,
+		(uint32_t)m_sa2->sadb_x_sa2_reqid);
 
 	/* other NAT-T information */
 	if (natt_type != NULL && (natt_oai != NULL || natt_oar != NULL)) {
@@ -393,7 +393,7 @@ pfkey_spdump(struct sadb_msg *m)
 	struct sadb_x_policy *m_xpl;
 	struct sadb_lifetime *m_lftc = NULL, *m_lfth = NULL;
 	struct sockaddr *sa;
-	u_int16_t sport = 0, dport = 0;
+	uint16_t sport = 0, dport = 0;
 
 	/* check pfkey message. */
 	if (pfkey_align(m, mhp)) {

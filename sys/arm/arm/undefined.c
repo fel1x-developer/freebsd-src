@@ -159,7 +159,7 @@ gdb_trapper(u_int addr, u_int insn, struct trapframe *frame, int code)
 			ksiginfo_init_trap(&ksi);
 			ksi.ksi_signo = SIGTRAP;
 			ksi.ksi_code = TRAP_BRKPT;
-			ksi.ksi_addr = (u_int32_t *)addr;
+			ksi.ksi_addr = (uint32_t *)addr;
 			trapsignal(td, &ksi);
 			return 0;
 		}
@@ -183,7 +183,7 @@ gdb_trapper(u_int addr, u_int insn, struct trapframe *frame, int code)
 				ksiginfo_init_trap(&ksi);
 				ksi.ksi_signo = SIGTRAP;
 				ksi.ksi_code = TRAP_TRACE;
-				ksi.ksi_addr = (u_int32_t *)addr;
+				ksi.ksi_addr = (uint32_t *)addr;
 				trapsignal(td, &ksi);
 				return (0);
 			}
@@ -249,7 +249,7 @@ undefinedinstruction(struct trapframe *frame)
 			ksiginfo_init_trap(&ksi);
 			ksi.ksi_signo = SIGILL;
 			ksi.ksi_code = ILL_ILLADR;
-			ksi.ksi_addr = (u_int32_t *)(intptr_t) fault_pc;
+			ksi.ksi_addr = (uint32_t *)(intptr_t) fault_pc;
 			trapsignal(td, &ksi);
 			userret(td, frame);
 			return;
@@ -263,7 +263,7 @@ undefinedinstruction(struct trapframe *frame)
 		 * in which case it does not really matter does it ?
 		 */
 
-		fault_instruction = *(u_int32_t *)fault_pc;
+		fault_instruction = *(uint32_t *)fault_pc;
 
 		/* Check for coprocessor instruction */
 
@@ -303,7 +303,7 @@ undefinedinstruction(struct trapframe *frame)
 		ksiginfo_init_trap(&ksi);
 		ksi.ksi_signo = SIGILL;
 		ksi.ksi_code = ILL_ILLADR;
-		ksi.ksi_addr = (u_int32_t *)(intptr_t) fault_pc;
+		ksi.ksi_addr = (uint32_t *)(intptr_t) fault_pc;
 		trapsignal(td, &ksi);
 		userret(td, frame);
 		return;
@@ -331,7 +331,7 @@ undefinedinstruction(struct trapframe *frame)
 		ksiginfo_init_trap(&ksi);
 		ksi.ksi_signo = SIGILL;
 		ksi.ksi_code = ILL_ILLOPC;
-		ksi.ksi_addr = (u_int32_t *)(intptr_t) fault_pc;
+		ksi.ksi_addr = (uint32_t *)(intptr_t) fault_pc;
 		trapsignal(td, &ksi);
 	}
 

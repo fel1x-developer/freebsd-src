@@ -34,21 +34,21 @@
 #endif
 #include <sys/ioccom.h>
 
-#define	PPIGDATA	_IOR('P', 10, u_int8_t)
-#define	PPIGSTATUS	_IOR('P', 11, u_int8_t)
-#define	PPIGCTRL	_IOR('P', 12, u_int8_t)
-#define	PPIGEPPD	_IOR('P', 13, u_int8_t)
-#define	PPIGECR		_IOR('P', 14, u_int8_t)
-#define	PPIGFIFO	_IOR('P', 15, u_int8_t)
+#define	PPIGDATA	_IOR('P', 10, uint8_t)
+#define	PPIGSTATUS	_IOR('P', 11, uint8_t)
+#define	PPIGCTRL	_IOR('P', 12, uint8_t)
+#define	PPIGEPPD	_IOR('P', 13, uint8_t)
+#define	PPIGECR		_IOR('P', 14, uint8_t)
+#define	PPIGFIFO	_IOR('P', 15, uint8_t)
 
-#define	PPISDATA	_IOW('P', 16, u_int8_t)
-#define	PPISSTATUS	_IOW('P', 17, u_int8_t)
-#define	PPISCTRL	_IOW('P', 18, u_int8_t)
-#define	PPISEPPD	_IOW('P', 19, u_int8_t)
-#define	PPISECR		_IOW('P', 20, u_int8_t)
-#define	PPISFIFO	_IOW('P', 21, u_int8_t)
+#define	PPISDATA	_IOW('P', 16, uint8_t)
+#define	PPISSTATUS	_IOW('P', 17, uint8_t)
+#define	PPISCTRL	_IOW('P', 18, uint8_t)
+#define	PPISEPPD	_IOW('P', 19, uint8_t)
+#define	PPISECR		_IOW('P', 20, uint8_t)
+#define	PPISFIFO	_IOW('P', 21, uint8_t)
 
-#define	PPIGEPPA	_IOR('P', 22, u_int8_t)
-#define	PPISEPPA	_IOW('P', 23, u_int8_t)
+#define	PPIGEPPA	_IOR('P', 22, uint8_t)
+#define	PPISEPPA	_IOW('P', 23, uint8_t)
 
 #endif

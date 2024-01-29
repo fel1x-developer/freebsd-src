@@ -57,13 +57,13 @@ copyw(uint16_t *src, uint16_t *dst, size_t size)
 #define bzero_io(d, c)		ofwfb_bzero((void *)(d), (c))
 #define fillw(p, d, c)		ofwfb_fillw((p), (void *)(d), (c))
 #define fillw_io(p, d, c)	ofwfb_fillw((p), (void *)(d), (c))
-#define	readw(a)		ofwfb_readw((u_int16_t *)(a))
-#define	writew(a, v)		ofwfb_writew((u_int16_t *)(a), (v))
+#define	readw(a)		ofwfb_readw((uint16_t *)(a))
+#define	writew(a, v)		ofwfb_writew((uint16_t *)(a), (v))
 void ofwfb_bcopy(const void *s, void *d, size_t c);
 void ofwfb_bzero(void *d, size_t c);
 void ofwfb_fillw(int pat, void *base, size_t cnt);
-u_int16_t ofwfb_readw(u_int16_t *addr);
-void ofwfb_writew(u_int16_t *addr, u_int16_t val);
+uint16_t ofwfb_readw(uint16_t *addr);
+void ofwfb_writew(uint16_t *addr, uint16_t val);
 
 #elif defined(__arm__)
 
@@ -133,15 +133,15 @@ typedef int vi_save_cursor_palette_t(video_adapter_t *adp, u_char *palette);
 typedef int vi_load_cursor_palette_t(video_adapter_t *adp, u_char *palette);
 typedef int vi_copy_t(video_adapter_t *adp, vm_offset_t src, vm_offset_t dst,
 		      int n);
-typedef int vi_putp_t(video_adapter_t *adp, vm_offset_t off, u_int32_t p,
-		       u_int32_t a, int size, int bpp, int bit_ltor,
+typedef int vi_putp_t(video_adapter_t *adp, vm_offset_t off, uint32_t p,
+		       uint32_t a, int size, int bpp, int bit_ltor,
 		       int byte_ltor);
-typedef int vi_putc_t(video_adapter_t *adp, vm_offset_t off, u_int8_t c,
-		      u_int8_t a);
-typedef int vi_puts_t(video_adapter_t *adp, vm_offset_t off, u_int16_t *s,
+typedef int vi_putc_t(video_adapter_t *adp, vm_offset_t off, uint8_t c,
+		      uint8_t a);
+typedef int vi_puts_t(video_adapter_t *adp, vm_offset_t off, uint16_t *s,
 		       int len);
-typedef int vi_putm_t(video_adapter_t *adp, int x, int y, u_int8_t *pixel_image,
-		      u_int32_t pixel_mask, int size, int width);
+typedef int vi_putm_t(video_adapter_t *adp, int x, int y, uint8_t *pixel_image,
+		      uint32_t pixel_mask, int size, int width);
 
 typedef struct video_switch {
     vi_probe_t		*probe;

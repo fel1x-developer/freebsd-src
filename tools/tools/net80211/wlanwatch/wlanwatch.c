@@ -204,7 +204,7 @@ routename(struct sockaddr *sa)
 		     IN6_IS_ADDR_MC_LINKLOCAL(&sin6.sin6_addr)) &&
 		    sin6.sin6_scope_id == 0) {
 			sin6.sin6_scope_id =
-			    ntohs(*(u_int16_t *)&sin6.sin6_addr.s6_addr[2]);
+			    ntohs(*(uint16_t *)&sin6.sin6_addr.s6_addr[2]);
 			sin6.sin6_addr.s6_addr[2] = 0;
 			sin6.sin6_addr.s6_addr[3] = 0;
 		}

@@ -79,10 +79,10 @@
 char *RMD160_version="RIPEMD160 part of SSLeay 0.9.0b 11-Oct-1998";
 
 #ifdef RMD160_ASM
-void ripemd160_block_x86(RIPEMD160_CTX *c, const u_int32_t *p,int num);
+void ripemd160_block_x86(RIPEMD160_CTX *c, const uint32_t *p,int num);
 #define ripemd160_block ripemd160_block_x86
 #else
-void ripemd160_block(RIPEMD160_CTX *c, const u_int32_t *p,int num);
+void ripemd160_block(RIPEMD160_CTX *c, const uint32_t *p,int num);
 #endif
 
 void RIPEMD160_Init(RIPEMD160_CTX *c)
@@ -99,9 +99,9 @@ void RIPEMD160_Init(RIPEMD160_CTX *c)
 
 void RIPEMD160_Update(RIPEMD160_CTX *c, const void *in, size_t len)
 	{
-	u_int32_t *p;
+	uint32_t *p;
 	int sw,sc;
-	u_int32_t l;
+	uint32_t l;
 	const unsigned char *data = in;
 
 	if (len == 0) return;
@@ -166,13 +166,13 @@ void RIPEMD160_Update(RIPEMD160_CTX *c, const void *in, size_t len)
 	/* we now can process the input data in blocks of RIPEMD160_CBLOCK
 	 * chars and save the leftovers to c->data. */
 #if BYTE_ORDER == LITTLE_ENDIAN
-	if ((((unsigned long)data)%sizeof(u_int32_t)) == 0)
+	if ((((unsigned long)data)%sizeof(uint32_t)) == 0)
 		{
 		sw=(int)len/RIPEMD160_CBLOCK;
 		if (sw > 0)
 			{
 			sw*=RIPEMD160_CBLOCK;
-			ripemd160_block(c,(u_int32_t *)data,sw);
+			ripemd160_block(c,(uint32_t *)data,sw);
 			data+=sw;
 			len-=sw;
 			}
@@ -182,7 +182,7 @@ void RIPEMD160_Update(RIPEMD160_CTX *c, const void *in, size_t len)
 	while (len >= RIPEMD160_CBLOCK)
 		{
 #if BYTE_ORDER == LITTLE_ENDIAN || BYTE_ORDER == BIG_ENDIAN
-		if (p != (u_int32_t *)data)
+		if (p != (uint32_t *)data)
 			memcpy(p,data,RIPEMD160_CBLOCK);
 		data+=RIPEMD160_CBLOCK;
 #if BYTE_ORDER == BIG_ENDIAN
@@ -228,9 +228,9 @@ void RIPEMD160_Update(RIPEMD160_CTX *c, const void *in, size_t len)
 
 void RIPEMD160_Transform(RIPEMD160_CTX *c, unsigned char *b)
 	{
-	u_int32_t p[16];
+	uint32_t p[16];
 #if BYTE_ORDER != LITTLE_ENDIAN
-	u_int32_t *q;
+	uint32_t *q;
 	int i;
 #endif
 
@@ -251,7 +251,7 @@ void RIPEMD160_Transform(RIPEMD160_CTX *c, unsigned char *b)
 	q=p;
 	for (i=(RIPEMD160_LBLOCK/4); i; i--)
 		{
-		u_int32_t l;
+		uint32_t l;
 		c2l(b,l); *(q++)=l;
 		c2l(b,l); *(q++)=l;
 		c2l(b,l); *(q++)=l;
@@ -263,10 +263,10 @@ void RIPEMD160_Transform(RIPEMD160_CTX *c, unsigned char *b)
 
 #ifndef RMD160_ASM
 
-void ripemd160_block(RIPEMD160_CTX *ctx, const u_int32_t *X, int num)
+void ripemd160_block(RIPEMD160_CTX *ctx, const uint32_t *X, int num)
 	{
-	u_int32_t A,B,C,D,E;
-	u_int32_t a,b,c,d,e;
+	uint32_t A,B,C,D,E;
+	uint32_t a,b,c,d,e;
 
 	for (;;)
 		{
@@ -463,8 +463,8 @@ void ripemd160_block(RIPEMD160_CTX *ctx, const u_int32_t *X, int num)
 void RIPEMD160_Final(unsigned char *md, RIPEMD160_CTX *c)
 	{
 	int i,j;
-	u_int32_t l;
-	u_int32_t *p;
+	uint32_t l;
+	uint32_t *p;
 	static unsigned char end[4]={0x80,0x00,0x00,0x00};
 	unsigned char *cp=end;
 

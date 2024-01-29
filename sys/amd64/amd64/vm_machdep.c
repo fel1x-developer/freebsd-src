@@ -679,7 +679,7 @@ cpu_set_user_tls(struct thread *td, void *tls_base)
 {
 	struct pcb *pcb;
 
-	if ((u_int64_t)tls_base >= VM_MAXUSER_ADDRESS)
+	if ((uint64_t)tls_base >= VM_MAXUSER_ADDRESS)
 		return (EINVAL);
 
 	pcb = td->td_pcb;

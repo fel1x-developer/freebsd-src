@@ -193,12 +193,12 @@
 
 /* Status block prepended to tx/rx packets (optional) */
 struct statusblock {
-	u_int32_t	status_buflen;
-	u_int32_t	extstatus;
-	u_int32_t	rxcsum;
-	u_int32_t	spare1[9];
-	u_int32_t	txcsuminfo;
-	u_int32_t	spare2[3];
+	uint32_t	status_buflen;
+	uint32_t	extstatus;
+	uint32_t	rxcsum;
+	uint32_t	spare1[9];
+	uint32_t	txcsuminfo;
+	uint32_t	spare2[3];
 };
 
 /* bits in txcsuminfo */

@@ -327,7 +327,7 @@ server_TcpOpen(struct bundle *bundle, u_short port)
   if (probe.ipv6_available) {
     sin6->sin6_family = AF_INET6;
     sin6->sin6_port = htons(port);
-    sin6->sin6_len = (u_int8_t)sizeof ss;
+    sin6->sin6_len = (uint8_t)sizeof ss;
     sz = sizeof *sin6;
     s = socket(PF_INET6, SOCK_STREAM, 0);
   } else
@@ -335,7 +335,7 @@ server_TcpOpen(struct bundle *bundle, u_short port)
   {
     sin->sin_family = AF_INET;
     sin->sin_port = htons(port);
-    sin->sin_len = (u_int8_t)sizeof ss;
+    sin->sin_len = (uint8_t)sizeof ss;
     sin->sin_addr.s_addr = INADDR_ANY;
     sz = sizeof *sin;
     s = socket(PF_INET, SOCK_STREAM, 0);

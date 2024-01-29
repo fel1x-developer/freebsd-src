@@ -98,10 +98,10 @@ struct greheader {
 #else
 #error BYTE_ORDER is not defined properly
 #endif
-	u_int16_t	proto;			/* protocol (ethertype) */
-	u_int16_t	length;			/* payload length */
-	u_int16_t	cid;			/* call id */
-	u_int32_t	data[0];		/* opt. seq, ack, then data */
+	uint16_t	proto;			/* protocol (ethertype) */
+	uint16_t	length;			/* payload length */
+	uint16_t	cid;			/* call id */
+	uint32_t	data[0];		/* opt. seq, ack, then data */
 };
 
 /* The PPTP protocol ID used in the GRE 'proto' field */
@@ -116,7 +116,7 @@ struct greheader {
 
 /* All times are scaled by this (PPTP_TIME_SCALE time units = 1 sec.) */
 #define PPTP_TIME_SCALE		1024			/* milliseconds */
-typedef u_int64_t		pptptime_t;
+typedef uint64_t		pptptime_t;
 
 /* Acknowledgment timeout parameters and functions */
 #define PPTP_XMIT_WIN		16			/* max xmit window */
@@ -167,7 +167,7 @@ SYSCTL_UINT(_net_graph_pptpgre, OID_AUTO, reorder_timeout, CTLFLAG_RWTUN,
 struct ng_pptpgre_roq {
 	SLIST_ENTRY(ng_pptpgre_roq)  next;	/* next entry of the queue */
 	item_p			item;		/* netgraph item */
-	u_int32_t		seq;		/* packet sequence number */
+	uint32_t		seq;		/* packet sequence number */
 };
 SLIST_HEAD(ng_pptpgre_roq_head, ng_pptpgre_roq);
 typedef struct ng_pptpgre_roq_head roqh;
@@ -178,21 +178,21 @@ struct ng_pptpgre_sess {
 	hook_p			hook;		/* hook to upper layers */
 	struct ng_pptpgre_conf	conf;		/* configuration info */
 	struct mtx		mtx;		/* session mutex */
-	u_int32_t		recvSeq;	/* last seq # we rcv'd */
-	u_int32_t		xmitSeq;	/* last seq # we sent */
-	u_int32_t		recvAck;	/* last seq # peer ack'd */
-	u_int32_t		xmitAck;	/* last seq # we ack'd */
+	uint32_t		recvSeq;	/* last seq # we rcv'd */
+	uint32_t		xmitSeq;	/* last seq # we sent */
+	uint32_t		recvAck;	/* last seq # peer ack'd */
+	uint32_t		xmitAck;	/* last seq # we ack'd */
 	int32_t			ato;		/* adaptive time-out value */
 	int32_t			rtt;		/* round trip time estimate */
 	int32_t			dev;		/* deviation estimate */
-	u_int16_t		xmitWin;	/* size of xmit window */
+	uint16_t		xmitWin;	/* size of xmit window */
 	struct callout		sackTimer;	/* send ack timer */
 	struct callout		rackTimer;	/* recv ack timer */
-	u_int32_t		winAck;		/* seq when xmitWin will grow */
+	uint32_t		winAck;		/* seq when xmitWin will grow */
 	pptptime_t		timeSent[PPTP_XMIT_WIN];
 	LIST_ENTRY(ng_pptpgre_sess) sessions;
 	roqh			roq;		/* reorder queue head */
-	u_int8_t		roq_len;	/* reorder queue length */
+	uint8_t		roq_len;	/* reorder queue length */
 	struct callout		reorderTimer;	/* reorder timeout handler */
 };
 typedef struct ng_pptpgre_sess *hpriv_p;
@@ -227,7 +227,7 @@ static void	ng_pptpgre_send_ack_timeout(node_p node, hook_p hook,
 		    void *arg1, int arg2);
 static void	ng_pptpgre_reorder_timeout(node_p node, hook_p hook,
 		    void *arg1, int arg2);
-static hpriv_p	ng_pptpgre_find_session(priv_p privp, u_int16_t cid);
+static hpriv_p	ng_pptpgre_find_session(priv_p privp, uint16_t cid);
 static void	ng_pptpgre_reset(hpriv_p hpriv);
 static pptptime_t ng_pptpgre_time(void);
 static void	ng_pptpgre_ack(const hpriv_p hpriv);
@@ -584,7 +584,7 @@ static int
 ng_pptpgre_xmit(hpriv_p hpriv, item_p item)
 {
 	const priv_p priv = NG_NODE_PRIVATE(hpriv->node);
-	u_char buf[sizeof(struct greheader) + 2 * sizeof(u_int32_t)];
+	u_char buf[sizeof(struct greheader) + 2 * sizeof(uint32_t)];
 	struct greheader *const gre = (struct greheader *)buf;
 	int grelen, error;
 	struct mbuf *m;
@@ -601,7 +601,7 @@ ng_pptpgre_xmit(hpriv_p hpriv, item_p item)
 		/* Check if windowing is enabled */
 		if (hpriv->conf.enableWindowing) {
 			/* Is our transmit window full? */
-			if ((u_int32_t)PPTP_SEQ_DIFF(hpriv->xmitSeq,
+			if ((uint32_t)PPTP_SEQ_DIFF(hpriv->xmitSeq,
 			    hpriv->recvAck) >= hpriv->xmitWin) {
 				priv->stats.xmitDrops++;
 				ERROUT(ENOBUFS);
@@ -643,7 +643,7 @@ ng_pptpgre_xmit(hpriv_p hpriv, item_p item)
 	}
 
 	/* Prepend GRE header to outgoing frame */
-	grelen = sizeof(*gre) + sizeof(u_int32_t) * (gre->hasSeq + gre->hasAck);
+	grelen = sizeof(*gre) + sizeof(uint32_t) * (gre->hasSeq + gre->hasAck);
 	if (m == NULL) {
 		MGETHDR(m, M_NOWAIT, MT_DATA);
 		if (m == NULL) {
@@ -756,7 +756,7 @@ ng_pptpgre_rcvdata_lower(hook_p hook, item_p item)
 	struct ng_pptpgre_roq *np, *prev;
 	struct ng_pptpgre_roq temp = { { NULL }, NULL, 0 };
 	long diff;
-	u_int32_t seq;
+	uint32_t seq;
 
 	m = NGI_M(item);
 	/* Update stats */
@@ -790,7 +790,7 @@ ng_pptpgre_rcvdata_lower(hook_p hook, item_p item)
 		ip = mtod(m, const struct ip *);
 	}
 	gre = (const struct greheader *)((const u_char *)ip + iphlen);
-	grelen = sizeof(*gre) + sizeof(u_int32_t) * (gre->hasSeq + gre->hasAck);
+	grelen = sizeof(*gre) + sizeof(uint32_t) * (gre->hasSeq + gre->hasAck);
 	if (m->m_pkthdr.len < iphlen + grelen) {
 		priv->stats.recvRunts++;
 		ERROUT(EINVAL);
@@ -827,7 +827,7 @@ ng_pptpgre_rcvdata_lower(hook_p hook, item_p item)
 
 	/* Look for peer ack */
 	if (gre->hasAck) {
-		const u_int32_t	ack = be32dec(&gre->data[gre->hasSeq]);
+		const uint32_t	ack = be32dec(&gre->data[gre->hasSeq]);
 		const int index = ack - hpriv->recvAck - 1;
 		long sample;
 
@@ -1213,7 +1213,7 @@ ng_pptpgre_reorder_timeout(node_p node, hook_p hook, void *arg1, int arg2)
  * Find the hook with a given session ID.
  */
 static hpriv_p
-ng_pptpgre_find_session(priv_p privp, u_int16_t cid)
+ng_pptpgre_find_session(priv_p privp, uint16_t cid)
 {
 	uint16_t	hash = SESSHASH(cid);
 	hpriv_p	hpriv = NULL;

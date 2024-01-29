@@ -66,12 +66,12 @@ struct sysent {			/* system call table */
 	sy_call_t *sy_call;	/* implementing function */
 	systrace_args_func_t sy_systrace_args_func;
 				/* optional argument conversion function. */
-	u_int8_t sy_narg;	/* number of arguments */
-	u_int8_t sy_flags;	/* General flags for system calls. */
+	uint8_t sy_narg;	/* number of arguments */
+	uint8_t sy_flags;	/* General flags for system calls. */
 	au_event_t sy_auevent;	/* audit event associated with syscall */
-	u_int32_t sy_entry;	/* DTrace entry ID for systrace. */
-	u_int32_t sy_return;	/* DTrace return ID for systrace. */
-	u_int32_t sy_thrcnt;
+	uint32_t sy_entry;	/* DTrace entry ID for systrace. */
+	uint32_t sy_return;	/* DTrace return ID for systrace. */
+	uint32_t sy_thrcnt;
 };
 
 /*

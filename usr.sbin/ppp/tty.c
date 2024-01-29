@@ -224,7 +224,7 @@ isngtty(struct ttydevice *dev)
 }
 
 static void
-tty_SetAsyncParams(struct physical *p, u_int32_t mymap, u_int32_t hismap)
+tty_SetAsyncParams(struct physical *p, uint32_t mymap, uint32_t hismap)
 {
   struct ttydevice *dev = device2tty(p->handler);
   char asyncpath[NG_PATHSIZ];

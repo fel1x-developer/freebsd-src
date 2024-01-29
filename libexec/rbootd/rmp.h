@@ -71,9 +71,9 @@
  */
 
 struct hp_hdr {
-	u_int8_t	daddr[RMP_ADDRLEN];
-	u_int8_t	saddr[RMP_ADDRLEN];
-	u_int16_t	len;
+	uint8_t	daddr[RMP_ADDRLEN];
+	uint8_t	saddr[RMP_ADDRLEN];
+	uint16_t	len;
 };
 
 /*
@@ -82,10 +82,10 @@ struct hp_hdr {
  */
 
 struct hp_llc {
-	u_int8_t	dsap;		/* 802.2 DSAP */
-	u_int8_t	ssap;		/* 802.2 SSAP */
-	u_int16_t	cntrl;		/* 802.2 control field */
-	u_int16_t	filler;		/* HP filler (must be zero) */
-	u_int16_t	dxsap;		/* HP extended DSAP */
-	u_int16_t	sxsap;		/* HP extended SSAP */
+	uint8_t	dsap;		/* 802.2 DSAP */
+	uint8_t	ssap;		/* 802.2 SSAP */
+	uint16_t	cntrl;		/* 802.2 control field */
+	uint16_t	filler;		/* HP filler (must be zero) */
+	uint16_t	dxsap;		/* HP extended DSAP */
+	uint16_t	sxsap;		/* HP extended SSAP */
 };

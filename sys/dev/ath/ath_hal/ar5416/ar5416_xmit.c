@@ -850,7 +850,7 @@ ar5416GetGlobalTxTimeout(struct ath_hal *ah)
 }
 
 #define	HT_RC_2_MCS(_rc)	((_rc) & 0x0f)
-static const u_int8_t baDurationDelta[] = {
+static const uint8_t baDurationDelta[] = {
 	24,	//  0: BPSK
 	12,	//  1: QPSK 1/2
 	12,	//  2: QPSK 3/4

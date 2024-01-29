@@ -131,9 +131,9 @@ struct xbpf_d {
 	int		bd_direction;
 	int		bd_feedback;
 	int		bd_async;
-	u_int64_t	bd_rcount;
-	u_int64_t	bd_dcount;
-	u_int64_t	bd_fcount;
+	uint64_t	bd_rcount;
+	uint64_t	bd_dcount;
+	uint64_t	bd_fcount;
 	int		bd_sig;
 	int		bd_slen;
 	int		bd_hlen;
@@ -141,16 +141,16 @@ struct xbpf_d {
 	pid_t		bd_pid;
 	char		bd_ifname[IFNAMSIZ];
 	int		bd_locked;
-	u_int64_t	bd_wcount;
-	u_int64_t	bd_wfcount;
-	u_int64_t	bd_wdcount;
-	u_int64_t	bd_zcopy;
+	uint64_t	bd_wcount;
+	uint64_t	bd_wfcount;
+	uint64_t	bd_wdcount;
+	uint64_t	bd_zcopy;
 	int		bd_bufmode;
 	/*
 	 * Allocate 4 64 bit unsigned integers for future expansion so we do
 	 * not have to worry about breaking the ABI.
 	 */
-	u_int64_t	bd_spare[4];
+	uint64_t	bd_spare[4];
 };
 
 #define BPFIF_FLAG_DYING	1	/* Reject new bpf consumers */

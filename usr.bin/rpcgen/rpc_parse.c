@@ -605,7 +605,7 @@ unsigned_dec(const char **typep)
 		break;
 	case TOK_HYPER:
 		get_token(&tok);
-		*typep = "u_int64_t";
+		*typep = "uint64_t";
 
 		(void) peekscan(TOK_INT, &tok);
 		break;

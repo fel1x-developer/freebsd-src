@@ -181,7 +181,7 @@ xdr_replymsg(XDR *xdrs, struct rpc_msg *rmsg)
 	prp_stat = &rmsg->rm_reply.rp_stat;
 
 	if (
-	    xdr_u_int32_t(xdrs, &(rmsg->rm_xid)) && 
+	    xdr_uint32_t(xdrs, &(rmsg->rm_xid)) && 
 	    xdr_enum(xdrs, (enum_t *) prm_direction) &&
 	    (rmsg->rm_direction == REPLY) )
 		return (xdr_union(xdrs, (enum_t *) prp_stat,
@@ -210,11 +210,11 @@ xdr_callhdr(XDR *xdrs, struct rpc_msg *cmsg)
 	cmsg->rm_call.cb_rpcvers = RPC_MSG_VERSION;
 	if (
 	    (xdrs->x_op == XDR_ENCODE) &&
-	    xdr_u_int32_t(xdrs, &(cmsg->rm_xid)) &&
+	    xdr_uint32_t(xdrs, &(cmsg->rm_xid)) &&
 	    xdr_enum(xdrs, (enum_t *) prm_direction) &&
 	    xdr_rpcvers(xdrs, &(cmsg->rm_call.cb_rpcvers)) &&
 	    xdr_rpcprog(xdrs, &(cmsg->rm_call.cb_prog)) )
-		return (xdr_u_int32_t(xdrs, &(cmsg->rm_call.cb_vers)));
+		return (xdr_uint32_t(xdrs, &(cmsg->rm_call.cb_vers)));
 	return (FALSE);
 }
 

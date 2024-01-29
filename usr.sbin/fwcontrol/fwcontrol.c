@@ -106,8 +106,8 @@ usage(void)
 static void
 fweui2eui64(const struct fw_eui64 *fweui, struct eui64 *eui)
 {
-	*(u_int32_t*)&(eui->octet[0]) = htonl(fweui->hi);
-	*(u_int32_t*)&(eui->octet[4]) = htonl(fweui->lo);
+	*(uint32_t*)&(eui->octet[0]) = htonl(fweui->hi);
+	*(uint32_t*)&(eui->octet[4]) = htonl(fweui->lo);
 }
 
 static void
@@ -201,11 +201,11 @@ list_dev(int fd)
 	free((void *)data);
 }
 
-static u_int32_t
-read_write_quad(int fd, struct fw_eui64 eui, u_int32_t addr_lo, int readmode, u_int32_t data)
+static uint32_t
+read_write_quad(int fd, struct fw_eui64 eui, uint32_t addr_lo, int readmode, uint32_t data)
 {
         struct fw_asyreq *asyreq;
-	u_int32_t *qld, res;
+	uint32_t *qld, res;
 
         asyreq = (struct fw_asyreq *)malloc(sizeof(struct fw_asyreq_t) + 16);
 	if (asyreq == NULL)
@@ -227,7 +227,7 @@ read_write_quad(int fd, struct fw_eui64 eui, u_int32_t addr_lo, int readmode, u_
 	asyreq->pkt.mode.rreqq.dest_hi = 0xffff;
 	asyreq->pkt.mode.rreqq.dest_lo = addr_lo;
 
-	qld = (u_int32_t *)&asyreq->pkt;
+	qld = (uint32_t *)&asyreq->pkt;
 	if (!readmode)
 		asyreq->pkt.mode.wreqq.data = htonl(data);
 
@@ -328,13 +328,13 @@ reset_start(int fd, int node)
 }
 
 static void
-set_pri_req(int fd, u_int32_t pri_req)
+set_pri_req(int fd, uint32_t pri_req)
 {
 	struct fw_devlstreq *data;
 	struct fw_devinfo *devinfo;
 	struct eui64 eui;
 	char addr[EUI64_SIZ];
-	u_int32_t max, reg, old;
+	uint32_t max, reg, old;
 	int i;
 
 	data = (struct fw_devlstreq *)malloc(sizeof(struct fw_devlstreq));
@@ -366,7 +366,7 @@ set_pri_req(int fd, u_int32_t pri_req)
 }
 
 static void
-parse_bus_info_block(u_int32_t *p)
+parse_bus_info_block(uint32_t *p)
 {
 	char addr[EUI64_SIZ];
 	struct bus_info *bi;
@@ -420,7 +420,7 @@ get_crom(int fd, int node, void *crom_buf, int len)
 }
 
 static void
-show_crom(u_int32_t *crom_buf)
+show_crom(uint32_t *crom_buf)
 {
 	int i;
 	struct crom_context cc;
@@ -429,7 +429,7 @@ show_crom(u_int32_t *crom_buf)
 	struct csrreg *reg;
 	struct csrdirectory *dir;
 	struct csrhdr *hdr;
-	u_int16_t crc;
+	uint16_t crc;
 
 	printf("first quad: 0x%08x ", *crom_buf);
 	if (crom_buf[0] == 0) {
@@ -460,7 +460,7 @@ show_crom(u_int32_t *crom_buf)
 	}
 	printf("root_directory: len=0x%04x(%d) crc=0x%04x",
 			dir->crc_len, dir->crc_len, dir->crc);
-	crc = crom_crc((u_int32_t *)&dir->entry[0], dir->crc_len);
+	crc = crom_crc((uint32_t *)&dir->entry[0], dir->crc_len);
 	if (crc == dir->crc)
 		printf("(OK)\n");
 	else
@@ -484,7 +484,7 @@ show_crom(u_int32_t *crom_buf)
 #define DUMP_FORMAT	"%08x %08x %08x %08x %08x %08x %08x %08x\n"
 
 static void
-dump_crom(u_int32_t *p)
+dump_crom(uint32_t *p)
 {
 	int len=1024, i;
 
@@ -496,7 +496,7 @@ dump_crom(u_int32_t *p)
 }
 
 static void
-load_crom(char *filename, u_int32_t *p)
+load_crom(char *filename, uint32_t *p)
 {
 	FILE *file;
 	int len=1024, i;
@@ -557,7 +557,7 @@ show_topology_map(int fd)
 }
 
 static void
-read_phy_registers(int fd, u_int8_t *buf, int offset, int len)
+read_phy_registers(int fd, uint8_t *buf, int offset, int len)
 {
 	struct fw_reg_req_t reg;
 	int i;
@@ -566,14 +566,14 @@ read_phy_registers(int fd, u_int8_t *buf, int offset, int len)
 		reg.addr = offset + i;
 		if (ioctl(fd, FWOHCI_RDPHYREG, &reg) < 0)
        			err(EX_IOERR, "%s: ioctl", __func__);
-		buf[i] = (u_int8_t) reg.data;
+		buf[i] = (uint8_t) reg.data;
 		printf("0x%02x ",  reg.data);
 	}
 	printf("\n");
 }
 
 static void
-read_phy_page(int fd, u_int8_t *buf, int page, int port)
+read_phy_page(int fd, uint8_t *buf, int page, int port)
 {
 	struct fw_reg_req_t reg;
 
@@ -593,7 +593,7 @@ dump_phy_registers(int fd)
 	int i;
 
 	printf("=== base register ===\n");
-	read_phy_registers(fd, (u_int8_t *)&b, 0, 8);
+	read_phy_registers(fd, (uint8_t *)&b, 0, 8);
 	printf(
 	    "Physical_ID:%d  R:%d  CPS:%d\n"
 	    "RHB:%d  IBR:%d  Gap_Count:%d\n"
@@ -615,7 +615,7 @@ dump_phy_registers(int fd)
 
 	for (i = 0; i < b.num_ports; i ++) {
 		printf("\n=== page 0 port %d ===\n", i);
-		read_phy_page(fd, (u_int8_t *)&p, 0, i);
+		read_phy_page(fd, (uint8_t *)&p, 0, i);
 		printf(
 		    "Astat:%d BStat:%d Ch:%d Con:%d RXOK:%d Dis:%d\n"
 		    "Negotiated_speed:%d PIE:%d Fault:%d Stanby_fault:%d Disscrm:%d B_Only:%d\n"
@@ -632,7 +632,7 @@ dump_phy_registers(int fd)
 		);
 	}
 	printf("\n=== page 1 ===\n");
-	read_phy_page(fd, (u_int8_t *)&v, 1, 0);
+	read_phy_page(fd, (uint8_t *)&v, 1, 0);
 	printf(
 	    "Compliance:%d\n"
 	    "Vendor_ID:0x%06x\n"
@@ -669,7 +669,7 @@ detect_recv_fn(int fd, char ich)
 	struct fw_isochreq isoreq;
 	struct fw_isobufreq bufreq;
 	int len;
-	u_int32_t *ptr;
+	uint32_t *ptr;
 	struct ciphdr *ciph;
 	fwmethod *retfn;
 #define RECV_NUM_PACKET 16
@@ -706,7 +706,7 @@ detect_recv_fn(int fd, char ich)
 	len = read(fd, buf, RECV_NUM_PACKET * RECV_PACKET_SZ);
 	if (len < 0)
 		err(EX_IOERR, "%s: error reading from device", __func__);
-	ptr = (u_int32_t *) buf;
+	ptr = (uint32_t *) buf;
 	ciph = (struct ciphdr *)(ptr + 1);
 
 	switch(ciph->fmt) {
@@ -729,8 +729,8 @@ int
 main(int argc, char **argv)
 {
 #define MAX_BOARDS 10
-	u_int32_t crom_buf[1024/4];
-	u_int32_t crom_buf_hex[1024/4];
+	uint32_t crom_buf[1024/4];
+	uint32_t crom_buf_hex[1024/4];
 	char devbase[64];
 	const char *device_string = "/dev/fw";
 	int fd = -1, ch, len=1024;
@@ -1024,8 +1024,8 @@ main(int argc, char **argv)
 	 * Set the fwmem target for a node to argument "-m"
 	 */
 	if (set_fwmem_target) {
-		eui.hi = ntohl(*(u_int32_t*)&(target.octet[0]));
-		eui.lo = ntohl(*(u_int32_t*)&(target.octet[4]));
+		eui.hi = ntohl(*(uint32_t*)&(target.octet[0]));
+		eui.lo = ntohl(*(uint32_t*)&(target.octet[4]));
 #if defined(__FreeBSD__)
 		sysctl_set_int("hw.firewire.fwmem.eui64_hi", eui.hi);
 		sysctl_set_int("hw.firewire.fwmem.eui64_lo", eui.lo);

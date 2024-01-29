@@ -96,7 +96,7 @@ ip6_forward(struct mbuf *m, int srcrt)
 	int error, type = 0, code = 0;
 	struct mbuf *mcopy = NULL;
 	struct ifnet *origifp;	/* maybe unnecessary */
-	u_int32_t inzone, outzone;
+	uint32_t inzone, outzone;
 	struct in6_addr odst;
 	struct m_tag *fwd_tag;
 	char ip6bufs[INET6_ADDRSTRLEN], ip6bufd[INET6_ADDRSTRLEN];

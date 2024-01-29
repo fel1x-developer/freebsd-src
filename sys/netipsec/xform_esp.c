@@ -583,7 +583,7 @@ esp_input_cb(struct cryptop *crp)
 	 * Update replay sequence number, if appropriate.
 	 */
 	if (sav->replay) {
-		u_int32_t seq;
+		uint32_t seq;
 
 		m_copydata(m, skip + offsetof(struct newesp, esp_seq),
 			   sizeof (seq), (caddr_t) &seq);
@@ -654,7 +654,7 @@ esp_input_cb(struct cryptop *crp)
 	m_adj(m, -(lastthree[1] + 2));
 
 	/* Restore the Next Protocol field */
-	m_copyback(m, protoff, sizeof (u_int8_t), lastthree + 2);
+	m_copyback(m, protoff, sizeof (uint8_t), lastthree + 2);
 
 	switch (saidx->dst.sa.sa_family) {
 #ifdef INET6
@@ -861,11 +861,11 @@ esp_output(struct mbuf *m, struct secpolicy *sp, struct secasvar *sav,
 
 	/* Fix padding length and Next Protocol in padding itself. */
 	pad[padding - 2] = padding - 2;
-	m_copydata(m, protoff, sizeof(u_int8_t), pad + padding - 1);
+	m_copydata(m, protoff, sizeof(uint8_t), pad + padding - 1);
 
 	/* Fix Next Protocol in IPv4/IPv6 header. */
 	prot = IPPROTO_ESP;
-	m_copyback(m, protoff, sizeof(u_int8_t), (u_char *) &prot);
+	m_copyback(m, protoff, sizeof(uint8_t), (u_char *) &prot);
 
 	/* Get crypto descriptor. */
 	crp = crypto_getreq(cryptoid, M_NOWAIT);

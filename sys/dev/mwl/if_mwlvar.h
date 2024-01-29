@@ -273,12 +273,12 @@ struct mwl_softc {
 	struct mwl_hal_txrxdma	sc_hwdma;	/* h/w dma setup */
 	uint32_t		sc_imask;	/* interrupt mask copy */
 	enum ieee80211_phymode	sc_curmode;
-	u_int16_t		sc_curaid;	/* current association id */
-	u_int8_t		sc_curbssid[IEEE80211_ADDR_LEN];
+	uint16_t		sc_curaid;	/* current association id */
+	uint8_t		sc_curbssid[IEEE80211_ADDR_LEN];
 	MWL_HAL_CHANNEL		sc_curchan;
 	MWL_HAL_TXRATE_HANDLING	sc_txratehandling;
-	u_int16_t		sc_rxantenna;	/* rx antenna */
-	u_int16_t		sc_txantenna;	/* tx antenna */
+	uint16_t		sc_rxantenna;	/* rx antenna */
+	uint16_t		sc_txantenna;	/* tx antenna */
 	uint8_t			sc_napvaps;	/* # ap mode vaps */
 	uint8_t			sc_nwdsvaps;	/* # wds mode vaps */
 	uint8_t			sc_nstavaps;	/* # sta mode vaps */
@@ -289,7 +289,7 @@ struct mwl_softc {
 	void			(*sc_recv_mgmt)(struct ieee80211com *,
 				    struct mbuf *,
 				    struct ieee80211_node *,
-				    int, int, int, u_int32_t);
+				    int, int, int, uint32_t);
 	int			(*sc_newstate)(struct ieee80211com *,
 				    enum ieee80211_state, int);
 	void 			(*sc_node_cleanup)(struct ieee80211_node *);
@@ -354,7 +354,7 @@ struct mwl_softc {
 #define	MWL_RXFREE_UNLOCK(_sc)	mtx_unlock(&(_sc)->sc_rxlock)
 #define	MWL_RXFREE_ASSERT(_sc)	mtx_assert(&(_sc)->sc_rxlock, MA_OWNED)
 
-int	mwl_attach(u_int16_t, struct mwl_softc *);
+int	mwl_attach(uint16_t, struct mwl_softc *);
 int	mwl_detach(struct mwl_softc *);
 void	mwl_resume(struct mwl_softc *);
 void	mwl_suspend(struct mwl_softc *);

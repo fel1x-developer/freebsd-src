@@ -239,7 +239,7 @@ ng_l2cap_con_wakeup(ng_l2cap_con_p con)
  */
 
 void
-ng_l2cap_con_fail(ng_l2cap_con_p con, u_int16_t result)
+ng_l2cap_con_fail(ng_l2cap_con_p con, uint16_t result)
 {
 	ng_l2cap_p	l2cap = con->l2cap;
 	ng_l2cap_cmd_p	cmd = NULL;
@@ -342,8 +342,8 @@ ng_l2cap_process_command_timeout(node_p node, hook_p hook, void *arg1, int arg2)
 	ng_l2cap_p	l2cap = NULL;
 	ng_l2cap_con_p	con = NULL;
 	ng_l2cap_cmd_p	cmd = NULL;
-	u_int16_t	con_handle = (arg2 & 0x0ffff);
-	u_int8_t	ident = ((arg2 >> 16) & 0xff);
+	uint16_t	con_handle = (arg2 & 0x0ffff);
+	uint8_t	ident = ((arg2 >> 16) & 0xff);
 
 	if (NG_NODE_NOT_VALID(node)) {
 		printf("%s: Netgraph node is not valid\n", __func__);

@@ -859,9 +859,9 @@ bind_lease(struct interface_info *ip)
 	ip->client->new->medium = ip->client->medium;
 
 	opt = &ip->client->new->options[DHO_INTERFACE_MTU];
-	if (opt->len == sizeof(u_int16_t)) {
-		u_int16_t mtu = 0;
-		u_int16_t old_mtu = 0;
+	if (opt->len == sizeof(uint16_t)) {
+		uint16_t mtu = 0;
+		uint16_t old_mtu = 0;
 		bool supersede = (ip->client->config->default_actions[DHO_INTERFACE_MTU] ==
 			ACTION_SUPERSEDE);
 
@@ -872,7 +872,7 @@ bind_lease(struct interface_info *ip)
 
 		if (ip->client->active) {
 			opt = &ip->client->active->options[DHO_INTERFACE_MTU];
-			if (opt->len == sizeof(u_int16_t)) {
+			if (opt->len == sizeof(uint16_t)) {
 				old_mtu = be16dec(opt->data);
 			}
 		}
@@ -929,7 +929,7 @@ void
 state_bound(void *ipp)
 {
 	struct interface_info *ip = ipp;
-	u_int8_t *dp = NULL;
+	uint8_t *dp = NULL;
 	int len;
 
 	ASSERT_STATE(state, S_BOUND);
@@ -2106,7 +2106,7 @@ void
 priv_script_write_params(const char *prefix, struct client_lease *lease)
 {
 	struct interface_info *ip = ifi;
-	u_int8_t dbuf[1500], *dp = NULL;
+	uint8_t dbuf[1500], *dp = NULL;
 	int i;
 	size_t len;
 	char tbuf[128];

@@ -222,7 +222,7 @@ static d_close_t agtiapi_close;
 static d_read_t  agtiapi_read;
 static d_write_t agtiapi_write;
 static d_ioctl_t agtiapi_CharIoctl;
-static void agtiapi_async(void *callback_arg, u_int32_t code,
+static void agtiapi_async(void *callback_arg, uint32_t code,
               struct cam_path *path, void *arg);
 void agtiapi_adjust_queue_depth(struct cam_path *path, bit32 QueueDepth);
 
@@ -481,7 +481,7 @@ void agtiapi_adjust_queue_depth(struct cam_path *path, bit32 QueueDepth)
   }
 }
 static void
-agtiapi_async(void *callback_arg, u_int32_t code,
+agtiapi_async(void *callback_arg, uint32_t code,
 	       struct cam_path *path, void *arg)
 {
 	struct agtiapi_softc *pmsc;

@@ -114,16 +114,16 @@ static const char *whereStrings[] = {
     "GROPE AREA #2"
 };
 
-static void apic_probe( u_int32_t* paddr, int* where );
+static void apic_probe( uint32_t* paddr, int* where );
 
 static void MPConfigDefault( int featureByte );
 
-static void MPFloatingPointer( u_int32_t paddr, int where, mpfps_t* mpfpsp );
-static void MPConfigTableHeader( u_int32_t pap );
+static void MPFloatingPointer( uint32_t paddr, int where, mpfps_t* mpfpsp );
+static void MPConfigTableHeader( uint32_t pap );
 
-static void seekEntry( u_int32_t addr );
+static void seekEntry( uint32_t addr );
 static void readEntry( void* entry, int size );
-static void *mapEntry( u_int32_t addr, int size );
+static void *mapEntry( uint32_t addr, int size );
 
 static void processorEntry( proc_entry_ptr entry );
 static void busEntry( bus_entry_ptr entry );
@@ -165,7 +165,7 @@ usage( void )
 int
 main( int argc, char *argv[] )
 {
-    u_int32_t	paddr;
+    uint32_t	paddr;
     int		where;
     mpfps_t	mpfps;
     int		defaultConfig;
@@ -253,7 +253,7 @@ main( int argc, char *argv[] )
  */
 #define NEXT(X)		((X) += 4)
 static void
-apic_probe( u_int32_t* paddr, int* where )
+apic_probe( uint32_t* paddr, int* where )
 {
     /*
      * c rewrite of apic_probe() by Jack F. Vogel
@@ -261,7 +261,7 @@ apic_probe( u_int32_t* paddr, int* where )
 
     int		x;
     u_short	segment;
-    u_int32_t	target;
+    uint32_t	target;
     u_int	buffer[ BIOS_SIZE / sizeof( int ) ];
 
     if ( verbose )
@@ -270,10 +270,10 @@ apic_probe( u_int32_t* paddr, int* where )
     /* search Extended Bios Data Area, if present */
     if ( verbose )
         printf( " looking for EBDA pointer @ 0x%04x, ", EBDA_POINTER );
-    seekEntry( (u_int32_t)EBDA_POINTER );
+    seekEntry( (uint32_t)EBDA_POINTER );
     readEntry( &segment, 2 );
     if ( segment ) {		    /* search EBDA */
-        target = (u_int32_t)segment << 4;
+        target = (uint32_t)segment << 4;
 	if ( verbose )
 	    printf( "found, searching EBDA @ 0x%08x\n", target );
         seekEntry( target );
@@ -293,7 +293,7 @@ apic_probe( u_int32_t* paddr, int* where )
     }
 
     /* read CMOS for real top of mem */
-    seekEntry( (u_int32_t)TOPOFMEM_POINTER );
+    seekEntry( (uint32_t)TOPOFMEM_POINTER );
     readEntry( &segment, 2 );
     --segment;						/* less ONE_KBYTE */
     target = segment * 1024;
@@ -389,7 +389,7 @@ apic_probe( u_int32_t* paddr, int* where )
     }
 
     *where = 0;
-    *paddr = (u_int32_t)0;
+    *paddr = (uint32_t)0;
 }
 
 
@@ -397,7 +397,7 @@ apic_probe( u_int32_t* paddr, int* where )
  * 
  */
 static void
-MPFloatingPointer( u_int32_t paddr, int where, mpfps_t* mpfpsp )
+MPFloatingPointer( uint32_t paddr, int where, mpfps_t* mpfpsp )
 {
     mpfps_t mpfps;
 	
@@ -523,13 +523,13 @@ MPConfigDefault( int featureByte )
  * 
  */
 static void
-MPConfigTableHeader( u_int32_t pap )
+MPConfigTableHeader( uint32_t pap )
 {
     mpcth_t	cth;
     int		x;
     int		c;
     int		oldtype, entrytype;
-    u_int8_t	*entry;
+    uint8_t	*entry;
 
     if ( pap == 0 ) {
 	printf( "MP Configuration Table Header MISSING!\n" );
@@ -706,7 +706,7 @@ MPConfigTableHeader( u_int32_t pap )
  * 
  */
 static void
-seekEntry( u_int32_t addr )
+seekEntry( uint32_t addr )
 {
     if ( lseek( pfd, (off_t)addr, SEEK_SET ) < 0 )
         err( 1, "%s seek", _PATH_MEM );
@@ -724,7 +724,7 @@ readEntry( void* entry, int size )
 }
 
 static void *
-mapEntry( u_int32_t addr, int size )
+mapEntry( uint32_t addr, int size )
 {
     void	*p;
 

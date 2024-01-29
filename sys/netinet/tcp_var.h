@@ -853,7 +853,7 @@ tcp_packets_this_ack(struct tcpcb *tp, tcp_seq ack)
  * options in tcp_addoptions.
  */
 struct tcpopt {
-	u_int32_t	to_flags;	/* which options are present */
+	uint32_t	to_flags;	/* which options are present */
 #define	TOF_MSS		0x0001		/* maximum segment size */
 #define	TOF_SCALE	0x0002		/* window scaling */
 #define	TOF_SACKPERM	0x0004		/* SACK permitted */
@@ -862,16 +862,16 @@ struct tcpopt {
 #define	TOF_SACK	0x0080		/* Peer sent SACK option */
 #define	TOF_FASTOPEN	0x0100		/* TCP Fast Open (TFO) cookie */
 #define	TOF_MAXOPT	0x0200
-	u_int32_t	to_tsval;	/* new timestamp */
-	u_int32_t	to_tsecr;	/* reflected timestamp */
+	uint32_t	to_tsval;	/* new timestamp */
+	uint32_t	to_tsecr;	/* reflected timestamp */
 	u_char		*to_sacks;	/* pointer to the first SACK blocks */
 	u_char		*to_signature;	/* pointer to the TCP-MD5 signature */
-	u_int8_t	*to_tfo_cookie; /* pointer to the TFO cookie */
-	u_int16_t	to_mss;		/* maximum segment size */
-	u_int8_t	to_wscale;	/* window scaling */
-	u_int8_t	to_nsacks;	/* number of SACK blocks */
-	u_int8_t	to_tfo_len;	/* TFO cookie length */
-	u_int32_t	to_spare;	/* UTO */
+	uint8_t	*to_tfo_cookie; /* pointer to the TFO cookie */
+	uint16_t	to_mss;		/* maximum segment size */
+	uint8_t	to_wscale;	/* window scaling */
+	uint8_t	to_nsacks;	/* number of SACK blocks */
+	uint8_t	to_tfo_len;	/* TFO cookie length */
+	uint32_t	to_spare;	/* UTO */
 };
 
 /*

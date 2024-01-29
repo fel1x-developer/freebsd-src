@@ -432,7 +432,7 @@ static int
 ng_generic_list_getLength(const struct ng_parse_type *type,
 	const u_char *start, const u_char *buf)
 {
-	return *((const u_int32_t *)(buf - 4));
+	return *((const uint32_t *)(buf - 4));
 }
 
 /* Get length of the array of struct linkinfo inside a struct hooklist */

@@ -35,48 +35,48 @@
 #include <sys/ioccom.h>
 
 struct smapi_bios_header {
-	u_int8_t	signature[4];	/* '$SMB' */
-	u_int8_t	version_major;
-	u_int8_t	version_minor;
-	u_int8_t	length;
-	u_int8_t	checksum;
-	u_int16_t	information;
+	uint8_t	signature[4];	/* '$SMB' */
+	uint8_t	version_major;
+	uint8_t	version_minor;
+	uint8_t	length;
+	uint8_t	checksum;
+	uint16_t	information;
 #define	SMAPI_REAL_VM86		0x0001
 #define	SMAPI_PROT_16BIT	0x0002
 #define	SMAPI_PROT_32BIT	0x0004
-	u_int16_t	reserved1;
+	uint16_t	reserved1;
 
-	u_int16_t	real16_offset;
-	u_int16_t	real16_segment;
+	uint16_t	real16_offset;
+	uint16_t	real16_segment;
 
-	u_int16_t	reserved2;
+	uint16_t	reserved2;
 
-	u_int16_t	prot16_offset;
-	u_int32_t	prot16_segment;
+	uint16_t	prot16_offset;
+	uint32_t	prot16_segment;
 
-	u_int32_t	prot32_offset;
-	u_int32_t	prot32_segment;
+	uint32_t	prot32_offset;
+	uint32_t	prot32_segment;
 
 } __packed;
 
 struct smapi_bios_parameter {
 	union {
 		struct {
-			u_int8_t func;
-			u_int8_t sub_func;
+			uint8_t func;
+			uint8_t sub_func;
 		} in;
 		struct {
-			u_int8_t rc;
-			u_int8_t sub_rc;
+			uint8_t rc;
+			uint8_t sub_rc;
 		} out;
 	} type;
 
-	u_int16_t	param1;
-	u_int16_t	param2;
-	u_int16_t	param3;
+	uint16_t	param1;
+	uint16_t	param2;
+	uint16_t	param3;
 
-	u_int32_t	param4;
-	u_int32_t	param5;
+	uint32_t	param4;
+	uint32_t	param5;
 
 } __packed;
 

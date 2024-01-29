@@ -63,7 +63,7 @@
  *
  * Parameters:
  *	t:	tree
- *	p:	pointer to { pgno_t, u_int32_t }
+ *	p:	pointer to { pgno_t, uint32_t }
  *	buf:	storage address
  *	bufsz:	storage size
  *
@@ -76,10 +76,10 @@ __ovfl_get(BTREE *t, void *p, size_t *ssz, void **buf, size_t *bufsz)
 	PAGE *h;
 	pgno_t pg;
 	size_t nb, plen;
-	u_int32_t sz;
+	uint32_t sz;
 
 	memmove(&pg, p, sizeof(pgno_t));
-	memmove(&sz, (char *)p + sizeof(pgno_t), sizeof(u_int32_t));
+	memmove(&sz, (char *)p + sizeof(pgno_t), sizeof(uint32_t));
 	*ssz = sz;
 
 #ifdef DEBUG
@@ -131,7 +131,7 @@ __ovfl_put(BTREE *t, const DBT *dbt, pgno_t *pg)
 	void *p;
 	pgno_t npg;
 	size_t nb, plen;
-	u_int32_t sz;
+	uint32_t sz;
 
 	/*
 	 * Allocate pages and copy the key/data record into them.  Store the
@@ -170,7 +170,7 @@ __ovfl_put(BTREE *t, const DBT *dbt, pgno_t *pg)
  *
  * Parameters:
  *	t:	tree
- *	p:	pointer to { pgno_t, u_int32_t }
+ *	p:	pointer to { pgno_t, uint32_t }
  *
  * Returns:
  *	RET_ERROR, RET_SUCCESS
@@ -181,10 +181,10 @@ __ovfl_delete(BTREE *t, void *p)
 	PAGE *h;
 	pgno_t pg;
 	size_t plen;
-	u_int32_t sz;
+	uint32_t sz;
 
 	memmove(&pg, p, sizeof(pgno_t));
-	memmove(&sz, (char *)p + sizeof(pgno_t), sizeof(u_int32_t));
+	memmove(&sz, (char *)p + sizeof(pgno_t), sizeof(uint32_t));
 
 #ifdef DEBUG
 	if (pg == P_INVALID || sz == 0)

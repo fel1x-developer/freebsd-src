@@ -216,7 +216,7 @@ HAL_BOOL
 ar5416GetMibCycleCounts(struct ath_hal *ah, HAL_SURVEY_SAMPLE *hsample)
 {
 	struct ath_hal_5416 *ahp = AH5416(ah);
-	u_int32_t good = AH_TRUE;
+	uint32_t good = AH_TRUE;
 
 	/* XXX freeze/unfreeze mib counters */
 	uint32_t rc = OS_REG_READ(ah, AR_RCCNT);
@@ -481,7 +481,7 @@ ar5416GetCapability(struct ath_hal *ah, HAL_CAPABILITY_TYPE type,
 
 HAL_BOOL
 ar5416SetCapability(struct ath_hal *ah, HAL_CAPABILITY_TYPE type,
-    u_int32_t capability, u_int32_t setting, HAL_STATUS *status)
+    uint32_t capability, uint32_t setting, HAL_STATUS *status)
 {
 	HAL_CAPABILITIES *pCap = &AH_PRIVATE(ah)->ah_caps;
 

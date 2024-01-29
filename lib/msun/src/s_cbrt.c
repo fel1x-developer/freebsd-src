@@ -18,7 +18,7 @@
 /* cbrt(x)
  * Return cube root of x
  */
-static const u_int32_t
+static const uint32_t
 	B1 = 715094163, /* B1 = (1023-1023/3-0.03306235651)*2**20 */
 	B2 = 696219795; /* B2 = (1023-1023/3-54/3-0.03306235651)*2**20 */
 
@@ -39,8 +39,8 @@ cbrt(double x)
 	    uint64_t bits;
 	} u;
 	double r,s,t=0.0,w;
-	u_int32_t sign;
-	u_int32_t high,low;
+	uint32_t sign;
+	uint32_t high,low;
 
 	EXTRACT_WORDS(hx,low,x);
 	sign=hx&0x80000000; 		/* sign= sign(x) */

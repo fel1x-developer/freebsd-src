@@ -152,11 +152,11 @@
  *   - when in monitor mode
  * XXX HT protection for 11n
  */
-u_int32_t
+uint32_t
 ath_calcrxfilter(struct ath_softc *sc)
 {
 	struct ieee80211com *ic = &sc->sc_ic;
-	u_int32_t rfilt;
+	uint32_t rfilt;
 
 	rfilt = HAL_RX_FILTER_UCAST | HAL_RX_FILTER_BCAST | HAL_RX_FILTER_MCAST;
 	if (!sc->sc_needmib && !sc->sc_scanning)
@@ -347,7 +347,7 @@ ath_recv_mgmt(struct ieee80211_node *ni, struct mbuf *m,
 	tsf_beacon_old = ((uint64_t) le32dec(ni->ni_tstamp.data + 4)) << 32;
 	tsf_beacon_old |= le32dec(ni->ni_tstamp.data);
 
-#define	TU_TO_TSF(_tu)	(((u_int64_t)(_tu)) << 10)
+#define	TU_TO_TSF(_tu)	(((uint64_t)(_tu)) << 10)
 	tsf_intval = 1;
 	if (ni->ni_intval > 0) {
 		tsf_intval = TU_TO_TSF(ni->ni_intval);
@@ -508,7 +508,7 @@ ath_recv_mgmt(struct ieee80211_node *ni, struct mbuf *m,
 #ifdef	ATH_ENABLE_RADIOTAP_VENDOR_EXT
 static void
 ath_rx_tap_vendor(struct ath_softc *sc, struct mbuf *m,
-    const struct ath_rx_status *rs, u_int64_t tsf, int16_t nf)
+    const struct ath_rx_status *rs, uint64_t tsf, int16_t nf)
 {
 
 	/* Fill in the extension bitmap */
@@ -573,7 +573,7 @@ ath_rx_tap_vendor(struct ath_softc *sc, struct mbuf *m,
 
 static void
 ath_rx_tap(struct ath_softc *sc, struct mbuf *m,
-	const struct ath_rx_status *rs, u_int64_t tsf, int16_t nf)
+	const struct ath_rx_status *rs, uint64_t tsf, int16_t nf)
 {
 #define	CHAN_HT20	htole32(IEEE80211_CHAN_HT20)
 #define	CHAN_HT40U	htole32(IEEE80211_CHAN_HT40U)
@@ -1083,7 +1083,7 @@ ath_rx_proc(struct ath_softc *sc, int resched)
 	int ngood;
 	HAL_STATUS status;
 	int16_t nf;
-	u_int64_t tsf;
+	uint64_t tsf;
 	int npkts = 0;
 	int kickpcu = 0;
 	int ret;

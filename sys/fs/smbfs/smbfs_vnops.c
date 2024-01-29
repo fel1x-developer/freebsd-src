@@ -565,7 +565,7 @@ smbfs_rename(struct vop_rename_args *ap)
 /*	struct componentname *fcnp = ap->a_fcnp;*/
 	struct smb_cred *scred;
 #ifdef notnow
-	u_int16_t flags = 6;
+	uint16_t flags = 6;
 #endif
 	int error=0;
 

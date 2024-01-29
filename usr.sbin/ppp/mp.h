@@ -82,14 +82,14 @@ struct mp {
   struct mpserver server;	/* Our ``sharing'' socket */
 
   struct {
-    u_int32_t seq;		/* next outgoing seq */
+    uint32_t seq;		/* next outgoing seq */
     int link;			/* Next link to send on */
     int af;			/* Next address family to send */
   } out;
 
   struct {
-    u_int32_t min_in;		/* minimum received incoming seq */
-    u_int32_t next_in;		/* next incoming seq to process */
+    uint32_t min_in;		/* minimum received incoming seq */
+    uint32_t next_in;		/* next incoming seq to process */
   } seq;
 
   struct {
@@ -110,14 +110,14 @@ struct mp {
 };
 
 struct mp_link {
-  u_int32_t seq;		/* 12 or 24 bit incoming seq */
+  uint32_t seq;		/* 12 or 24 bit incoming seq */
   unsigned bandwidth;		/* Our link bandwidth (or zero) */
 };
 
 struct mp_header {
   unsigned begin : 1;
   unsigned end : 1;
-  u_int32_t seq;
+  uint32_t seq;
 };
 
 #define descriptor2mpserver(d) \

@@ -59,7 +59,7 @@ const struct ngcmd write_cmd = {
 static int
 WriteCmd(int ac, char **av)
 {
-	u_int32_t sagbuf[64];
+	uint32_t sagbuf[64];
 	struct sockaddr_ng *sag = (struct sockaddr_ng *)sagbuf;
 	u_char buf[BUF_SIZE];
 	const char *hook;

@@ -99,39 +99,39 @@ static void		 init_ed(struct hfsc_class *, int);
 static void		 update_ed(struct hfsc_class *, int);
 static void		 update_d(struct hfsc_class *, int);
 static void		 init_vf(struct hfsc_class *, int);
-static void		 update_vf(struct hfsc_class *, int, u_int64_t);
+static void		 update_vf(struct hfsc_class *, int, uint64_t);
 static void		 ellist_insert(struct hfsc_class *);
 static void		 ellist_remove(struct hfsc_class *);
 static void		 ellist_update(struct hfsc_class *);
-struct hfsc_class	*hfsc_get_mindl(struct hfsc_if *, u_int64_t);
+struct hfsc_class	*hfsc_get_mindl(struct hfsc_if *, uint64_t);
 static void		 actlist_insert(struct hfsc_class *);
 static void		 actlist_remove(struct hfsc_class *);
 static void		 actlist_update(struct hfsc_class *);
 
 static struct hfsc_class	*actlist_firstfit(struct hfsc_class *,
-				    u_int64_t);
+				    uint64_t);
 
-static __inline u_int64_t	seg_x2y(u_int64_t, u_int64_t);
-static __inline u_int64_t	seg_y2x(u_int64_t, u_int64_t);
-static __inline u_int64_t	m2sm(u_int64_t);
-static __inline u_int64_t	m2ism(u_int64_t);
-static __inline u_int64_t	d2dx(u_int);
-static u_int64_t		sm2m(u_int64_t);
-static u_int			dx2d(u_int64_t);
+static __inline uint64_t	seg_x2y(uint64_t, uint64_t);
+static __inline uint64_t	seg_y2x(uint64_t, uint64_t);
+static __inline uint64_t	m2sm(uint64_t);
+static __inline uint64_t	m2ism(uint64_t);
+static __inline uint64_t	d2dx(u_int);
+static uint64_t		sm2m(uint64_t);
+static u_int			dx2d(uint64_t);
 
 static void		sc2isc(struct service_curve *, struct internal_sc *);
 static void		rtsc_init(struct runtime_sc *, struct internal_sc *,
-			    u_int64_t, u_int64_t);
-static u_int64_t	rtsc_y2x(struct runtime_sc *, u_int64_t);
-static u_int64_t	rtsc_x2y(struct runtime_sc *, u_int64_t);
+			    uint64_t, uint64_t);
+static uint64_t	rtsc_y2x(struct runtime_sc *, uint64_t);
+static uint64_t	rtsc_x2y(struct runtime_sc *, uint64_t);
 static void		rtsc_min(struct runtime_sc *, struct internal_sc *,
-			    u_int64_t, u_int64_t);
+			    uint64_t, uint64_t);
 
 static void			 get_class_stats_v0(struct hfsc_classstats_v0 *,
 				    struct hfsc_class *);
 static void			 get_class_stats_v1(struct hfsc_classstats_v1 *,
 				    struct hfsc_class *);
-static struct hfsc_class	*clh_to_clp(struct hfsc_if *, u_int32_t);
+static struct hfsc_class	*clh_to_clp(struct hfsc_if *, uint32_t);
 
 /*
  * macros
@@ -713,7 +713,7 @@ hfsc_dequeue(struct ifaltq *ifq, int op)
 	struct mbuf *m;
 	int len, next_len;
 	int realtime = 0;
-	u_int64_t cur_time;
+	uint64_t cur_time;
 
 	IFQ_LOCK_ASSERT(ifq);
 
@@ -905,7 +905,7 @@ set_passive(struct hfsc_class *cl)
 static void
 init_ed(struct hfsc_class *cl, int next_len)
 {
-	u_int64_t cur_time;
+	uint64_t cur_time;
 
 	cur_time = read_machclk();
 
@@ -949,7 +949,7 @@ static void
 init_vf(struct hfsc_class *cl, int len)
 {
 	struct hfsc_class *max_cl, *p;
-	u_int64_t vt, f, cur_time;
+	uint64_t vt, f, cur_time;
 	int go_active;
 
 	cur_time = 0;
@@ -1036,9 +1036,9 @@ init_vf(struct hfsc_class *cl, int len)
 }
 
 static void
-update_vf(struct hfsc_class *cl, int len, u_int64_t cur_time)
+update_vf(struct hfsc_class *cl, int len, uint64_t cur_time)
 {
-	u_int64_t f, myf_bound, delta;
+	uint64_t f, myf_bound, delta;
 	int go_passive;
 
 	go_passive = qempty(cl->cl_q);
@@ -1123,7 +1123,7 @@ static void
 update_cfmin(struct hfsc_class *cl)
 {
 	struct hfsc_class *p;
-	u_int64_t cfmin;
+	uint64_t cfmin;
 
 	if (TAILQ_EMPTY(&cl->cl_actc)) {
 		cl->cl_cfmin = 0;
@@ -1219,7 +1219,7 @@ ellist_update(struct hfsc_class *cl)
 
 /* find the class with the minimum deadline among the eligible classes */
 struct hfsc_class *
-hfsc_get_mindl(struct hfsc_if *hif, u_int64_t cur_time)
+hfsc_get_mindl(struct hfsc_if *hif, uint64_t cur_time)
 {
 	struct hfsc_class *p, *cl = NULL;
 
@@ -1303,7 +1303,7 @@ actlist_update(struct hfsc_class *cl)
 }
 
 static struct hfsc_class *
-actlist_firstfit(struct hfsc_class *cl, u_int64_t cur_time)
+actlist_firstfit(struct hfsc_class *cl, uint64_t cur_time)
 {
 	struct hfsc_class *p;
 
@@ -1336,10 +1336,10 @@ actlist_firstfit(struct hfsc_class *cl, u_int64_t cur_time)
 #define	SM_MASK		((1LL << SM_SHIFT) - 1)
 #define	ISM_MASK	((1LL << ISM_SHIFT) - 1)
 
-static __inline u_int64_t
-seg_x2y(u_int64_t x, u_int64_t sm)
+static __inline uint64_t
+seg_x2y(uint64_t x, uint64_t sm)
 {
-	u_int64_t y;
+	uint64_t y;
 
 	/*
 	 * compute
@@ -1350,10 +1350,10 @@ seg_x2y(u_int64_t x, u_int64_t sm)
 	return (y);
 }
 
-static __inline u_int64_t
-seg_y2x(u_int64_t y, u_int64_t ism)
+static __inline uint64_t
+seg_y2x(uint64_t y, uint64_t ism)
 {
-	u_int64_t x;
+	uint64_t x;
 
 	if (y == 0)
 		x = 0;
@@ -1366,49 +1366,49 @@ seg_y2x(u_int64_t y, u_int64_t ism)
 	return (x);
 }
 
-static __inline u_int64_t
-m2sm(u_int64_t m)
+static __inline uint64_t
+m2sm(uint64_t m)
 {
-	u_int64_t sm;
+	uint64_t sm;
 
 	sm = (m << SM_SHIFT) / 8 / machclk_freq;
 	return (sm);
 }
 
-static __inline u_int64_t
-m2ism(u_int64_t m)
+static __inline uint64_t
+m2ism(uint64_t m)
 {
-	u_int64_t ism;
+	uint64_t ism;
 
 	if (m == 0)
 		ism = HT_INFINITY;
 	else
-		ism = ((u_int64_t)machclk_freq << ISM_SHIFT) * 8 / m;
+		ism = ((uint64_t)machclk_freq << ISM_SHIFT) * 8 / m;
 	return (ism);
 }
 
-static __inline u_int64_t
+static __inline uint64_t
 d2dx(u_int d)
 {
-	u_int64_t dx;
+	uint64_t dx;
 
-	dx = ((u_int64_t)d * machclk_freq) / 1000;
+	dx = ((uint64_t)d * machclk_freq) / 1000;
 	return (dx);
 }
 
-static u_int64_t
-sm2m(u_int64_t sm)
+static uint64_t
+sm2m(uint64_t sm)
 {
-	u_int64_t m;
+	uint64_t m;
 
 	m = (sm * 8 * machclk_freq) >> SM_SHIFT;
 	return (m);
 }
 
 static u_int
-dx2d(u_int64_t dx)
+dx2d(uint64_t dx)
 {
-	u_int64_t d;
+	uint64_t d;
 
 	d = dx * 1000 / machclk_freq;
 	return ((u_int)d);
@@ -1430,8 +1430,8 @@ sc2isc(struct service_curve *sc, struct internal_sc *isc)
  * service curve starting at (x, y).
  */
 static void
-rtsc_init(struct runtime_sc *rtsc, struct internal_sc * isc, u_int64_t x,
-    u_int64_t y)
+rtsc_init(struct runtime_sc *rtsc, struct internal_sc * isc, uint64_t x,
+    uint64_t y)
 {
 	rtsc->x =	x;
 	rtsc->y =	y;
@@ -1447,10 +1447,10 @@ rtsc_init(struct runtime_sc *rtsc, struct internal_sc * isc, u_int64_t x,
  * calculate the y-projection of the runtime service curve by the
  * given x-projection value
  */
-static u_int64_t
-rtsc_y2x(struct runtime_sc *rtsc, u_int64_t y)
+static uint64_t
+rtsc_y2x(struct runtime_sc *rtsc, uint64_t y)
 {
-	u_int64_t	x;
+	uint64_t	x;
 
 	if (y < rtsc->y)
 		x = rtsc->x;
@@ -1468,10 +1468,10 @@ rtsc_y2x(struct runtime_sc *rtsc, u_int64_t y)
 	return (x);
 }
 
-static u_int64_t
-rtsc_x2y(struct runtime_sc *rtsc, u_int64_t x)
+static uint64_t
+rtsc_x2y(struct runtime_sc *rtsc, uint64_t x)
 {
-	u_int64_t	y;
+	uint64_t	y;
 
 	if (x <= rtsc->x)
 		y = rtsc->y;
@@ -1490,10 +1490,10 @@ rtsc_x2y(struct runtime_sc *rtsc, u_int64_t x)
  * runtime service curve and the service curve starting at (x, y).
  */
 static void
-rtsc_min(struct runtime_sc *rtsc, struct internal_sc *isc, u_int64_t x,
-    u_int64_t y)
+rtsc_min(struct runtime_sc *rtsc, struct internal_sc *isc, uint64_t x,
+    uint64_t y)
 {
-	u_int64_t	y1, y2, dx, dy;
+	uint64_t	y1, y2, dx, dy;
 
 	if (isc->sm1 <= isc->sm2) {
 		/* service curve is convex */
@@ -1556,7 +1556,7 @@ get_class_stats_v0(struct hfsc_classstats_v0 *sp, struct hfsc_class *cl)
 	sp->class_id = cl->cl_id;
 	sp->class_handle = cl->cl_handle;
 
-#define SATU32(x)	(u_int32_t)uqmin((x), UINT_MAX)
+#define SATU32(x)	(uint32_t)uqmin((x), UINT_MAX)
 
 	if (cl->cl_rsc != NULL) {
 		sp->rsc.m1 = SATU32(sm2m(cl->cl_rsc->sm1));
@@ -1712,7 +1712,7 @@ get_class_stats_v1(struct hfsc_classstats_v1 *sp, struct hfsc_class *cl)
 
 /* convert a class handle to the corresponding class pointer */
 static struct hfsc_class *
-clh_to_clp(struct hfsc_if *hif, u_int32_t chandle)
+clh_to_clp(struct hfsc_if *hif, uint32_t chandle)
 {
 	int i;
 	struct hfsc_class *cl;

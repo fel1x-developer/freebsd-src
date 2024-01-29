@@ -223,7 +223,7 @@ mpt_ioc_status(int code)
 }
 
 char *
-mpt_ioc_diag(u_int32_t code)
+mpt_ioc_diag(uint32_t code)
 {
 	const struct Error_Map *status = IOC_Diag;
 	static char buf[128];
@@ -318,7 +318,7 @@ mpt_who(int who_init)
 }
 
 static const char *
-mpt_state(u_int32_t mb)
+mpt_state(uint32_t mb)
 {
 	const char *text;
 
@@ -347,7 +347,7 @@ mpt_scsi_tm_type(int code)
 }
 
 void
-mpt_print_db(u_int32_t mb)
+mpt_print_db(uint32_t mb)
 {
 
 	printf("mpt mailbox: (0x%x) State %s  WhoInit %s\n",

@@ -86,15 +86,15 @@ struct ipcp {
 
   unsigned peer_req : 1;		/* Any TY_IPADDR REQs from the peer ? */
   struct in_addr peer_ip;		/* IP address he's willing to use */
-  u_int32_t peer_compproto;		/* VJ params he's willing to use */
+  uint32_t peer_compproto;		/* VJ params he's willing to use */
 
   struct in_addr ifmask;		/* Interface netmask */
 
   struct in_addr my_ip;			/* IP address I'm willing to use */
-  u_int32_t my_compproto;		/* VJ params I'm willing to use */
+  uint32_t my_compproto;		/* VJ params I'm willing to use */
 
-  u_int32_t peer_reject;		/* Request codes rejected by peer */
-  u_int32_t my_reject;			/* Request codes I have rejected */
+  uint32_t peer_reject;		/* Request codes rejected by peer */
+  uint32_t my_reject;			/* Request codes I have rejected */
 
   struct pppThroughput throughput;	/* throughput statistics */
   struct mqueue Queue[3];		/* Output packet queues */
@@ -111,7 +111,7 @@ struct iface_addr;
 extern void ipcp_Init(struct ipcp *, struct bundle *, struct link *,
                       const struct fsm_parent *);
 extern void ipcp_Destroy(struct ipcp *);
-extern void ipcp_Setup(struct ipcp *, u_int32_t);
+extern void ipcp_Setup(struct ipcp *, uint32_t);
 extern void ipcp_SetLink(struct ipcp *, struct link *);
 
 extern int  ipcp_Show(struct cmdargs const *);

@@ -111,11 +111,11 @@
  *   field hits 0 (= no external reference other than from SA header.
  */
 
-VNET_DEFINE(u_int32_t, key_debug_level) = 0;
+VNET_DEFINE(uint32_t, key_debug_level) = 0;
 VNET_DEFINE_STATIC(u_int, key_spi_trycnt) = 1000;
-VNET_DEFINE_STATIC(u_int32_t, key_spi_minval) = 0x100;
-VNET_DEFINE_STATIC(u_int32_t, key_spi_maxval) = 0x0fffffff;	/* XXX */
-VNET_DEFINE_STATIC(u_int32_t, policy_id) = 0;
+VNET_DEFINE_STATIC(uint32_t, key_spi_minval) = 0x100;
+VNET_DEFINE_STATIC(uint32_t, key_spi_maxval) = 0x0fffffff;	/* XXX */
+VNET_DEFINE_STATIC(uint32_t, policy_id) = 0;
 /*interval to initialize randseed,1(m)*/
 VNET_DEFINE_STATIC(u_int, key_int_random) = 60;
 /* interval to expire acquiring, 30(s)*/
@@ -136,7 +136,7 @@ VNET_DEFINE_STATIC(int, key_preferred_oldsa) = 1;
 #define	V_key_blockacq_lifetime	VNET(key_blockacq_lifetime)
 #define	V_key_preferred_oldsa	VNET(key_preferred_oldsa)
 
-VNET_DEFINE_STATIC(u_int32_t, acq_seq) = 0;
+VNET_DEFINE_STATIC(uint32_t, acq_seq) = 0;
 #define	V_acq_seq		VNET(acq_seq)
 
 VNET_DEFINE_STATIC(uint32_t, sp_genid) = 0;
@@ -624,7 +624,7 @@ static void key_unlink(struct secpolicy *);
 static void key_detach(struct secpolicy *);
 static struct secpolicy *key_do_allocsp(struct secpolicyindex *spidx, u_int dir);
 static struct secpolicy *key_getsp(struct secpolicyindex *);
-static struct secpolicy *key_getspbyid(u_int32_t);
+static struct secpolicy *key_getspbyid(uint32_t);
 static struct mbuf *key_gather_mbuf(struct mbuf *,
 	const struct sadb_msghdr *, int, int, ...);
 static int key_spdadd(struct socket *, struct mbuf *,
@@ -641,7 +641,7 @@ static int key_spdflush(struct socket *, struct mbuf *,
 static int key_spddump(struct socket *, struct mbuf *,
 	const struct sadb_msghdr *);
 static struct mbuf *key_setdumpsp(struct secpolicy *,
-	u_int8_t, u_int32_t, u_int32_t);
+	uint8_t, uint32_t, uint32_t);
 static struct mbuf *key_sp2mbuf(struct secpolicy *);
 static size_t key_getspreqmsglen(struct secpolicy *);
 static int key_spdexpire(struct secpolicy *);
@@ -661,19 +661,19 @@ static int key_updatelifetimes(struct secasvar *, const struct sadb_msghdr *);
 static int key_updateaddresses(struct socket *, struct mbuf *,
     const struct sadb_msghdr *, struct secasvar *, struct secasindex *);
 
-static struct mbuf *key_setdumpsa(struct secasvar *, u_int8_t,
-	u_int8_t, u_int32_t, u_int32_t);
-static struct mbuf *key_setsadbmsg(u_int8_t, u_int16_t, u_int8_t,
-	u_int32_t, pid_t, u_int16_t);
+static struct mbuf *key_setdumpsa(struct secasvar *, uint8_t,
+	uint8_t, uint32_t, uint32_t);
+static struct mbuf *key_setsadbmsg(uint8_t, uint16_t, uint8_t,
+	uint32_t, pid_t, uint16_t);
 static struct mbuf *key_setsadbsa(struct secasvar *);
-static struct mbuf *key_setsadbaddr(u_int16_t,
-	const struct sockaddr *, u_int8_t, u_int16_t);
-static struct mbuf *key_setsadbxport(u_int16_t, u_int16_t);
-static struct mbuf *key_setsadbxtype(u_int16_t);
-static struct mbuf *key_setsadbxsa2(u_int8_t, u_int32_t, u_int32_t);
-static struct mbuf *key_setsadbxsareplay(u_int32_t);
-static struct mbuf *key_setsadbxpolicy(u_int16_t, u_int8_t,
-	u_int32_t, u_int32_t);
+static struct mbuf *key_setsadbaddr(uint16_t,
+	const struct sockaddr *, uint8_t, uint16_t);
+static struct mbuf *key_setsadbxport(uint16_t, uint16_t);
+static struct mbuf *key_setsadbxtype(uint16_t);
+static struct mbuf *key_setsadbxsa2(uint8_t, uint32_t, uint32_t);
+static struct mbuf *key_setsadbxsareplay(uint32_t);
+static struct mbuf *key_setsadbxpolicy(uint16_t, uint8_t,
+	uint32_t, uint32_t);
 static struct seckey *key_dup_keymsg(const struct sadb_key *, size_t,
     struct malloc_type *);
 static struct seclifetime *key_dup_lifemsg(const struct sadb_lifetime *src,
@@ -1649,7 +1649,7 @@ key_msg2sp(struct sadb_x_policy *xpl0, size_t len, int *error)
 
 				/* allocate new reqid id if reqid is zero. */
 				if (xisr->sadb_x_ipsecrequest_reqid == 0) {
-					u_int32_t reqid;
+					uint32_t reqid;
 					if ((reqid = key_newreqid()) == 0) {
 						key_freesp(&newsp);
 						*error = ENOBUFS;
@@ -2675,8 +2675,8 @@ key_spddump(struct socket *so, struct mbuf *m, const struct sadb_msghdr *mhp)
 }
 
 static struct mbuf *
-key_setdumpsp(struct secpolicy *sp, u_int8_t type, u_int32_t seq,
-    u_int32_t pid)
+key_setdumpsp(struct secpolicy *sp, uint8_t type, uint32_t seq,
+    uint32_t pid)
 {
 	struct mbuf *result = NULL, *m;
 	struct seclifetime lt;
@@ -3797,8 +3797,8 @@ fail:
  * set data into sadb_msg.
  */
 static struct mbuf *
-key_setsadbmsg(u_int8_t type, u_int16_t tlen, u_int8_t satype, u_int32_t seq,
-    pid_t pid, u_int16_t reserved)
+key_setsadbmsg(uint8_t type, uint16_t tlen, uint8_t satype, uint32_t seq,
+    pid_t pid, uint16_t reserved)
 {
 	struct mbuf *m;
 	struct sadb_msg *p;
@@ -3823,7 +3823,7 @@ key_setsadbmsg(u_int8_t type, u_int16_t tlen, u_int8_t satype, u_int32_t seq,
 	p->sadb_msg_len = PFKEY_UNIT64(tlen);
 	p->sadb_msg_reserved = reserved;
 	p->sadb_msg_seq = seq;
-	p->sadb_msg_pid = (u_int32_t)pid;
+	p->sadb_msg_pid = (uint32_t)pid;
 
 	return m;
 }
@@ -3863,8 +3863,8 @@ key_setsadbsa(struct secasvar *sav)
  * set data into sadb_address.
  */
 static struct mbuf *
-key_setsadbaddr(u_int16_t exttype, const struct sockaddr *saddr,
-    u_int8_t prefixlen, u_int16_t ul_proto)
+key_setsadbaddr(uint16_t exttype, const struct sockaddr *saddr,
+    uint8_t prefixlen, uint16_t ul_proto)
 {
 	struct mbuf *m;
 	struct sadb_address *p;
@@ -3909,7 +3909,7 @@ key_setsadbaddr(u_int16_t exttype, const struct sockaddr *saddr,
  * set data into sadb_x_sa2.
  */
 static struct mbuf *
-key_setsadbxsa2(u_int8_t mode, u_int32_t seq, u_int32_t reqid)
+key_setsadbxsa2(uint8_t mode, uint32_t seq, uint32_t reqid)
 {
 	struct mbuf *m;
 	struct sadb_x_sa2 *p;
@@ -3939,7 +3939,7 @@ key_setsadbxsa2(u_int8_t mode, u_int32_t seq, u_int32_t reqid)
  * Set data into sadb_x_sa_replay.
  */
 static struct mbuf *
-key_setsadbxsareplay(u_int32_t replay)
+key_setsadbxsareplay(uint32_t replay)
 {
 	struct mbuf *m;
 	struct sadb_x_sa_replay *p;
@@ -3965,7 +3965,7 @@ key_setsadbxsareplay(u_int32_t replay)
  * Set a type in sadb_x_nat_t_type.
  */
 static struct mbuf *
-key_setsadbxtype(u_int16_t type)
+key_setsadbxtype(uint16_t type)
 {
 	struct mbuf *m;
 	size_t len;
@@ -3992,7 +3992,7 @@ key_setsadbxtype(u_int16_t type)
  * In contrast to default RFC 2367 behaviour, port is in network byte order.
  */
 static struct mbuf *
-key_setsadbxport(u_int16_t port, u_int16_t type)
+key_setsadbxport(uint16_t port, uint16_t type)
 {
 	struct mbuf *m;
 	size_t len;
@@ -4064,7 +4064,7 @@ key_porttosaddr(struct sockaddr *sa, uint16_t port)
  * set data into sadb_x_policy
  */
 static struct mbuf *
-key_setsadbxpolicy(u_int16_t type, u_int8_t dir, u_int32_t id, u_int32_t priority)
+key_setsadbxpolicy(uint16_t type, uint8_t dir, uint32_t id, uint32_t priority)
 {
 	struct mbuf *m;
 	struct sadb_x_policy *p;
@@ -4266,7 +4266,7 @@ key_cmpspidx_withmask(struct secpolicyindex *spidx0,
 		return 0;
 
 	/* if spidx.ul_proto == IPSEC_ULPROTO_ANY, ignore. */
-	if (spidx0->ul_proto != (u_int16_t)IPSEC_ULPROTO_ANY
+	if (spidx0->ul_proto != (uint16_t)IPSEC_ULPROTO_ANY
 	 && spidx0->ul_proto != spidx1->ul_proto)
 		return 0;
 
@@ -4453,7 +4453,7 @@ key_bbcmp(const void *a1, const void *a2, u_int bits)
 	}
 
 	if (bits > 0) {
-		u_int8_t mask = ~((1<<(8-bits))-1);
+		uint8_t mask = ~((1<<(8-bits))-1);
 		if ((*p1 & mask) != (*p2 & mask))
 			return 0;
 	}
@@ -6478,8 +6478,8 @@ key_getcomb_ealg(void)
 }
 
 static void
-key_getsizes_ah(const struct auth_hash *ah, int alg, u_int16_t* min,
-    u_int16_t* max)
+key_getsizes_ah(const struct auth_hash *ah, int alg, uint16_t* min,
+    uint16_t* max)
 {
 
 	*min = *max = ah->hashsize;
@@ -6510,7 +6510,7 @@ key_getcomb_ah(void)
 	const struct auth_hash *algo;
 	struct sadb_comb *comb;
 	struct mbuf *m;
-	u_int16_t minkeysize, maxkeysize;
+	uint16_t minkeysize, maxkeysize;
 	int i;
 	const int l = PFKEY_ALIGN8(sizeof(struct sadb_comb));
 
@@ -7293,7 +7293,7 @@ key_register(struct socket *so, struct mbuf *m, const struct sadb_msghdr *mhp)
 
 		for (i = 1; i <= SADB_AALG_MAX; i++) {
 			const struct auth_hash *aalgo;
-			u_int16_t minkeysize, maxkeysize;
+			uint16_t minkeysize, maxkeysize;
 
 			aalgo = auth_algorithm_lookup(i);
 			if (!aalgo)
@@ -8276,7 +8276,7 @@ key_validate_ext(const struct sadb_ext *ext, int len)
 	case NONE:
 		break;
 	case ADDR:
-		sa = (const struct sockaddr *)(((const u_int8_t*)ext)+baselen);
+		sa = (const struct sockaddr *)(((const uint8_t*)ext)+baselen);
 		if (len < baselen + sal)
 			return EINVAL;
 		if (baselen + PFKEY_ALIGN8(sa->sa_len) != len)
